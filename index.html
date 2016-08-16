@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .invert { background-color: black; color: white; }
+      .bad { background-color: #AA1914; color: white;}
+      .oki { background-color: #3D9972; color: white;}
+      .strike { text-decoration: line-through; }
+      .lint { background-color: #f3f3f3; }
+      .conversation h3 { margin: 17px; font-size: 28px; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css">
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Effective Coding Principles and Patterns in Java 8
+
+---
+class: center, middle
+# Welcome.
+???
+Introduce myself and let others introduce themselves.
+Setting expectations:
+- Not Java 8 course.
+- Learn principles, practices and patterns for writing readable, maintainable and effective code - CLEAN CODE. In modern Java.
+- My goal is to make you feel that he rules will tell you to do things that are really weird or NOT to do something that you did. Be open minded.
+
+---
+# Agenda
+- Day I: General Software Design
+- Day II:
+- Homework (with group code review).
+
+---
+class: center, middle
+# WHY CLEAN CODE?
+???
+Before HOW -> WHY
+
+---
+class: center, middle
+# There is a strong correlation between quality of the codebase and developer productivity or **throughput**.
+## (c) me
+???
+- The higher is quality, the higher is productivity. And vice versa.
+- Everyone agrees?!
+- Productivity - TIME we spend per CHANGE.
+
+---
+class: middle
+# <span class="ktx" expr="Throughput = \dfrac{RTF}{TIME}"></span>
+#### *RTF - Released Tested Features (c) [The Economics of Software Design](https://www.youtube.com/watch?v=7HecgbghFTk), J.B. Rainsberger *
+???
+
+---
+class: center, middle
+# Higher throughput = lower **cost per change**.
+#### <span class="ktx" expr="cost\,per\,change = time\,spent\,on\,change\,\times salary"></span>
+
+---
+class: center, middle
+# Why do these guys move so slow?!
+???
+Low throughput
+
+---
+class: center, middle
+# Why are these guys so expensive?!
+???
+High CPC (low throghput; too low for given salary!!!)
+
+
+---
+class: center, middle
+# By writing clean code, you enable **stable throughput / responsiveness over time**.
+### (the time that is usually longer than your employment)
+???
+- The goal of design is to be able to ship as fast as we can now not only in the next 3 months, but in years etc.
+- Unfortunately, we do not usually know see long-term consequences of our work, but we should.
+- For example, my best friend is now maintaining a software that I wrote 6 years ago :-)
+
+
+---
+name: throughput
+<div id="throughput" style="width: 100%; height: 100%;"></div>
+???
+- team is slow and becomes a bottleneck to make world a better place :-) New teams, rewrites etc.
+- a nice thing about sustainable pace that I can estimate.
+- Do you know the rule that makes throughput gradually grow? BS rule. That's how we escale from SHIT.
+- Can someone explain why throughput drops that fast?
+
+---
+#  Reinforcing loops:
+### low throughput -> pressure -> more corners cut -> lower throghput
+### low throughput -> unmet deadlines -> more people to work on features -> lower throughput (Brook's Law)
+### low quality tolerated -> lower quality (Broken window theory)
+### low quality tolerated -> lower quality -> tolerated -> even bigger decline in quality -> ... (Drift to Low Performace)
+### Graham's Law
+???
+- BWT - if there is mess, or rush, you don't be the first to make a mess.
+- Graham's law - Shitty component remain a part of the system over time precisely because it's hard to take out. Conversely, a component that is easy to replace is one that we may replace.
+
+---
+![](donella.png)
+
+---
+name: debt
+<div id="debt" style="width: 100%; height: 100%;"></div>
+???
+- TD - cumulative consequences of corners being cut.
+- In this example, we pay TD in terms of throughput.
+
+---
+class: center, middle
+# ?
+???
+- raise your hand who thinks technical debt is a bad thing?
+- who thinks it's a good thing?
+- is taking a loan a bad thing?
+- is taking and loan and not returning it back for a long time - a bad thing?
+
+---
+class: center, middle
+# Technical debt is a **tool** for gaining a **short-term** gain. **Causes addiction** and needs to be **managed**.
+???
+- Spike and Throwaway! (Dan North). E.g. TDDing at this level is kinda waste.
+- Meeting deadline (critical problem, black swan events -> unexpected prospect)
+
+---
+class: conversation
+### **Manager**: When will the new permission be done?
+### **Dev**: Mmmm, I hope tomorrow, in the end of the day.
+### **Manager**: We need it today. Can’t you find a “creative” way to do it?
+### **Dev**: Let me think…
+### **Manager**: We have 5 clients that really need this today. Else they will probably not sign the contract.
+### **Dev**: But the…
+### **Manager**: Look, it’s important that you understand the business value of it. Isn’t it just a new condition in the code? Just put it there, and we’ll “fix it” later.
+### **Dev**: Ok.
+### **Manager**: So we’ll be able to deploy today?
+### **Dev**: Aham.
+#### *— [Technical Debt 101](https://medium.com/@joaomilho/festina-lente-e29070811b84#.7d8asvofr)*
+
+---
+class: bottom, right
+background-image:url(techDebtQuadrant.png)
+#### *Technical debt quadrant: http://martinfowler.com/bliki/TechnicalDebtQuadrant.html*
+???
+- reckless - we focus on completing tasks fast instead of building HQ system. Boil like frogs.
+- It's often the case that it can take a year of programming on a project before you understand what the best design approach should have be.
+
+---
+class: center, middle, bad
+# The only way to go fast is to go well.
+### (c) Uncle Bob
+???
+really?
+
+---
+class: center, middle, oki
+# The only way to go fast [in a long run] is to go well.
+### (c) Uncle Bob (edited)
+
+---
+class: center, middle
+# Does writing clean code take more time than writing crap?
+???
+- takes time -> lower throghput -> higher cost per change. -> quality is expensive
+
+---
+class: center, middle
+# Reading vs. writing ratio is 10:1.
+???
+we want reading to be easy if it makes writing harder. Making code easy to read, makes it easier to write.
+
+---
+class: center, middle
+# There are people who write clean code blazingly fast.
+???
+I saw master at work. You can be that master. Skill acquisition graph (performance over time)
+
+---
+class: center, middle
+# If something is not worth our time, consider not doing it.
+![](stepsofmastery.png)
+???
+- Avoiding it - nice! less INHERENT COMPLEXITY. less code to maintain.
+- Agile Manifesto principle. Simplicity — the art of maximizing the amount of work not done.
+
+---
+class: center, middle
+# It only takes one crappy class to harm your reputation.
+???
+
+
+---
+class: center, middle
+## If you think someone is an asshole, most people who are silently observing the situation think so, too.
+#### *— Guy’s Theory of Perfect Knowledge of Assholes*
+
+---
+background-image:url(SonarQube-02.png)
+???
+- not used
+- running on every push
+- before every push (https://hub.docker.com/_/sonarqube)
+- running on every code change
+
+---
+class: lint
+background-image:url(sonarlint.png)
+
+---
+class: center, middle, invert
+# Naming
+
+---
+### Astonishing / non-intention revealing Twilio API
+```java
+import com.twilio.sdk.TwilioRestClient;
+import com.twilio.sdk.TwilioRestException;
+import com.twilio.sdk.resource.factory.MessageFactory;
+import com.twilio.sdk.resource.instance.Message;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+public class Example {
+
+  // Find your Account Sid and Token at twilio.com/console
+  public static final String ACCOUNT_SID = "{{ account_sid }}";
+  public static final String AUTH_TOKEN = "{{ auth_token }}";
+
+  public static void main(String[] args) throws TwilioRestException {
+    TwilioRestClient client = new TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN);
+
+    // Build a filter for the MessageList
+    List<NameValuePair> params = new ArrayList<NameValuePair>();
+    params.add(new BasicNameValuePair("Body", "Hello from Java"));
+    params.add(new BasicNameValuePair("To", "+12345678901"));
+    params.add(new BasicNameValuePair("From", "+12345678901"));
+
+    MessageFactory messageFactory = client.getAccount().getMessageFactory();
+*   // this guy actually sends a message. Violates Least Astonishment Principle
+*   Message message = messageFactory.create(params);
+  }
+}
+```
+---
+```java
+// quite a big surprise for a client
+void update(Entity entity) {
+  if (!entity.isIdAssigned()) {
+    return;
+  }
+}
+```
+
+```java
+// if you can't do something - fail
+void update(Entity entity) {
+  checkArgument(entity.isIdAssigned(), "Cannot update entity. Id is missing");
+  ...
+}
+```
+
+```java
+// if you really need to communicate conditional execution
+void updateIfIdAssigned(Entity entity) {
+  if (!entity.isIdAssigned()) {
+    return;
+  }
+}
+```
+---
+### Take scope into account
+```java
+interface Employee {
+  String employeeAddress();
+}
+
+interface Employee {
+  String address();
+}
+```
+```java
+class Transaction {
+  enum TransactionScope { }
+}
+
+class Transaction {
+  enum Scope { }
+}
+```
+
+```java
+// Packages are usually exception to the rule
+package org.framework.batch
+
+interface Reader { }         // :(
+interface Operation { }      // :(
+
+interface BatchReader { }    // :)
+interface BatchOperation { } // :)
+```
+---
+### Consider searchability
+```java
+  class CancelTransaction { }
+
+  // vs.
+
+  class CancelTransactionCommand { }
+
+```
+### Stay consistent
+```java
+  class RegistrationFailure extends BusinessException { }
+
+  // vs.
+
+  class RegistrationException extends BusinessException { }
+```
+
+---
+
+booleans:
+LocalDate created; -> no!
+
+---
+class: center, middle, invert
+# General design principles
+
+---
+class: center, middle
+# Maximizing reuse complicates use.
+#### *— Kirk Knoernschild, [Java Application Architecture](https://www.amazon.com/Java-Application-Architecture-Modularity-Patterns/dp/0321247132)*
+???
+- Use/Reuse paradox: what is easy to use is often hard to reuse
+- The ability to compose systems from reusable elements complicates the system.
+
+---
+class: center, middle
+# Flexibility breeds complexity.
+#### *— Kirk Knoernschild, [Java Application Architecture](https://www.amazon.com/Java-Application-Architecture-Modularity-Patterns/dp/0321247132)*
+???
+- implementation side of things
+
+---
+class: center, middle
+# Fight temptation to write re-usable and flexible code upfront. Start with specific and direct code, and let reuse / flexibility points emerge from usage scenarios.
+???
+- Lean #4 principle (decide as late a possible - knowledge/time plot).
+- YAGNI (XP principle)
+- KISS (keep it simple and straightforward)
+
+---
+class: center, middle
+# **Emergent design** depends on code that is **easy to change**.
+
+---
+class: center, middle
+# Reuse increase coupling.
+???
+DRY has a side-effect.
+
+---
+class: center, middle
+# Code must be kept at the same level of abstraction.
+### (abstraction - trimming info on a subject to the absolute context relevant minimum)
+
+---
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = applicationCheckFactory.make(when, application, countryCode);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+---
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+* def check = applicationCheckFactory.make(when, application, countryCode);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+* def check = makeCheck(application, when);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+---
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+* if (log.isDebugEnabled()) {
+*   log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+* }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+* log(check); // logIfNeeded if conditional needs to be communicated
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+---
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+* persistResults(checkResult, application);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+* persist(checkResult);
+  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+---
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+* if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+* if (shouldRunScorecard(application)) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+---
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+*  return runScorecard && LoanAgreementType.MAIN.equals(application.agreementType());
+}
+```
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+*  return scoringEnabled && application.agreementType().equals(MAIN);
+}
+```
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) { // inflexble
+*  return scoringEnabled && application.isAgreementOfTypeMain()); // WTF is Type?
+}
+```
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) { // flexible
+*  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF anyway?
+}
+```
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+   Agreement agreement = application.agreement();
+*  return scoringEnabled && agreement.isMain();
+}
+```
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+   Agreement agreement = application.agreement();
+   boolean agreementIsApplicableForScoring =
+        agreement.satisfies(new IsApplicableForScoring());
+*  return scoringEnabled && agreementIsApplicableForScoring;
+}
+```
+
+---
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+* // smells like a missing application scoring concept
+* if (shouldRunScorecard(application)) {
+*    runScorecard(application, checkResult);
+* }
+  return checkResult;
+}
+```
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+* def scoring = scoring(application);
+* if (scoring.isNecessary()) { // NullObject can remove if, but should we?
+*    scoring.score();
+* }
+  return checkResult;
+}
+```
+---
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+  def scoring = scoring(application);
+  if (scoring.isNecessary()) {
+    scoring.score();
+  }
+  return checkResult;
+}
+```
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+}
+
+public def scoreApplicationIfNecessary(LoanApplication application) {
+  def scoring = scoring(application);
+  if (scoring.isNecessary()) {
+    scoring.score();
+  }
+}
+```
+```groovy
+// making things more explicit...
+// don't even consider extending LoanApplication
+class ScorableLoanApplication {
+    void score();
+}
+```
+
+---
+```java
+public interface EShopService {
+    Map<String, String> prepareNotificationParams(EShopSession session);
+}
+```
+```java
+public interface EShopNotificationParams {
+    NotifationParams prepare(EShopSession session);
+}
+```
+---
+```java
+public interface EShopService {
+    Map<String, String> prepareNotificationParams(EShopSession session);
+}
+```
+```java
+public interface EShopNotificationParams {
+    NotifationParams prepare(EShopSession session);
+}
+```
+#### ----
+```java
+MultivaluedMap<String, String> formParams = new Form();
+for (String key : params.keySet()) {
+    formParams.add(key, params.get(key));
+}
+```
+```java
+Form form = new Form(new Params(params));
+```
+
+---
+```java
+public interface EShopService {
+    Map<String, String> prepareNotificationParams(EShopSession session);
+}
+```
+```java
+public interface EShopNotificationParams {
+    NotifationParams prepare(EShopSession session);
+}
+```
+#### ----
+```java
+MultivaluedMap<String, String> formParams = new Form();
+for (String key : params.keySet()) {
+    formParams.add(key, params.get(key));
+}
+```
+```java
+Form form = new Form(new Params(params));
+```
+#### ----
+```java
+Map<String, Boolean> checkboxes = new HashMap<>();
+```
+```java
+Collection<Checkbox> checkboxes = ...
+```
+
+---
+```java
+interface EquifaxFacade {
+    public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
+      // we always get 4 questions from Equifax
+      return MapUtils.isNotEmpty(questionToAnswerMap)
+        && questionToAnswerMap.size() == 4;
+    }
+}
+```
+```java
+class Answer {
+    String questionId;
+    String answerId;
+}
+```
+```java
+class UnvalidatedAnswers {
+
+    private static final int ALWAYS_FIXED_NUMBER_OF_QUESTIONS = 4;
+    private final Collection<Answer> answers;
+
+    boolean areValid() {
+        return answers.size() == ALWAYS_FIXED_NUMBER_OF_QUESTIONS;
+    }
+}
+```
+```java
+  UnvalidatedAnswers unvalidatedAnswers = new UnvalidatedAnswers(answers);
+  if (!unvalidatedAnswers.areValid()) {
+    ....
+  }
+```
+---
+class: center, middle
+# Reification - a process of making something concrete (implicit -> explicit).
+---
+???
+- with lambdas, you can write short expressions easily. Often, you must reify them.
+
+# Missing abstractions
+```java
+class HipChat {
+  void sendMessage(String channel, String message) {
+    Collection<String> mentions = extractMentions(message);
+    Collection<String> membersMentions = mentions.stream()
+      .filter(mention -> !mention.equals("@here"))
+      .filter(mention -> !mention.equals("@channel"))
+      .collect(...)
+  }
+}
+```
+```java
+interface Mentions {
+    Mentions members();
+}
+
+interface Message {
+  Mentions mentions();
+}
+```
+```java
+class HipChat {
+  void sendMessage(String channel, Message message) {
+    Mentions mentions = message.mentions();
+    Mentions members = mentions.members();
+  }
+}
+```
+
+---
+```java
+class HipChat {
+  void sendMessage(String channel, Message message) {
+    Mentions mentions = message.mentions();
+    Mentions members = mentions.members();
+*   send(message, channel);
+  }
+}
+```
+```java
+interface Message {
+  void send(String channel);
+}
+```
+```java
+class HipChat {
+  void sendMessage(String channel, Message message) {
+    Mentions mentions = message.mentions();
+    Mentions members = mentions.members();
+*   message.send(channel);
+  }
+}
+```
+---
+```java
+class HipChat {
+* void sendMessage(String channel, Message message) {
+    Mentions mentions = message.mentions();
+    Mentions members = mentions.members();
+    message.send(channel);
+  }
+}
+```
+```java
+interface Channel {
+  Message message();
+}
+
+class HipChat {
+* Channel channel() {}
+}
+```
+
+---
+- What is clean code? HAS TESTS. Most development is about PRESERVING BEHAVIOUR (show visually). Refactoring dilemma.
+
+---
+Software design is about finding a balance between conflicting forces. No perfect solutions.
+Different design goals get you different designs (c) Linus Torvalds
+
+
+---
+Pure OO design require encapsulation. Frameworks as for data.
+
+---
+Readable vs. Understandable
+
+```
+Doctor doctor = new Doctor();
+doctor.getPatientRecords(patientId);
+```
+vs.
+```
+Doctor dr = new Doctor();
+dr.getData(pId);
+```
+
+- Structural Honesty - is your structure honest, does it really convey the idea.?
+- Design is important when you want to change something. Software doens’t care how it’s designed, it’s just running there...
+- First law of software quality: e = mc^2 ; errors = (more code)^2. BUY stuff.
+
+---
+Boundaries/joints are important.
+
+
+
+---
+```
+Stream.generate(() -> UUID.randomUUID()).limit(100).reduce((me, you) -> {
+    System.out.println("Comparing " + me  + " with " + you + ": " + me.compareTo(you));
+    return you;
+});
+Comparing aea2c6d1-5d26-4426-b7f9-ccf9a7d95c80 with 36f59f46-f18e-4d62-a96e-66e89b5c268b: -1
+Comparing 36f59f46-f18e-4d62-a96e-66e89b5c268b with be316958-6fad-4c9f-aa52-86b9d489ab2a: 1
+Comparing be316958-6fad-4c9f-aa52-86b9d489ab2a with da9539f4-e41b-4cf4-97ab-b4df63a6a515: -1
+Comparing da9539f4-e41b-4cf4-97ab-b4df63a6a515 with 5da75fc4-ab2c-4ba8-a578-998c9c704999: -1
+Comparing 5da75fc4-ab2c-4ba8-a578-998c9c704999 with 3cdc614a-68e4-41e6-8a32-0fd2281f3be5: 1
+Comparing 3cdc614a-68e4-41e6-8a32-0fd2281f3be5 with 6ddb8ea9-f381-4b29-a48b-3be6f714207d: -1
+Comparing 6ddb8ea9-f381-4b29-a48b-3be6f714207d with aab362fd-e682-4e6c-9e0c-b12cb43c518d: 1
+Comparing aab362fd-e682-4e6c-9e0c-b12cb43c518d with c2555bd4-81f4-4abc-b8b8-8e23c5b8a420: -1
+Comparing c2555bd4-81f4-4abc-b8b8-8e23c5b8a420 with cf1b94ba-11ed-4254-8b8a-77ef9e94b445: -1
+Comparing cf1b94ba-11ed-4254-8b8a-77ef9e94b445 with fe822f07-694a-4c9e-9c1f-76597030ad9a: -1
+Comparing fe822f07-694a-4c9e-9c1f-76597030ad9a with 95e7cb0f-54a5-4543-82d6-288a42c624dc: 1
+Comparing 95e7cb0f-54a5-4543-82d6-288a42c624dc with 368ec6d2-07c6-44a3-af46-428129f31a04: -1
+Comparing 368ec6d2-07c6-44a3-af46-428129f31a04 with 69d67665-113e-4694-8e17-bf5ad26fba9a: -1
+Comparing 69d67665-113e-4694-8e17-bf5ad26fba9a with ea66e476-b081-4b03-878f-431fe9e24c29: 1
+Comparing ea66e476-b081-4b03-878f-431fe9e24c29 with 494d1cd9-15cb-4ad7-bc69-a0b2c49ef19a: -1
+Comparing 494d1cd9-15cb-4ad7-bc69-a0b2c49ef19a with 18cd7d22-4b06-4524-85b3-9bc0e06506fa: 1
+Comparing 18cd7d22-4b06-4524-85b3-9bc0e06506fa with 713d11fd-e4a3-4727-9764-e2e70949c3aa: -1
+Comparing 713d11fd-e4a3-4727-9764-e2e70949c3aa with 8a80fe2d-8599-41bd-a196-45ff7295257d: 1
+Comparing 8a80fe2d-8599-41bd-a196-45ff7295257d with 283805e1-f566-44ea-b648-451324be58c1: -1
+Comparing 283805e1-f566-44ea-b648-451324be58c1 with 1086db5c-65af-44ec-a8d8-a07ec50cd376: 1
+Comparing 1086db5c-65af-44ec-a8d8-a07ec50cd376 with 367ba14a-7919-4261-b6cf-9a4dd483dd6a: -1
+Comparing 367ba14a-7919-4261-b6cf-9a4dd483dd6a with 9e2eb688-2b49-435c-8395-6b26193c93e6: 1
+Comparing 9e2eb688-2b49-435c-8395-6b26193c93e6 with 4a1b2018-b8a6-428d-bc19-fc3a2b6bd9c6: -1
+```
+---
+
+---
+https://github.com/apache/cassandra/blob/cassandra-2.1/src/java/org/apache/cassandra/utils/UUIDGen.java
+```
+Stream.generate(() -> UUIDGen.getTimeUUID()).limit(100).reduce((me, you) -> {
+    System.out.println("Comparing " + me  + " with " + you + ": " + me.compareTo(you));
+    return you;
+});
+Comparing 90d2db50-6212-11e6-89ad-fba42d66c0c5 with 90d2db51-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d2db51-6212-11e6-89ad-fba42d66c0c5 with 90d2db52-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d2db52-6212-11e6-89ad-fba42d66c0c5 with 90d30260-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30260-6212-11e6-89ad-fba42d66c0c5 with 90d30261-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30261-6212-11e6-89ad-fba42d66c0c5 with 90d30262-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30262-6212-11e6-89ad-fba42d66c0c5 with 90d30263-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30263-6212-11e6-89ad-fba42d66c0c5 with 90d30264-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30264-6212-11e6-89ad-fba42d66c0c5 with 90d30265-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30265-6212-11e6-89ad-fba42d66c0c5 with 90d30266-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30266-6212-11e6-89ad-fba42d66c0c5 with 90d30267-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30267-6212-11e6-89ad-fba42d66c0c5 with 90d30268-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30268-6212-11e6-89ad-fba42d66c0c5 with 90d30269-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30269-6212-11e6-89ad-fba42d66c0c5 with 90d3026a-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026a-6212-11e6-89ad-fba42d66c0c5 with 90d3026b-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026b-6212-11e6-89ad-fba42d66c0c5 with 90d3026c-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026c-6212-11e6-89ad-fba42d66c0c5 with 90d3026d-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026d-6212-11e6-89ad-fba42d66c0c5 with 90d3026e-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026e-6212-11e6-89ad-fba42d66c0c5 with 90d3026f-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d3026f-6212-11e6-89ad-fba42d66c0c5 with 90d30270-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30270-6212-11e6-89ad-fba42d66c0c5 with 90d30271-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30271-6212-11e6-89ad-fba42d66c0c5 with 90d30272-6212-11e6-89ad-fba42d66c0c5: -1
+Comparing 90d30272-6212-11e6-89ad-fba42d66c0c5 with 90d32970-6212-11e6-89ad-fba42d66c0c5: -1
+```
+
+- Bad design is going to be there, so you can localize imperfections from key parts of the software.
+- Code must fit user mental modal.
+For example, let’s say that my word processor supports tables, text paragraphs, and figures. One requirements scenario captures the user/system interactions to move a table within the document. I can describe the possible scenarios: moving a table from one page to another; moving the table to a pointwithina paragraph; moving the table justbetweentwo existing paragraphs; or even moving a table within another table. The possibilities are endless. Instead of depending on an exhaustive compilation of requirements scenarios alone we instead turn to something that matters even more: the end user’s cognitive model. Users carry models in their head of the internals of the program they are using. They trust that the program ‘‘knows’’ about tables, paragraphs, and figures. The end user trusts the programmer to have paid attention to the need for white space between the table and any adjoining paragraphs. These elements of the end user mental model, while quite static, are useful for reasoning about most possible use case scenarios. If the program doesn’t have an internal representation of a text para- graph, of a table and of a figure, then the program must work hard to present the illusion that it does. Otherwise, the program will endlessly surprise the end user. If model architecture is close to end user cognitive model, then most use cases will fit smoothly, because business domain models remain relatively stable over time.
+
+
+---
+Pure OO is highly beneficial, but far-from-perfect ecosystem forces us to compromise.
+
+---
+- Chia Pet Pattern
+-
+
+---
+DRY is coupling.
+
+
+---
+argues that object-orientation is a dimension orthogonal to the imperative/logic/functional dimension
+So much hype around FP, so we forget about OO. OO language can support functional and many of them are.
+
+---
+4 Rules of simple design
+
+---
+Passes the tests
+Reveals intention
+No duplication
+Fewest elements
+
+
+---
+At the time there was a lot of “design is subjective”, “design is a matter of taste” bullshit going around. I disagreed. There are better and worse designs. These criteria aren’t perfect, but they serve to sort out some of the obvious crap and (importantly) you can evaluate them right now. The real criteria for quality of design, “minimizes cost (including the cost of delay) and maximizes benefit over the lifetime of the software,” can only be evaluated post hoc, and even then any evaluation will be subject to a large bag full of cognitive biases. The four rules are generally predictive.
+
+-- Kent Beck
+
+---
+
+# Agenda
+
+1. Naming
+
+---
+-Lovingly name each identiﬁer with the same care as for a ﬁrst-born child
+
+---
+
+# Naming
+- intention revealing
+- reflect the language of the domain
+
+---
+public Connection createConnection(Provider) throws ConnectionFailureException
+public Connection connectTo(Provider) throws ConnectionFailure
+???
+What is your INTENTION? Forget about MECHANICS. I WANT TO CONNECT TO PROVIDER (vs. hide meaning, I am gonna create a connection).
+
+My name is Eduards Sizovs. It’s not Eduards first name, Sizovs last name. Of course it’s an exception, what else could appear? What else can ConnectionFailure name?!
+
+Hence. IllegalArgument vs. IllegalArgumentException. -  OK
+Hence NullPointer vs. NullPointerException. Tell me what is wrong with NullPointer? Nothing bad! Hence, DereferencingNullPointer is better.
+
+---
+Step down rule.
+
+
+
+
+---
+architecting for change.
+
+---
+The same logic should be applicable to all other names. Always think about what it is rather than what it does
+- File with data -> DataFile vs. FileReader. new File().data()
+- `MoneyFormatter` vs. `Money`
+- `LoanDefaultProbabilityCalculator` vs. `LoanDefaultProbability`
+- Objects are not data structures.
+
+
+---
+- Builders -> nouns (ConditionChecker.checkCondition() vs. Condition.isTrue())
+- Mutators -> verbs
+- Boolean is a special case of Builder. `adjective`. boolean satisfies() vs is()
+- Command/Query Separation. Easier to reason about the state. Iterator.next() vs. Iterator.current() and advance()
+- http://martinfowler.com/bliki/CommandQuerySeparation.html
+- Object-Oriented Software Construction.
+
+---
+Yegor's suggestion is dangerous. Can't see the diff.
+- severity.major()
+- severity.isMajor()
+
+- comment.present()
+- comment.isPresent();
+- comment.exists(); // if (comment.exists()) vs if (comment.isPresent());
+
+- repository.contains()
+
+---
+Get may have side effect. So skip it.
+- GET MARRIED (side effect!)
+- GET MONEY from the cash point (side effect! account $ goes down)
+
+---
+commands can be combined. Throttled. Whatever.
+NDC
+Exception handling
+Transaciton management.
+Single funcking entry point
+command is INTENT. Logs :-)
+* What the system is (domain) vs. what the system does (use cases). Commands / Domain
+
+
+
+---
+Constructor {
+this.secretKey = initSecret(secret)
+vs initSecret()
+}
+
+avoid temporal coupling.
+
+---
+```
+interface Binary {
+  byte[] read();
+}
+```
+vs.
+```
+interface Binary {
+  byte[] content();
+}
+```
+
+---
+Cash.getDollars() -> Go into dollars, find dollars, and return it. Treating object as storage  of data.
+Cash.dollars() -> how many dollars you have?
+
+---
+awsPassword -> problem indicator (aws is a context). AwsCredentials
+
+---
+InputStream.load(URL)
+String read(File)
+int add(x, y) - asking object to add x to y
+getName()
+
+vs.
+
+InputStream stream(URL)
+String content(File)
+int sum(x, y) - asking project to produce the sum of two
+name()
+
+---
+class Document {
+     int write(InputStream)
+}
+
+class Document {
+     OutputPipe output()
+}
+
+class OutputPipe {
+     void write(InputStream)
+     int bytes()
+     long time()
+}
+
+---
+class Max  {
+
+    BigDecimal me;
+    BigDecimal you;
+
+    public Max(BigDecimal me, BigDecimal you) {
+        super("")
+        this.me = me;
+        this.you = you;
+    }
+
+    public Max(String me, String you) {
+    }
+
+    BigDecimal decimal() {
+        return me.max(you);
+    }
+
+    {
+        BigDecimal max = new Max("1.00", "2.00").decimal();
+    }
+
+}
+
+---
+BAD examples
+```
+YAMLFactory factory = new YAMLFactory();
+JsonParser parser = factory.createJsonParser(yamlString); // don't be fooled by method name...
+while (parser.nextToken() != null) {
+  // do something!
+}
+```
+https://github.com/FasterXML/jackson-dataformat-yaml
+Violates Principle of Least Surprise
+
+---
+Modifying parameter values is surprising for caller.
+
+---
+Package naming.
+do not prefixes packages with company name. Ever. Name of the company and name of the product has nothing to do with code.
+users.
+user.
+
+---
+# Tony Hoare's billion dollar mistake
+
+---
+"architecture is all about the tension between cohesion and decoupling"
+
+---
+Optionals
+Optionals in Spring
+returning nulls sucks, as I have to null check. E.g. string.length().
+POKA-YOKE - we need null checks, as in rush for features we are less attentive to program structure.
+Null object... Well... Not fail-fast really and it is not clear wtf.
+@ParametersAreNonnullByDefault on package-info.java (can override with @Nullable).
+compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+
+I think this article misses a very important point: the Optional class in Java 8 is a monad. Simply put, Optional has a method called flatMap that helps to write code in functional style. E.g. compare the following (sorry for the indentation...):
+
+Optional<person> person = ...
+Optional<image> streetView = person.flatMap(Person::getMainAddress).flatMap(address -> xxxService.findStreetViewImage(address));
+
+instead of ;
+Optional<person> person = ...
+Optional<image> image = Optional.empty();
+if (person.isPresent()) {
+Optional<address> address = person.get().getAddress():
+if (address.isPresent()) {
+image = xxxService.findStreetViewImage(address.get());
+}
+}
+Optional is a monad structure. You can build pipes of ops w/o worrying aboiut nulls.
+
+---
+Outer outer = new Outer();
+if (outer != null && outer.nested != null && outer.nested.inner != null) {
+    System.out.println(outer.nested.inner.foo);
+}
+The same behavior can be obtained by utilizing optionals flatMap operation:
+
+Optional.of(new Outer())
+    .flatMap(o -> Optional.ofNullable(o.nested))
+    .flatMap(n -> Optional.ofNullable(n.inner))
+    .flatMap(i -> Optional.ofNullable(i.foo))
+    .ifPresent(System.out::println);
+
+
+---
+Avoid overly defensive code if you are not writing a framework.
+
+---
+class Person implements Comparable<Person> {
+  private String lastName;
+  private String firstName;
+  private int zipCode;
+
+  public int compareTo(Person other) {
+
+
+    int cmp = lastName.compareTo(other.lastName);
+    if (cmp != 0) {
+      return cmp;
+    }
+    cmp = firstName.compareTo(other.firstName);
+    if (cmp != 0) {
+      return cmp;
+    }
+    return Integer.compare(zipCode, other.zipCode);
+  }
+}
+
+   public int compareTo(Foo that) {
+     return ComparisonChain.start()
+         .compare(this.aString, that.aString)
+         .compare(this.anInt, that.anInt)
+         .compare(this.anEnum, that.anEnum, Ordering.natural().nullsLast())
+         .result();
+   }
+
+---
+def payment = payments
+        .get(iban, name, amount, details)
+        .orElseThrow({ new PaymentNotFound("Cannot find payment") })
+
+---
+interface Repository {
+     find(Mark mask)
+}
+
+interface Mask
+  boolean matches(File file)
+
+interface AnyFile {
+    true;
+}
+
+
+---
+Deprecation
+- Is guava still a thing? Yes. Ranges, Multimaps, Immutable, Ordering, ComparisonChain, CaseFormat, Hashing, BloomFilter, EventBus, EqualsTester
+- Is JodaTime still a thing? No.
+- Are commons/io and other commons still a thing? Yes.
+???
+ Briefly, Bloom filters are a probabilistic data structure, allowing you to test if an object is definitely not in the filter, or was probably added to the Bloom filter.
+
+---
+Argument checks - defensive or ignorant?  @NotNull by default.z
+
+---
+# Functional Java 8
+
+---
+```
+Converter<String, Integer> converter = (from) -> Integer.valueOf(from);
+Converter<String, Integer> converter = Integer::valueOf; // simply awesome. implicit conversion.
+
+// object method references:
+Something something = new Something();
+Converter<String, String> converter = something::startsWith;
+```
+
+---
+Predicate<Boolean> notZhorik = zhorik.negate();
+
+---
+class Person {
+    String firstName;
+    String lastName;
+
+    Person() {}
+
+    Person(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+}
+Next we specify a person factory interface to be used for creating new persons:
+
+interface PersonFactory<P extends Person> {
+    P create(String firstName, String lastName);
+}
+Instead of implementing the factory manually, we glue everything together via constructor references:
+
+PersonFactory<Person> personFactory = Person::new;
+Person person = personFactory.create("Peter", "Parker");
+
+
+- WHATABOUTS CHECKED EXCEPTIOnS?
+- andThen(Function): Returns a composed function that first applies this function to its input, and then applies the given function to the result.
+- compose(Function): Similar to andThen but in reversed order (first applies the given function to its input, and then this function).
+
+Function<Integer,String> f = Function.<Integer>identity()
+2         .andThen(i -> 2*i).andThen(i -> "str" + i);
+
+---
+String[] array = Stream.of( ... ).toArray( String[]::new );
+vs.
+List<String> list = Stream.of( ... ).filter( ... ).collect( Collectors.toList() );
+String[] array = list.toArray( new String[ list.size() ] );
+
+
+---
+```
+A state object for collecting statistics such as count, min, max, sum, and average.
+This class is designed to work with (though does not require) streams. For example, you can compute summary statistics on a stream of ints with:
+   IntSummaryStatistics stats = intStream.collect(IntSummaryStatistics::new,
+                                                 IntSummaryStatistics::accept,
+                                                 IntSummaryStatistics::combine);
+
+IntSummaryStatistics can be used as a reduction target for a stream. For example:
+   IntSummaryStatistics stats = people.stream()
+                                     .collect(Collectors.summarizingInt(Person::getDependents));
+
+This computes, in a single pass, the count of people, as well as the minimum, maximum, sum, and average of their number of dependents.
+```
+
+---
+```
+people.stream()
+        .filter(HasFirstName.class::isInstance)
+        .filter(HasLastName.class::isInstance)
+        .map(person -> (HasFirstName & HasLastName) person)
+        .forEach(person ->
+                System.out.println("Yo, " + person.firstName() + " " + person.lastName())
+        );
+```
+
+---
+javax.date
+
+---
+Access to current time is a dependency, the same as Random number generator.
+
+
+A TemporalAdjuster can be used to do tricky date “math” that is popular in business applications. For example they can be used to find the “first Monday of the month” or “next Tuesday”.
+
+The java.time.temporal.TemporalAdjusters class contains a bunch of useful methods for creating TemporalAdjusters. Here are a few of them:
+
+- firstDayOfMonth()
+- firstDayOfNextMonth()
+- firstInMonth(DayOfWeek)
+- lastDayOfMont()
+- next(DayOfWeek)
+- nextOrSame(DayOfWeek)
+- previous(DayOfWeek)
+- previousOrSame(DayOfWeek)
+
+To use a TemporalAdjuster use the with method. This method returns an adjusted copy of the date-time or date object. For example:
+
+1 import static java.time.temporal.TemporalAdjusters.*;
+2 //...
+3 LocalDate nextTuesday = LocalDate.now().with(next(DayOfWeek.TUESDAY));
+
+---
+instant vs. localtime.
+machine-timeline or human-timeline view of of the world.
+
+---
+next.
+
+---
+no static methods.
+
+---
+#Modularity
+
+---
+- Weight. slf4j-api dependency only; JSR-330 instead of Spring for DI.
+- Stability.
+- No alternative JVM languages, preferably.
+To minimize the chance that any given framework will overlap with another framework, choose frameworks that have a high utility-to-baggage ratio, in the context of your system requirements. Utility is the functionality or data representation that your project needs from the framework. Your system should be comprised of mutually exclusive frameworks, each of which may be a master of its domain, but which is also simple, humble, and flexible.
+
+---
+Lightweightness!
+
+Why modules?
+- Modularises use case scenarios and algorithms in the software so you
+can reason about, unit test, and formally analyze the code with
+respect to functional requirements.
+- Maps the architecture onto a domain model that reduces the time and
+expense of determining where new functionality should be added.
+
+This is, in fact, Parnas’ original deﬁnition of the term module: that it hides a ‘‘design secret’’ that can be changed internally without instigating a ripple effect across the rest of the code (Parnas 1978)
+
+---
+layering and packaging - logical cohesion is at the bottom (see pic.)
+degrees of cohision.
+
+---
+From assessing hundreds of software systems on three continents I know that about 90% of software systems are suffering from severe architectural erosion, i.e. there is not a lot of the original architectural structure left in them, and coupling and dependencies are totally out of control. (Alexander von Zitzewitz)
+
+---
+Don’t decide everything at the point you know least
+
+---
+SOLID (SRP)
+- Small enough to lower coupling (Marco Ceconni)
+- Large enough to maximize cohesion (Marco Ceconni)
+- Mind-sized (Eduards Sizovs)
+- Small enough to understand and rewrite / replace.
+Inside every large program, there is a small program trying to get out. © C.A.R. Hoare
+
+---
+entity.apply(fn)
+entity.satisfies()
+
+---
+Be consistent.
+- Argument order
+- Method naming (e.g. give hints.)
+
+---
+- Adjacent parameter of the same type, if practical, if possible, should be avoided. (c) Scott Meyers
+- It is possible to call them in the wrong order.
+Date, Month, Day, Year. also more readable.
+
+---
+Don't be afraid of creating types.
+- CustomerName
+- FileName
+
+---
+Database is a detail. It's one of the way of representing your entity. Fine.
+
+---
+Bundle advanced functionality into separate objects. Functionality is hidden unless such objects are requested. (c) Scott Meyers
+Instead of given all stuff, you have to ask for them.
+
+---
+ALWAYS prefer clarity vs. LOC.
+
+1000 LOC. Does 1 thing - processing.  What is the problem? METHOD IS TOO G.E.N.E.R.I.C.
+
+class Trade {
+  void process()
+}
+
+
+---
+Intent. Why intent? RestEndPoint.receive(ACOmmand command). If Rest endpoint is just a translation layer, then, if each command is a use case, we can easily express it in terms of BDD. What the system DOES.
+
+---
+“Behaviour-driven development is about
+implementing an application by
+describing it from the point of view of
+its stakeholders” (c) Dan North
+
+
+---
+level of abtraction
+Map<int, Map<int, int>> portfoliosByTraderId;
+if (portfolioIdsByTraderId.get(trader.getId())
+ .containsKey(portfolio.getId())) {...}
+•
+Becomes:
+•
+if (trader.canView(portfolio)) {...}
+
+---
+fighting feature envy by adding satisfies().
+
+---
+```
+class Person {
+
+    private final Age age;
+
+    private final Sex sex;
+
+    public Person(Age age, Sex sex) {
+        this.age = age;
+        this.sex = sex;
+    }
+
+    public Age age() {
+        return age;
+    }
+
+    public Sex sex() {
+        return sex;
+    }
+}
+
+class Age {
+
+    private final int age;
+
+    public Age(int age) {
+        this.age = age;
+    }
+
+    boolean isMajor() {
+        return age > 18;
+    }
+
+    @Override
+    public int compareTo(Age that) {
+        // Guava in use!
+        return Ints.compare(this.age, that.age);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(age);
+    }
+
+    @Override
+    public boolean equals(@Nullable Object that) {
+        if (that == null || getClass() != that.getClass()) {
+            return false;
+        }
+        Age other = (Age) that;
+        return Objects.equals(this.age, other.age);
+    }
+    guava-testlib
+
+}
+
+```
+    Challenge: write equality w/o if conditions
+    @Override
+    public boolean equals(@Nullable Object that) {
+        return new Equality<>(Age::age, Age::isMajor).equals(this, that);
+    }
+
+```
+---
+```
+new EqualsTester()
+    .addEqualityGroup("hello", "h" + "ello")
+    .addEqualityGroup("world", "wor" + "ld")
+    .addEqualityGroup(2, 1 + 1)
+    .testEquals();
+```
+---
+
+```
+class Equality<T> {
+
+    private final Collection<BiFunction<T, T, Boolean>> checks = new LinkedList<>();
+
+    @SafeVarargs
+    public Equality(Property<T, ?>... properties) {
+        checks.add((me, you) -> you != null);
+        checks.add((me, you) -> me.getClass() == you.getClass());
+        checks.addAll(Arrays
+                .stream(properties)
+                .map(property -> (BiFunction<T, T, Boolean>) (T me, T you) -> Objects.equals(property.take(me), property.take(you)))
+                .collect(Collectors.toList()));
+    }
+
+
+    boolean equals(Object me, @Nullable Object you) {
+        return checks.stream().allMatch(fn -> fn.apply((T) me, (T) you));
+    }
+}
+}
+```
+
+
+enum Sex {
+    MALE, FEMALE
+}
+```
+---
+```
+        Collection<Person> people = new ArrayList<>();
+        List<Person> adultMales = people.stream().filter(new AdultMale()).collect(Collectors.toList());
+```
+
+---
+
+---
+```
+interface Entity<T> {
+
+    default boolean is(Predicate<T> predicate) {
+        return predicate.test((T) this);
+    }
+
+}
+
+class Person implements Entity<Person>
+....
+
+Age adultAge = new Age(18);
+Person citizen = new Person(adultAge, Sex.MALE);
+boolean adultMale = citizen.satisfies(new AdultMale());
+```
+???
+Entity is an interface! Wohoo!
+
+---
+SOLID (open/closed principle)
+- Tempting to sublclass. We never subclass (almost.)
+- DECORATORS! Hmm, also, with Decorators you can avoid making objects Configurable, A-ka SomeSettings.
+The expression problem
+The expression problem refers to the desire to implement an existing set of abstract methods for an existing concrete class without having to change the code that defines either. Object-oriented languages allow you to implement an existing abstract method in a concrete class you control (interface inheritance), but if the concrete class is outside your control, the options for making it implement new or existing abstract methods tend to be sparse. Many popular programming languages such as Ruby, Scala, C#, Groovy, and JavaScript provide partial solutions to this problem by allowing you to add methods to an existing concrete object, a feature sometimes known as monkey-patching, or interpose a different object between mismatched types via implicit conversion.
+
+
+---
+Encapsulated properties must not be used to change the behavior of an object.
+for example - Password.
+
+---
+SOLID (interface segregation)
+```
+final class File implements Measurable {
+  @Override
+  public int size() {
+    // calculate the size of the file and return
+  }
+}
+```
+
+---
+SOLID (liskov)
+java.sql.Date.toInstant()
+java.util.Date.toInstant()
+```
+class MapWithMandatoryValues implements Map<String, String> {
+
+    @Delegate
+    Map<String, String> map
+
+    @Override
+    String get(Object key) {// violates liskov substitution
+        def value = map.get(key)
+        if (!value) {
+            throw new MissingParameter(key as String)
+        }
+        value
+    }
+}
+```
+
+---
+We may BREAK invariants with inheritance. Rectable extends Square example. In isolation, everything is logical. But the client is dead.
+- the subclass is not a subclass, if it weakens supclass behaviours to keep its own invariant.
+- "is a" is not enough.
+- state becomes invalid if used in the context of a sueprclass.
+- leads to instanceof :-)
+- square is not a subtype of it. It must have size().
+- Normalized Hierarchy - in a NH, no class has more than one implementation of a method.
+
+---
+class Trade {
+  void process() {
+    notifyRegulators();
+  }
+}
+
+class SilentTrade {
+  @Override
+  void notifyRegulators() {
+    // WEAKEN POSTCONDITION
+  }
+}
+
+---
+Rule of demeter / principle of least knowledge / don't talk to strangers / train wrecks
+
+
+---
+Java 8 --parametsrs
+@RequestMapping("/accounts/{id}")
+public Account getAccount(@PathVariable("id") String id)
+
+can be written as
+
+@RequestMapping("/accounts/{id}")
+public Account getAccount(@PathVariable String id)
+
+
+---
+
+interface CustomerRepository extends CrudRepository<Customer, Long> {
+  @Query("select c from Customer c where c.lastname = :lastname")
+  List<Customer> findByLastname(String lastname);
+}
+
+
+---
+Jackson
+- Jackson Guava (https://github.com/FasterXML/jackson-datatypes-collections) -> Multimap, Range, HashCode, InternetDomainName, HostAndPort, Optional
+- Jackson JDK8 (https://github.com/FasterXML/jackson-datatype-jdk8) -> Optional
+- Jackson JSR310 (https://github.com/FasterXML/jackson-datatype-jsr310) -> javax.date
+- Jackson Parameter Names module (https://github.com/FasterXML/jackson-module-parameter-names) ->
+
+---
+```
+class Person {     // mandatory fields     private final String name;     private final String surname;     // optional fields     private String nickname;     // no annotations are required if preconditions are met (details below)     public Person(String name, String surname) {
+```
+
+---
+Afterburner
+```
+<dependency>
+  <groupId>com.fasterxml.jackson.module</groupId>
+  <artifactId>jackson-module-afterburner</artifactId>
+  <version>2.7.1</version>
+</dependency>
+```
+
+```
+ObjectMapper mapper = new ObjectMapper()
+mapper.registerModule(new AfterburnerModule());
+```
+
+---
+# Frameworks
+- awaitility
+- hicariCP -  the fastest connection pool in Java land
+- caffeine - the fastes near-cache in Java land. Can be used as Spring Cache in Spring 4.3
+
+---
+LoadingCache<String, Book> booksByTitle = Caffeine.newBuilder()
+    .maximumSize(10_000)
+    .expireAfterAccess(5, TimeUnit.MINUTES)
+    .refreshAfterWrite(1, TimeUnit.MINUTES)
+    .build(title -> { // Using a jOOQ repository
+      return database.selectFrom(BOOK)
+          .where(BOOK.TITLE.eq(title))
+          .fetchOneInto(Book.class);
+    });
+
+// A classic about a prison revolt (TANSTAAFL!)
+Book favorite = booksByTitle.get(“The Moon Is a Harsh Mistress”);
+
+// A good way to spend a long, rainy weekend
+Map<String, Book> series = booksByTitle.getAll(Arrays.asList(
+  “A Game of Thrones”, “A Clash of Kings”, ...));
+
+---
+Stability Patterns
+- Retries
+
+---
+I like comments! What I like of comments is deleting them
+- make implicit explicit
+- method names instead of comments
+- comments explain each code block :( methods!
+- exceptions - performance implications, regexes.
+- todo: use paper.
+- QCs :-) version control is for that.
+- kill commented out code. That's what VC is for.
+- javadocs
+
+---
+Exception handling
+throw new Exception("o_O")
+Validation may be a differnet kind of exception.
+
+---
+background-image:url(prodex.jpg)
+
+---
+- JSR validation is not designed for domain validation / business rules. Only input.
+- Business stuff depends on INPUT being correct, not NULLS etc. So it comes first.
+- Input validation is (normally) connected to a FIELD. Business - not composition of stuff.
+
+---
+class: center, middle, invert
+# Logging
+
+---
+# Slf4j please.
+### - Bridges for all common logging frameworks
+### - Single dependency on `slf4-api`
+
+---
+# Logback please.
+### - Native, zero-overhead implementation of Slf4j
+### - Supports configuration via flexible Groovy DSL
+### - Supports asynchonous logging via AsyncAppender
+### - Supports {} to variables to avoid concatenation
+### - log.isDebugEnabled() check is [almost] obsolete.
+???
+- Groovy can access your classpath. So you can do type-safe stuff.
+- Consider log4j 2 - faster async via disruptor, custom log levels, custom formatters, lazy args.
+- Lambda support in Slf4j is planned in the next release - 1.8.
+
+---
+# MDC (Mapped Diagnostic Context)
+```java
+MDC.put("userId", new LoggedUserId(user));
+// userId is available to logger
+MDC.remove("userId");
+```
+```java
+MDC.MDCCloseable handle = MDC.putCloseable("userId", new LoggedUserId(user));
+// userId is available to logger
+handle.close();
+```
+
+```groovy
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.core.ConsoleAppender
+appender("STDOUT", ConsoleAppender) {
+    encoder(PatternLayoutEncoder) {
+      pattern = "[%thread] %mdc{userId:-UNKNOWN} - %msg%n"
+    }
+}
+root DEBUG, ["STDOUT"]
+```
+???
+- so you don't have to pass userId every time you log the message.
+- every log message will contain a userId information.
+- *putCloseable** is awkward. MDCItem.remove();
+
+---
+# Markers
+```java
+class Tx {
+
+  static Marker CHATOPS = MarkerManager.getMarker("CHATOPS");
+
+  void execute() {
+    log.error(CHATOPS, "Oh sh%t, transaction failed", new Tx.Failed(cause));
+  }
+}
+```
+```groovy
+appender("DEFAULT", ConsoleAppender) {
+    encoder(PatternLayoutEncoder) {
+        pattern = "%m%n"
+    }
+}
+appender("CHATOPS", SlackAppender) {
+    channel = "chatops"
+    filter(EvaluatorFilter) {
+        evaluator(OnMarkerEvaluator) { marker = "CHATOPS" }
+        onMatch = "ACCEPT"
+    }
+}
+
+root DEBUG, ["DEFAULT", "CHATOPS"]
+```
+???
+- you also filter-out messages for a given marker (instead of using IFs)
+
+---
+background-image:url(12factor.jpg)
+???
+- Software must write to sysout
+- Fluentd
+
+---
+# Make implicit explicit
+```java
+class Command {
+
+    String firstName;
+    String lastName;
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("firstName", firstName)
+                .add("lastName", lastName)
+                .toString();
+    }
+}
+
+log.info("Command received", new Command("Chuck", "Norris"));
+```
+
+---
+# Make implicit explicit
+```java
+class Command implements Loggable {
+
+    String firstName;
+    String lastName;
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("firstName", firstName)
+                .add("lastName", lastName)
+                .toString();
+    }
+
+    @Override
+    public String toLogString() {
+      return Joiner.on(' ').join(firstName, lastName);
+    }
+}
+
+log.info("Command received", new Command("Chuck", "Norris").toLogString());
+```
+
+---
+# Log or rethrow. Never do both.
+```java
+  class Mailgun {
+      void send(Email email) {
+        try {
+            // try to send email...
+        } catch(IOException e) {
+*           log.error("Mailgun is unavailable", e);
+            throw new MailgunUnavailable("Mailgun is unavailable", e);
+        }
+      }
+  }
+
+  class SubscriptionReminder {
+      Mailgun mailgun;
+      void remind() {
+          Email email = new Email(...);
+          try {
+            mailgun.send(email);
+          } catch (MailgunUnavailable e) {
+            log(e);
+            reschedule();
+          }
+      }
+  }
+```
+???
+- MESS in log files. Same shit many times.
+- VERY common and hard to make right.
+- preserve exception cause hierarchy.
+
+---
+# Log or rethrow. Never do both.
+```java
+  class Mailgun {
+      void send(Email email) {
+        try {
+            // try to send email...
+        } catch(IOException e) {
+            throw new MailgunUnavailable("Mailgun is unavailable", e);
+        }
+      }
+  }
+
+  class SubscriptionReminder {
+      Mailgun mailgun;
+      void remind() {
+          Email email = new Email(...);
+          try {
+            mailgun.send(email);
+          } catch (MailgunUnavailable e) {
+            log(e);
+            reschedule();
+          }
+      }
+  }
+```
+???
+- Hei, fucking handle me, calle!
+- This why the idea of CHECKED exception is not THAT bad :-)
+- log(e) and reschedule() level of abstraction!!!
+
+---
+# Use color-coding and indentation
+```groovy
+pattern = "%highlight(%-6(%level)) | %+20(%logger{20}) | %thread | %cyan(%mdc{tx}) | %m%n"
+```
+![](color-code.png)
+
+---
+```java
+class Vault {
+
+    private final Logger log;
+    private final String accessToken;
+
+    public Vault(String accessToken) {
+        this(accessToken, LoggerFactory.getLogger(Vault.class));
+    }
+
+    @VisibleForTesting
+    Vault(String accessToken, Logger log) {
+        this.accessToken = accessToken;
+        this.log = log;
+    }
+
+}
+
+class VaultSpec {
+
+    Logger logger = Mock(Logger.class);
+    Vault vault = new Vault("someToken", logger);
+
+    void doesSomeBlackMagic() {
+        // ...
+    }
+
+}
+```
+
+---
+```java
+ @Rule
+ public LogbackVerifier logbackVerifier = new LogbackVerifier();
+
+    private MyTestedService service = new MyTestedService();
+
+    @Test
+    public void verifyGoodScenario() throws Exception {
+        logbackVerifier.expectMessage(Level.INFO, "it worked");
+    }
+```
+
+---
+```java
+public class LogbackVerifier implements TestRule {
+
+    private Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    private Appender<ILoggingEvent> appender = ... // your Appender impl.
+
+    @Override
+    public Statement apply(final Statement base, Description description) {
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                before();
+                try {
+                    base.evaluate();
+                    verify();
+                } finally {
+                    after();
+                }
+            }
+        };
+    }
+
+    private void before() {
+        rootLogger.addAppender(appender);
+    }
+
+    private void after() {
+        rootLogger.detachAppender(appender);
+    }
+
+    private void verify() { ... }
+
+    public void expectMessage(Level level, String message) { ... }
+
+}
+```
+
+
+---
+- Stepdown rule
+- No boolean arguments. Give argument names.
+
+
+
+---
+- http://stefanbirkner.github.io/system-rules/  (testing System.stop(0), Sysout, Sysin, Sysprops, Envvars etc.)
+
+----
+
+    </textarea>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js"></script>
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+      var slideshow = remark.create({
+        highlightLines: true,
+        slideNumberFormat: function (current, total) { return "" }
+      });
+      slideshow.on('afterShowSlide', function (slide) {
+
+        var axs =  {
+                  title: 'thoughput / responsiveness over time.',
+                  xaxis: {
+                    title: 'time (months)'
+                  },
+                  yaxis: {
+                    title: 'throughput / responsiveness (RTF / sprint)'
+                  }
+                }
+
+        var thr = [
+                {
+                  x: [2, 10, 14, 24, 40],
+                  y: [30, 29, 28, 23, 10],
+                  name: 'continuous degradation',
+                  mode: 'lines',
+                  line: {
+                      color: 'rgb(219, 64, 82)',
+                      width: 3
+                    }
+                },
+                {
+                  x: [2, 6, 12, 24, 48],
+                  y: [30, 30, 30, 30, 30],
+                  name: 'sustainable pace',
+                  mode: 'lines',
+                  line: {
+                      color: 'rgb(169, 169, 169)'
+                  }
+                },
+                {
+                  x: [2, 6, 12, 24, 48],
+                  y: [30, 30.5, 31, 31.5, 32],
+                  name: 'continuous improvement',
+                  mode: 'lines'
+                },
+          ];
+
+          var dbt = thr.concat({
+                  x: [28, 28],
+                  y: [30, 20],
+                  name: 'technical debt',
+                  mode: 'lines',
+                  line: {
+                    dash: 'dot'
+                  }
+                } );
+
+        if (slide.properties.name == "throughput") {
+          Plotly.newPlot('throughput', thr, axs);
+        }
+        if (slide.properties.name == "debt") {
+          Plotly.newPlot('debt', dbt, axs);
+        }
+      });
+
+    var ktx = document.getElementsByClassName("ktx");
+    for(var i = 0; i < ktx.length; i++) {
+       katex.render(ktx.item(i).getAttribute('expr'), ktx.item(i));
+      }
+    </script>
+
+  </body>
+</html>
