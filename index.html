@@ -405,20 +405,32 @@ class AwsS3Bucket {
 ---
 ### Consider searchability
 ```java
-  class CancelTransaction { }
+class CancelTransaction { }
 
-  // vs.
+// vs.
 
-  class CancelTransactionCommand { }
-
+class CancelTransactionCommand { }
 ```
+
+```java
+class NotifyOnApplicationCanceled
+  implements DomainEventHandler<LoanApplicationCanceled> {
+}
+
+// vs.
+
+class NotifyOnLoanApplicationCanceled
+  implements DomainEventHandler<LoanApplicationCanceled> {
+}
+```
+
 ### Stay consistent
 ```java
-  class RegistrationFailure extends BusinessException { }
+class RegistrationFailure extends BusinessException { }
 
-  // vs.
+// vs.
 
-  class RegistrationException extends BusinessException { }
+class RegistrationException extends BusinessException { }
 ```
 
 ---
@@ -726,14 +738,14 @@ void preferAgreement(AgreementType preferredAgreementType) { }
 ```
 
 ```java
-void setAgreementPresigned(boolean agreementPresigned) {}
+void setAgreementSigned(boolean agreementSigned) {}
 ```
 
 ```java
-void presignAgreement() {}
+void signAgreement() {} // agreement().sign() would be way better
 ```
 ```java
-void unsign() {}
+void unsignAgreement() {}
 ```
 
 
@@ -760,6 +772,28 @@ println userReprensetation.firstName;
 println userReprensetation.lastName;
 ```
 
+---
+# Package naming
+## Name of the company has nothing to do with code
+```java
+package org.apache.spark;
+```
+
+```java
+package spark;
+```
+
+## Plural or singular?
+```java
+package shipyard.maps; // contains different maps and nothing else
+```
+```java
+package shipyard.map; // everything related to maps
+```
+```java
+package shipyard.navigation;      // everything related to navigation
+package shipyard.navigation.maps;
+```
 ---
 class: center, middle, invert
 # General design principles
@@ -1362,12 +1396,6 @@ Violates Principle of Least Surprise
 Modifying parameter values is surprising for caller.
 
 ---
-Package naming.
-do not prefixes packages with company name. Ever. Name of the company and name of the product has nothing to do with code.
-users.
-user.
-
----
 # Tony Hoare's billion dollar mistake
 
 ---
@@ -1679,6 +1707,7 @@ Transaciton management.
 Single funcking entry point
 command is INTENT. Logs :-)
 * What the system is (domain) vs. what the system does (use cases). Commands / Domain
+Exhanging messages w/o calling each other. EvenBus!
 
 ---
 “Behaviour-driven development is about
