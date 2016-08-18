@@ -271,6 +271,7 @@ void update(Entity entity) {
 
 ```java
 // if you can't do something - fail
+// force client to check the conditional
 void update(Entity entity) {
   checkArgument(entity.isIdAssigned(), "Cannot update entity. Id is missing");
   ...
@@ -316,6 +317,91 @@ interface Operation { }      // :(
 interface BatchReader { }    // :)
 interface BatchOperation { } // :)
 ```
+
+---
+### Composite names usually indicate lack of a root object
+```java
+class AwsS3Bucket {
+
+  private final String awsPassword;
+  private final String awsLogin;
+  private final String bucketName;
+
+  public AwsS3Bucket(String awsLogin, String awsPassword, String bucketName) {
+    this.awsLogin = awsLogin;
+    this.awsPassword = awsPassword;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+```java
+class AwsCredentials {
+
+  public final String login;
+  public final String password;
+
+  public AwsCredentials(String login, String password) {
+    this.login = login;
+    this.password = password;
+  }
+}
+```
+
+---
+```java
+class AwsS3Bucket {
+
+  private final AWSCredentials awsCredentials;
+  private final String bucketName;
+
+  public AwsS3Bucket(AwsCredentials awsCredentials, String bucketName) {
+    this.awsCredentials = awsCredentials;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
+```java
+class AwsAccount {
+
+  private final AwsCredentials credentials;
+
+  public AwsAccount(AwsCredentials credentials) {
+    this.credentials = credentials;
+  }
+
+}
+```
+
+---
+```java
+class AwsS3Bucket {
+
+  private final AwsAccount account;
+  private final String bucketName;
+
+  public AwsS3Bucket(AwsAccount account, String bucketName) {
+    this.account = account;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
 ---
 ### Consider searchability
 ```java
@@ -336,9 +422,343 @@ interface BatchOperation { } // :)
 ```
 
 ---
+class: center, middle
+# Prefer creating objects that represent **what they are**, rather than what they do
 
-booleans:
-LocalDate created; -> no!
+---
+```java
+class File { }
+
+interface FileReader {
+   Data read(File file) { }
+}
+```
+```java
+interface DataFile {
+   Data data();
+}
+```
+```java
+interface EmailSender {
+  void send(Email email);
+}
+```
+
+```java
+interface EmailProvider {
+  void send(Email email);
+}
+```
+
+```java
+interface ConditionChecker {
+  boolean checkCondition()
+}
+```
+
+```java
+interface Condition {
+  boolean isTrue();
+}
+```
+
+---
+```java
+interface MoneyFormatter {
+  String format(Money money);
+}
+```
+```java
+interface PrettyMoney {
+
+  String asText();
+
+  class Humane implements PrettyMoney {
+    @Override
+    public String asText() { ... }
+  }
+
+  class ISO_1234 implements PrettyMoney {
+    @Override
+    public String asText() { ... }
+  }
+
+}
+```
+
+```java
+public static void main(String[] args) {
+    Money money = new Money(99.00);
+    PrettyMoney prettyMoney = new PrettyMoney.Humane(money);
+    println(prettyMoney.asText());
+}
+```
+???
+- makes our software more OO, composable from classes, not methods
+- why not MoneyFormat?
+- why not toString()
+
+---
+```java
+class FuckupProbabilityCalculator {
+    BigDecimal calculate() { ... }
+}
+```
+```java
+class FuckupProbability implements DecimalNumber {
+    BigDecimal decimal();
+}
+```
+```java
+interface DecimalNumber {
+
+    BigDecimal decimal();
+
+    default DecimalNumber dividedBy(DecimalNumber divisor) {
+        BigDecimal roundedDivision = decimal().divide(divisor.decimal(), RoundingMode.HALF_DOWN);
+        return new Const(roundedDivision);
+    }
+
+}```
+```java
+class Const implements DecimalNumber {
+
+    private final BigDecimal origin;
+
+    public Const(int origin) { this(BigDecimal.valueOf(origin, 2)); }
+
+    public Const(BigDecimal origin) { this.origin = origin; }
+
+    @Override
+    public BigDecimal decimal() { return origin; }
+}
+```
+---
+```java
+public static void main(String[] args) {
+    DecimalNumber minimal = new FuckupProbability(...);
+    DecimalNumber maximal = new FuckupProbability(...);
+    DecimalNumber average = minimal.plus(maximal).dividedBy(new Const(2));
+}
+```
+
+```java
+public static void main(String[] args) {
+    DecimalNumber minimal = new FuckupProbability(...);
+    DecimalNumber maximal = new FuckupProbability(...);
+    DecimalNumber average = new Average(minimal, maximal)
+}
+```
+```java
+class Average implements DecimalNumber {
+
+    private final DecimalNumber[] numbers;
+
+    public Average(DecimalNumber... numbers) {
+        this.numbers = numbers;
+    }
+
+    @Override
+    public BigDecimal decimal() {
+        DecimalNumber total = new Const(numbers.length);
+        DecimalNumber sum = new Sum(numbers);
+        DecimalNumber average = sum.dividedBy(total);
+        return average.decimal();
+    }
+
+}
+```
+---
+class: bad
+```java
+public final class BigDecimalUtils {
+
+	public static final int AMOUNT_SCALE = 2;
+
+	private BigDecimalUtils() {
+	}
+
+	public static BigDecimal amount(int value) {
+		return amount(new BigDecimal(value));
+	}
+
+  public static BigDecimal amount(BigDecimal amount) {
+		return amount.setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
+	}
+
+  public static boolean isEqual(BigDecimal value1, BigDecimal value2) {
+		boolean isEqual = value1.compareTo(value2) == 0;
+		return isEqual;
+	}
+
+  public static boolean isInRange(BigDecimal amount, BigDecimal amountFrom, BigDecimal amountTo) {
+    return isGe(amount, amountFrom) && isLe(amount, amountTo);
+  }
+
+  public static boolean isZero(BigDecimal value) {
+    return isEqual(BigDecimal.ZERO, value);
+  }
+
+  ...
+
+}
+```
+---
+class: center, middle
+# Methods are either **commands** or **queries**.
+### Use commands (verbs) to tell an object what to do.
+### With queries (nouns) you ask object a question.
+— *[Command/Query Separation](http://martinfowler.com/bliki/CommandQuerySeparation.html)*
+---
+
+```java
+interface Iterator<T> {
+  T next(); // give next or return next? both! :-)
+}
+```
+
+```java
+interface Iterator<T> {
+  void advance();
+  T current();
+}
+```
+
+```java
+InputStream load(URL url);
+```
+
+```java
+InputStream stream(URL url);
+```
+
+```java
+String read(File file);
+```
+
+```java
+String content(File file);
+```
+
+---
+```java
+class Document {
+  int write(InputStream stream); // returns number of bytes written :(
+}
+```
+```java
+class Document {
+   OutputPipe output();
+}
+
+class OutputPipe {
+
+     void write(InputStream stream);
+
+     int bytes();
+
+     long time();
+}
+```
+
+---
+# Avoid getters
+## Getters are verbs
+## Get **may** have a side effect
+### - get married
+### - get money from the ATM
+### - get from A to B...
+
+---
+```java
+class Client {
+  String fullName();
+  String personalId();
+}
+```
+
+```java
+interface Iterator<T> {
+  T current();
+}
+```
+### Sometimes booleans are not nouns, but are NEVER verbs
+```java
+class Customer {
+  boolean isSatisfiedBy(Specification); // satisfiedBy -> confusing
+}
+```
+```java
+enum Severity {
+  boolean isMajor(); // major() -> confusing
+}
+```
+```java
+class ProductCatalog {
+  boolean contains(Product);
+}
+```
+```java
+interface Input {
+  boolean validate(); // verb! :(((
+}
+```
+
+---
+# Avoid setters
+## ...and don't treat your objects as **data structures**
+
+```java
+Client.setFirstName(firstName);
+Client.setLastName(lastName);
+```
+
+```java
+Client.giveName(String firstName, String lastName);
+```
+
+```java
+void setPreferredAgreementType(AgreementType preferredAgreementType) { }
+```
+
+```java
+void preferAgreement(AgreementType preferredAgreementType) { }
+```
+
+```java
+void setAgreementPresigned(boolean agreementPresigned) {}
+```
+
+```java
+void presignAgreement() {}
+```
+```java
+void unsign() {}
+```
+
+
+---
+# Data structures
+## Do not have behaviour
+## **Can** have getters and setters (if needed)
+```java
+class UserRepresentation {
+
+  public final String firstName;
+  public final String lastName;
+  public Optional<String> middleName = Optional.absent();
+
+  UserRepresentation(String firstName, String lastName) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+}
+```
+```java
+UserRepresentation userRepresentation = new UserRepresentation("Jackie", "Chan");
+println userReprensetation.firstName;
+println userReprensetation.lastName;
+```
 
 ---
 class: center, middle, invert
@@ -923,163 +1343,8 @@ At the time there was a lot of “design is subjective”, “design is a matter
 -- Kent Beck
 
 ---
-
-# Agenda
-
-1. Naming
-
----
--Lovingly name each identiﬁer with the same care as for a ﬁrst-born child
-
----
-
-# Naming
-- intention revealing
-- reflect the language of the domain
-
----
-public Connection createConnection(Provider) throws ConnectionFailureException
-public Connection connectTo(Provider) throws ConnectionFailure
-???
-What is your INTENTION? Forget about MECHANICS. I WANT TO CONNECT TO PROVIDER (vs. hide meaning, I am gonna create a connection).
-
-My name is Eduards Sizovs. It’s not Eduards first name, Sizovs last name. Of course it’s an exception, what else could appear? What else can ConnectionFailure name?!
-
-Hence. IllegalArgument vs. IllegalArgumentException. -  OK
-Hence NullPointer vs. NullPointerException. Tell me what is wrong with NullPointer? Nothing bad! Hence, DereferencingNullPointer is better.
-
----
 Step down rule.
-
-
-
-
----
-architecting for change.
-
----
-The same logic should be applicable to all other names. Always think about what it is rather than what it does
-- File with data -> DataFile vs. FileReader. new File().data()
-- `MoneyFormatter` vs. `Money`
-- `LoanDefaultProbabilityCalculator` vs. `LoanDefaultProbability`
-- Objects are not data structures.
-
-
----
-- Builders -> nouns (ConditionChecker.checkCondition() vs. Condition.isTrue())
-- Mutators -> verbs
-- Boolean is a special case of Builder. `adjective`. boolean satisfies() vs is()
-- Command/Query Separation. Easier to reason about the state. Iterator.next() vs. Iterator.current() and advance()
-- http://martinfowler.com/bliki/CommandQuerySeparation.html
-- Object-Oriented Software Construction.
-
----
-Yegor's suggestion is dangerous. Can't see the diff.
-- severity.major()
-- severity.isMajor()
-
-- comment.present()
-- comment.isPresent();
-- comment.exists(); // if (comment.exists()) vs if (comment.isPresent());
-
-- repository.contains()
-
----
-Get may have side effect. So skip it.
-- GET MARRIED (side effect!)
-- GET MONEY from the cash point (side effect! account $ goes down)
-
----
-commands can be combined. Throttled. Whatever.
-NDC
-Exception handling
-Transaciton management.
-Single funcking entry point
-command is INTENT. Logs :-)
-* What the system is (domain) vs. what the system does (use cases). Commands / Domain
-
-
-
----
-Constructor {
-this.secretKey = initSecret(secret)
-vs initSecret()
-}
-
-avoid temporal coupling.
-
----
-```
-interface Binary {
-  byte[] read();
-}
-```
-vs.
-```
-interface Binary {
-  byte[] content();
-}
-```
-
----
-Cash.getDollars() -> Go into dollars, find dollars, and return it. Treating object as storage  of data.
-Cash.dollars() -> how many dollars you have?
-
----
-awsPassword -> problem indicator (aws is a context). AwsCredentials
-
----
-InputStream.load(URL)
-String read(File)
-int add(x, y) - asking object to add x to y
-getName()
-
-vs.
-
-InputStream stream(URL)
-String content(File)
-int sum(x, y) - asking project to produce the sum of two
-name()
-
----
-class Document {
-     int write(InputStream)
-}
-
-class Document {
-     OutputPipe output()
-}
-
-class OutputPipe {
-     void write(InputStream)
-     int bytes()
-     long time()
-}
-
----
-class Max  {
-
-    BigDecimal me;
-    BigDecimal you;
-
-    public Max(BigDecimal me, BigDecimal you) {
-        super("")
-        this.me = me;
-        this.you = you;
-    }
-
-    public Max(String me, String you) {
-    }
-
-    BigDecimal decimal() {
-        return me.max(you);
-    }
-
-    {
-        BigDecimal max = new Max("1.00", "2.00").decimal();
-    }
-
-}
+architecting for change
 
 ---
 BAD examples
@@ -1356,11 +1621,19 @@ Don’t decide everything at the point you know least
 
 ---
 SOLID (SRP)
+- Service, Manager, Processor, Helper, Util...
 - Small enough to lower coupling (Marco Ceconni)
 - Large enough to maximize cohesion (Marco Ceconni)
 - Mind-sized (Eduards Sizovs)
 - Small enough to understand and rewrite / replace.
 Inside every large program, there is a small program trying to get out. © C.A.R. Hoare
+
+class FtpClient {
+  transferFile(String filename, InputStream input)
+  fileExists(String filename);
+  makeDir(String parentDir, String dir);
+  folderExists(String folder);
+}
 
 ---
 entity.apply(fn)
@@ -1400,6 +1673,12 @@ class Trade {
 
 ---
 Intent. Why intent? RestEndPoint.receive(ACOmmand command). If Rest endpoint is just a translation layer, then, if each command is a use case, we can easily express it in terms of BDD. What the system DOES.
+commands can be combined. Throttled. Whatever.
+Exception handling
+Transaciton management.
+Single funcking entry point
+command is INTENT. Logs :-)
+* What the system is (domain) vs. what the system does (use cases). Commands / Domain
 
 ---
 “Behaviour-driven development is about
@@ -2007,7 +2286,6 @@ public class LogbackVerifier implements TestRule {
 
 ---
 - Stepdown rule
-- No boolean arguments. Give argument names.
 
 
 
