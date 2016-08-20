@@ -13,6 +13,11 @@
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
+      .corner {border: 5px solid #85C1E9; position: absolute; top: 0px; right: 0px; width: 50%; background-color: #F0F0F0}
+      .corner pre {margin: 0; padding: 0}
+      .corner.long {
+        height: 300px;
+      }
       .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
       .invert { background-color: black; color: white; }
       .bad { background-color: #AA1914; color: white;}
@@ -40,6 +45,8 @@ Setting expectations:
 - Learn principles, practices and patterns for writing readable, maintainable and effective code - CLEAN CODE. In modern Java.
 - My goal is to make you feel that he rules will tell you to do things that are really weird or NOT to do something that you did. Be open minded.
 
+
+
 ---
 # Agenda
 - Day I: General Software Design
@@ -47,8 +54,83 @@ Setting expectations:
 - Homework (with group code review).
 
 ---
-class: center, middle
-# WHY CLEAN CODE?
+class: center, middle, invert
+# Java 8 additions in 2 slides
+---
+###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
+???
+No Joda anymore.
+--
+
+###**streams** (collections, arrays, chars, files etc.)
+
+--
+
+###**lambdas**
+
+--
+
+###**@FunctionalInterface** (Function, Predicate, Consumer, Supplier)
+
+--
+
+###**method references** (Class::new, instance::method)
+
+--
+
+###**default methods**
+
+--
+
+###**java.lang.reflect.Parameter** (--parameters compiler argument)
+
+--
+
+### **PermGen** replaced with out-of-heap **Metaspace**
+
+---
+### **implicit conversion**
+
+--
+
+```java
+@FunctionalInterface
+interface Converter<F, T> {
+    T convert(F from);
+}
+```
+--
+```java
+Converter<String, Integer> converter = Integer::valueOf;
+```
+--
+```java
+class Person {
+
+    private final String firstName, lastName;
+
+    Person(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+}
+```
+--
+```java
+interface PersonFactory {
+    Person create(String firstName, String lastName);
+}
+```
+--
+```java
+PersonFactory personFactory = Person::new;
+Person person = personFactory.create("Peter", "Parker");
+```
+
+
+---
+class: center, middle, invert
+# The economics of software design 101
 ???
 Before HOW -> WHY
 
@@ -200,6 +282,7 @@ class: center, middle
 ???
 - Avoiding it - nice! less INHERENT COMPLEXITY. less code to maintain.
 - Agile Manifesto principle. Simplicity — the art of maximizing the amount of work not done.
+- First law of software quality: e = mc^2 ; errors = (more code)^2
 
 ---
 class: center, middle
@@ -259,6 +342,9 @@ public class Example {
   }
 }
 ```
+???
+The code is not HONEST.
+
 ---
 ```java
 // quite a big surprise for a client
@@ -719,6 +805,8 @@ interface Input {
 ---
 # Avoid setters
 ## ...and don't treat your objects as **data structures**
+???
+- Pure OO design require encapsulation. Frameworks as for data. Conflict.
 
 ```java
 Client.setFirstName(firstName);
@@ -758,7 +846,7 @@ class UserRepresentation {
 
   public final String firstName;
   public final String lastName;
-  public Optional<String> middleName = Optional.absent();
+  public Optional<String> middleName = Optional.empty();
 
   UserRepresentation(String firstName, String lastName) {
     this.firstName = firstName;
@@ -794,6 +882,153 @@ package shipyard.map; // everything related to maps
 package shipyard.navigation;      // everything related to navigation
 package shipyard.navigation.maps;
 ```
+
+---
+class: center, middle, invert
+# Tony Hoare's billion dollar mistake
+
+---
+# In computing, a null pointer has a value reserved for indicating that the pointer does not refer to a valid object.
+## - Do not pass nulls
+## - Do not return nulls
+---
+```groovy
+compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+```
+
+### package-info.java
+```java
+@ParametersAreNonnullByDefault
+package wombatizer;
+```
+
+```java
+@Override
+public boolean equals(@Nullable Object obj) { ... }
+```
+???
+- otherwise I will have to null-check all arguments, to be defensive.
+
+---
+### may not contain a phone number that matches a given regex
+```java
+interface PhoneBook {
+  PhoneNumber phoneNumber(String regex);
+}
+```
+--
+```java
+interface PhoneBook {
+  Optional<PhoneNumber> phoneNumber(String regex);
+}
+```
+---
+### regex is optional
+```java
+interface PhoneBook {
+  Optional<PhoneNumber> phoneNumber(String regex);
+}
+```
+--
+```java
+interface Mask {
+
+  Mask ANY = phoneNumber -> true;
+
+  boolean matches(PhoneNumber phoneNumber);
+}
+```
+--
+```java
+class Regex implements Mask {
+
+  private final Pattern regex;
+
+  @Override
+  public boolean matches(PhoneNumber phoneNumber) {
+    return phoneNumber.matches(regex);
+  }
+}
+```
+--
+
+```java
+interface PhoneBook {
+  Optional<PhoneNumber> phoneNumber(Mask mask);
+}```
+
+--
+.corner[
+```java
+class PhoneNumber {
+    boolean matches() {
+        return regex.asPredicate().test(text());
+    }
+}
+```
+]
+
+--
+.corner[
+```java
+Pattern.compile(":")
+  .splitAsStream("foobar:foo:bar")
+  .filter(s -> s.contains("bar"))
+  .sorted()
+  .collect(Collectors.joining(":"));
+```
+]
+
+
+---
+```java
+void ifPresent() {
+  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...));
+  phoneNumber.ifPresent(paymentReminder::send);
+}
+```
+--
+```java
+void orElse() {
+  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...))
+      .orElse(PhoneNumber.USA_PRESIDENT);
+}
+```
+--
+```java
+void orElseThrow() {
+  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...))
+      .orElseThrow(() -> new MissingPhoneNumberException()
+}
+```
+--
+```java
+void optionalIsAMonad() {
+  phoneBook.phoneNumber(new Regex(...))
+      .flatMap(no -> facebookProfile.byPhoneNumber(no))
+      .flatMap(FacebookProfile::beloved)
+      .ifPresent(Beloved::hijack);
+}
+```
+???
+You can build pipes w/o worrying about null checks.
+
+---
+```java
+Outer outer = new Outer();
+if (outer != null && outer.nested != null && outer.nested.inner != null) {
+    System.out.println(outer.nested.inner.foo);
+}
+```
+--
+```java
+Optional.of(new Outer())
+    .flatMap(o -> Optional.ofNullable(o.nested))
+    .flatMap(n -> Optional.ofNullable(n.inner))
+    .flatMap(i -> Optional.ofNullable(i.foo))
+    .ifPresent(System.out::println);
+```
+
 ---
 class: center, middle, invert
 # General design principles
@@ -835,6 +1070,19 @@ DRY has a side-effect.
 class: center, middle
 # Code must be kept at the same level of abstraction.
 ### (abstraction - trimming info on a subject to the absolute context relevant minimum)
+
+---
+```java
+Map<int, Map<int, int>> portfoliosByTraderId;
+if (portfolioIdsByTraderId.get(trader.getId())
+ .containsKey(portfolio.getId())) {...}
+```
+
+--
+
+```java
+if (trader.canView(portfolio)) {...}
+```
 
 ---
 ```groovy
@@ -1167,457 +1415,571 @@ class UnvalidatedAnswers {
 ---
 class: center, middle
 # Reification - a process of making something concrete (implicit -> explicit).
----
 ???
 - with lambdas, you can write short expressions easily. Often, you must reify them.
 
-# Missing abstractions
+---
+class: center, middle
+# The Stepdown Rule
+#### **The code should read like a top-down narrative. Start with high-level, abstract paragraphs. Then dive into details. — Clean Code**
+
+
+---
+class: center, middle
+# Commenting code is like explaining a bad joke.
+
+---
+class: center, middle
+# A common fallacy is to assume authors of incomprehensible code will somehow be able to express themselves lucidly and clearly in comments
+— *Kevlin Henney*
+
+---
+class: center, middle
+![](cat.jpg)
+
+---
+background-image:url(yaml.png)
+
+---
 ```java
-class HipChat {
-  void sendMessage(String channel, String message) {
-    Collection<String> mentions = extractMentions(message);
-    Collection<String> membersMentions = mentions.stream()
-      .filter(mention -> !mention.equals("@here"))
-      .filter(mention -> !mention.equals("@channel"))
-      .collect(...)
+@Component
+class NoOpAuthenticationHandler implements AuthenticationHandler {
+
+	@Override
+	public void delegate(ModelAndView model) {
+*		// do nothing
+	}
+
+}
+```
+
+```java
+@RequestMapping(value = "", method = { RequestMethod.GET, RequestMethod.POST })
+public String index() {
+* // RequestMethod.POST protects from 405 "Method not supported" for clients
+* // logging in before JS is loaded
+  return loginService.isLoggedIn() ? "redirect:/profile" : "index";
+}
+```
+![](butwhy.png)
+
+---
+```java
+@Transactional
+public Client getClient() {
+  Client client = repository.getRequired(Client.class, clientId);
+* // lazy init
+  client.getEntityUuid();
+  return client;
+}
+```
+
+```java
+@Transactional
+public <T> T applyToClient(Function<Client, T> fn) {
+  Client client = repository.getRequired(Client.class, clientId);
+  return client.apply(fn);
+}
+```
+
+```java
+void take() {
+* // Base64 encoding is required by SauceLabs
+  String base64Screenshot = webDriver.getScreenshotAs(OutputType.BASE64);
+}
+```
+
+```java
+private static final OutputType SAUCELABS_ENCODING = OutputType.BASE64;
+
+void take() {
+  String screenshot = webDriver.getScreenshotAs(SAUCELABS_ENCODING);
+}
+```
+
+---
+```java
+// Disable "web-security", enable all possible "ssl-protocols" and
+// "ignore-ssl-errors" for PhantomJSDriver
+capabilities.setCapability(PhantomJSDriverService.PHANTOMJS_CLI_ARGS,
+  new String[] {
+    "--web-security=false",
+    "--ssl-protocol=any",
+    "--ignore-ssl-errors=true" });
+```
+--
+```java
+String disableWebSecurity = "--web-security=false";
+String enableAllSslProtocols = "--ssl-protocol=any";
+String ignoreSslErrors = "--ignore-ssl-errors";
+
+String args = new String[] { disableWebSecurity, enableAllSslProtocols, ignoreSslErrors };
+capabilities.setCapability(PHANTOMJS_CLI_ARGS, args);
+```
+
+---
+```java
+private void processMsgImages(File parentDir, EmailMessage emailMessage) {
+* // find all img tag src's
+  String body = emailMessage.getBody();
+  Pattern p = Pattern.compile("<img[^>]+src\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>");
+  Matcher m = p.matcher(body);
+  List<String> imageSrcList = new ArrayList<String>();
+  if (m.find()) {
+    String src = m.group(1);
+    imageSrcList.add(src);
+  }
+
+  for (String imgSrc : imageSrcList) {
+		File imgFile = new File(parentDir, imgSrc);
+		if (imgFile.exists()) {
+			addEmbeddedField(emailMessage, imgFile);
+			emailMessage.setBody(emailMessage.getBody().replace(imgSrc, "cid:" + imgFile.getName()));
+		}
+	}
+}
+```
+
+```java
+private void processMsgImages(File parentDir, EmailMessage emailMessage) {
+* List<String> imageLinks = collectImageLinks(emailMessage);
+
+  for (String imgSrc : imageSrcList) {
+  File imgFile = new File(parentDir, imgSrc);
+  if (imgFile.exists()) {
+    addEmbeddedField(emailMessage, imgFile);
+    emailMessage.setBody(emailMessage.getBody().replace(imgSrc, "cid:" + imgFile.getName()));
+  }
   }
 }
 ```
-```java
-interface Mentions {
-    Mentions members();
-}
 
-interface Message {
-  Mentions mentions();
-}
-```
+---
 ```java
-class HipChat {
-  void sendMessage(String channel, Message message) {
-    Mentions mentions = message.mentions();
-    Mentions members = mentions.members();
+*// function to configure for send to debts
+*// possible to use overDueDays and paymentAmount
+void sendToDebts() {
+  if (overDueDays >= 4 && overDueDays <= 6) {
+    doLoanSendToDebts()
+  }
+
+* // safeguard
+  if (overDueDays >= 10 && overDueDays <= 13) {
+    doLoanSendToDebts()
   }
 }
 ```
+![](butwhy.png)
 
 ---
 ```java
-class HipChat {
-  void sendMessage(String channel, Message message) {
-    Mentions mentions = message.mentions();
-    Mentions members = mentions.members();
-*   send(message, channel);
-  }
-}
+//
+// Dear maintainer:
+//
+// Once you are done trying to 'optimize' this routine,
+// and have realized what a terrible mistake that was,
+// please increment the following counter as a warning
+// to the next guy:
+//
+// total_hours_wasted_here = 16
+//
 ```
+
+
+---
+### Express intent with code (meta-annotations are also code)
+### No FIXMEs
+### No TODOs
+### No commented out code
+### JavaDocs are made for public APIs. Within a team, express use-cases with tests.
+
+---
+### JSR-305
 ```java
-interface Message {
-  void send(String channel);
-}
+@Nonnegative
 ```
+--
 ```java
-class HipChat {
-  void sendMessage(String channel, Message message) {
-    Mentions mentions = message.mentions();
-    Mentions members = mentions.members();
-*   message.send(channel);
-  }
-}
+@OverridingMethodsMustInvokeSuper
 ```
----
+--
 ```java
-class HipChat {
-* void sendMessage(String channel, Message message) {
-    Mentions mentions = message.mentions();
-    Mentions members = mentions.members();
-    message.send(channel);
-  }
-}
+@WillClose
 ```
+--
 ```java
-interface Channel {
-  Message message();
-}
-
-class HipChat {
-* Channel channel() {}
-}
+@WillNotClose
+```
+--
+```java
+@GuardedBy
+```
+--
+```java
+@ThreadSafe
+```
+--
+```java
+@NotThreadSafe
+```
+--
+```java
+@Immutable
 ```
 
 ---
-- What is clean code? HAS TESTS. Most development is about PRESERVING BEHAVIOUR (show visually). Refactoring dilemma.
-
----
-Software design is about finding a balance between conflicting forces. No perfect solutions.
-Different design goals get you different designs (c) Linus Torvalds
-
-
----
-Pure OO design require encapsulation. Frameworks as for data.
-
----
-Readable vs. Understandable
-
+### Guava
+```java
+@VisibleForTesting
 ```
-Doctor doctor = new Doctor();
-doctor.getPatientRecords(patientId);
+--
+```java
+@Beta
 ```
-vs.
+--
+### Custom
+```java
+@Seconds
 ```
-Doctor dr = new Doctor();
-dr.getData(pId);
+--
+```java
+@VisibleForHibernate
 ```
-
-- Structural Honesty - is your structure honest, does it really convey the idea.?
-- Design is important when you want to change something. Software doens’t care how it’s designed, it’s just running there...
-- First law of software quality: e = mc^2 ; errors = (more code)^2. BUY stuff.
-
----
-Boundaries/joints are important.
-
-
-
----
+--
+```java
+@LegacyApproach("http://our.wiki/best-practices#34")
 ```
-Stream.generate(() -> UUID.randomUUID()).limit(100).reduce((me, you) -> {
-    System.out.println("Comparing " + me  + " with " + you + ": " + me.compareTo(you));
-    return you;
-});
-Comparing aea2c6d1-5d26-4426-b7f9-ccf9a7d95c80 with 36f59f46-f18e-4d62-a96e-66e89b5c268b: -1
-Comparing 36f59f46-f18e-4d62-a96e-66e89b5c268b with be316958-6fad-4c9f-aa52-86b9d489ab2a: 1
-Comparing be316958-6fad-4c9f-aa52-86b9d489ab2a with da9539f4-e41b-4cf4-97ab-b4df63a6a515: -1
-Comparing da9539f4-e41b-4cf4-97ab-b4df63a6a515 with 5da75fc4-ab2c-4ba8-a578-998c9c704999: -1
-Comparing 5da75fc4-ab2c-4ba8-a578-998c9c704999 with 3cdc614a-68e4-41e6-8a32-0fd2281f3be5: 1
-Comparing 3cdc614a-68e4-41e6-8a32-0fd2281f3be5 with 6ddb8ea9-f381-4b29-a48b-3be6f714207d: -1
-Comparing 6ddb8ea9-f381-4b29-a48b-3be6f714207d with aab362fd-e682-4e6c-9e0c-b12cb43c518d: 1
-Comparing aab362fd-e682-4e6c-9e0c-b12cb43c518d with c2555bd4-81f4-4abc-b8b8-8e23c5b8a420: -1
-Comparing c2555bd4-81f4-4abc-b8b8-8e23c5b8a420 with cf1b94ba-11ed-4254-8b8a-77ef9e94b445: -1
-Comparing cf1b94ba-11ed-4254-8b8a-77ef9e94b445 with fe822f07-694a-4c9e-9c1f-76597030ad9a: -1
-Comparing fe822f07-694a-4c9e-9c1f-76597030ad9a with 95e7cb0f-54a5-4543-82d6-288a42c624dc: 1
-Comparing 95e7cb0f-54a5-4543-82d6-288a42c624dc with 368ec6d2-07c6-44a3-af46-428129f31a04: -1
-Comparing 368ec6d2-07c6-44a3-af46-428129f31a04 with 69d67665-113e-4694-8e17-bf5ad26fba9a: -1
-Comparing 69d67665-113e-4694-8e17-bf5ad26fba9a with ea66e476-b081-4b03-878f-431fe9e24c29: 1
-Comparing ea66e476-b081-4b03-878f-431fe9e24c29 with 494d1cd9-15cb-4ad7-bc69-a0b2c49ef19a: -1
-Comparing 494d1cd9-15cb-4ad7-bc69-a0b2c49ef19a with 18cd7d22-4b06-4524-85b3-9bc0e06506fa: 1
-Comparing 18cd7d22-4b06-4524-85b3-9bc0e06506fa with 713d11fd-e4a3-4727-9764-e2e70949c3aa: -1
-Comparing 713d11fd-e4a3-4727-9764-e2e70949c3aa with 8a80fe2d-8599-41bd-a196-45ff7295257d: 1
-Comparing 8a80fe2d-8599-41bd-a196-45ff7295257d with 283805e1-f566-44ea-b648-451324be58c1: -1
-Comparing 283805e1-f566-44ea-b648-451324be58c1 with 1086db5c-65af-44ec-a8d8-a07ec50cd376: 1
-Comparing 1086db5c-65af-44ec-a8d8-a07ec50cd376 with 367ba14a-7919-4261-b6cf-9a4dd483dd6a: -1
-Comparing 367ba14a-7919-4261-b6cf-9a4dd483dd6a with 9e2eb688-2b49-435c-8395-6b26193c93e6: 1
-Comparing 9e2eb688-2b49-435c-8395-6b26193c93e6 with 4a1b2018-b8a6-428d-bc19-fc3a2b6bd9c6: -1
+--
+```java
+@Spike("http://trello.com/b/0V4Fn8Gm/integration-poc")
 ```
 ---
+# Is Guava still a thing?
 
----
-https://github.com/apache/cassandra/blob/cassandra-2.1/src/java/org/apache/cassandra/utils/UUIDGen.java
+--
+
+### Ranges
+.corner.long[
+```java
+Range.closed(1, 3).contains(2);
+
+Range.lessThan(5).contains(5);
 ```
-Stream.generate(() -> UUIDGen.getTimeUUID()).limit(100).reduce((me, you) -> {
-    System.out.println("Comparing " + me  + " with " + you + ": " + me.compareTo(you));
-    return you;
-});
-Comparing 90d2db50-6212-11e6-89ad-fba42d66c0c5 with 90d2db51-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d2db51-6212-11e6-89ad-fba42d66c0c5 with 90d2db52-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d2db52-6212-11e6-89ad-fba42d66c0c5 with 90d30260-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30260-6212-11e6-89ad-fba42d66c0c5 with 90d30261-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30261-6212-11e6-89ad-fba42d66c0c5 with 90d30262-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30262-6212-11e6-89ad-fba42d66c0c5 with 90d30263-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30263-6212-11e6-89ad-fba42d66c0c5 with 90d30264-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30264-6212-11e6-89ad-fba42d66c0c5 with 90d30265-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30265-6212-11e6-89ad-fba42d66c0c5 with 90d30266-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30266-6212-11e6-89ad-fba42d66c0c5 with 90d30267-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30267-6212-11e6-89ad-fba42d66c0c5 with 90d30268-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30268-6212-11e6-89ad-fba42d66c0c5 with 90d30269-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30269-6212-11e6-89ad-fba42d66c0c5 with 90d3026a-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026a-6212-11e6-89ad-fba42d66c0c5 with 90d3026b-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026b-6212-11e6-89ad-fba42d66c0c5 with 90d3026c-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026c-6212-11e6-89ad-fba42d66c0c5 with 90d3026d-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026d-6212-11e6-89ad-fba42d66c0c5 with 90d3026e-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026e-6212-11e6-89ad-fba42d66c0c5 with 90d3026f-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d3026f-6212-11e6-89ad-fba42d66c0c5 with 90d30270-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30270-6212-11e6-89ad-fba42d66c0c5 with 90d30271-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30271-6212-11e6-89ad-fba42d66c0c5 with 90d30272-6212-11e6-89ad-fba42d66c0c5: -1
-Comparing 90d30272-6212-11e6-89ad-fba42d66c0c5 with 90d32970-6212-11e6-89ad-fba42d66c0c5: -1
+]
+
+--
+
+### Multimaps
+.corner.long[
+```java
+Multimap<String, String> gadgets = ...
+
+gadgets.put("iPhone", "5S");
+gadgets.put("iPhone", "6S");
+gadgets.put("LG", "Nexus");
 ```
+]
 
-- Bad design is going to be there, so you can localize imperfections from key parts of the software.
-- Code must fit user mental modal.
-For example, let’s say that my word processor supports tables, text paragraphs, and figures. One requirements scenario captures the user/system interactions to move a table within the document. I can describe the possible scenarios: moving a table from one page to another; moving the table to a pointwithina paragraph; moving the table justbetweentwo existing paragraphs; or even moving a table within another table. The possibilities are endless. Instead of depending on an exhaustive compilation of requirements scenarios alone we instead turn to something that matters even more: the end user’s cognitive model. Users carry models in their head of the internals of the program they are using. They trust that the program ‘‘knows’’ about tables, paragraphs, and figures. The end user trusts the programmer to have paid attention to the need for white space between the table and any adjoining paragraphs. These elements of the end user mental model, while quite static, are useful for reasoning about most possible use case scenarios. If the program doesn’t have an internal representation of a text para- graph, of a table and of a figure, then the program must work hard to present the illusion that it does. Otherwise, the program will endlessly surprise the end user. If model architecture is close to end user cognitive model, then most use cases will fit smoothly, because business domain models remain relatively stable over time.
+--
 
-
----
-Pure OO is highly beneficial, but far-from-perfect ecosystem forces us to compromise.
-
----
-- Chia Pet Pattern
--
-
----
-DRY is coupling.
-
-
----
-argues that object-orientation is a dimension orthogonal to the imperative/logic/functional dimension
-So much hype around FP, so we forget about OO. OO language can support functional and many of them are.
-
----
-4 Rules of simple design
-
----
-Passes the tests
-Reveals intention
-No duplication
-Fewest elements
-
-
----
-At the time there was a lot of “design is subjective”, “design is a matter of taste” bullshit going around. I disagreed. There are better and worse designs. These criteria aren’t perfect, but they serve to sort out some of the obvious crap and (importantly) you can evaluate them right now. The real criteria for quality of design, “minimizes cost (including the cost of delay) and maximizes benefit over the lifetime of the software,” can only be evaluated post hoc, and even then any evaluation will be subject to a large bag full of cognitive biases. The four rules are generally predictive.
-
--- Kent Beck
-
----
-Step down rule.
-architecting for change
-
----
-BAD examples
-```
-YAMLFactory factory = new YAMLFactory();
-JsonParser parser = factory.createJsonParser(yamlString); // don't be fooled by method name...
-while (parser.nextToken() != null) {
-  // do something!
+### Immutable Collections
+.corner.long[
+```java
+Collection<User> users() {
+  return ImmutableList.copyOf(users);
 }
 ```
-https://github.com/FasterXML/jackson-dataformat-yaml
-Violates Principle of Least Surprise
+]
 
----
-Modifying parameter values is surprising for caller.
+--
 
----
-# Tony Hoare's billion dollar mistake
+### Ordering
+.corner.long[
+```java
+Ordering<Person> ordering = Ordering
+  .natural()
+  .nullsFirst()
+  .onResultOf(Person::middleName);
+```
+]
 
----
-"architecture is all about the tension between cohesion and decoupling"
+--
 
----
-Optionals
-Optionals in Spring
-returning nulls sucks, as I have to null check. E.g. string.length().
-POKA-YOKE - we need null checks, as in rush for features we are less attentive to program structure.
-Null object... Well... Not fail-fast really and it is not clear wtf.
-@ParametersAreNonnullByDefault on package-info.java (can override with @Nullable).
-compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+### ComparisonChain
+.corner.long[
+```java
+public int compareTo(Foo that) {
+  return ComparisonChain.start()
+    .compare(this.a, that.a)
+    .compare(this.b, that.b)
+    .compare(this.c, that.c, Ordering.natural())
+    .result();
+```
+]
 
-I think this article misses a very important point: the Optional class in Java 8 is a monad. Simply put, Optional has a method called flatMap that helps to write code in functional style. E.g. compare the following (sorry for the indentation...):
+--
 
-Optional<person> person = ...
-Optional<image> streetView = person.flatMap(Person::getMainAddress).flatMap(address -> xxxService.findStreetViewImage(address));
+### CaseFormat
+.corner.long[
+```java
+CaseFormat.UPPER_UNDERSCORE
+  .to(CaseFormat.LOWER_CAMEL, "CONSTANT_NAME"));
+```
+]
+--
 
-instead of ;
-Optional<person> person = ...
-Optional<image> image = Optional.empty();
-if (person.isPresent()) {
-Optional<address> address = person.get().getAddress():
-if (address.isPresent()) {
-image = xxxService.findStreetViewImage(address.get());
-}
-}
-Optional is a monad structure. You can build pipes of ops w/o worrying aboiut nulls.
-
----
-Outer outer = new Outer();
-if (outer != null && outer.nested != null && outer.nested.inner != null) {
-    System.out.println(outer.nested.inner.foo);
-}
-The same behavior can be obtained by utilizing optionals flatMap operation:
-
-Optional.of(new Outer())
-    .flatMap(o -> Optional.ofNullable(o.nested))
-    .flatMap(n -> Optional.ofNullable(n.inner))
-    .flatMap(i -> Optional.ofNullable(i.foo))
-    .ifPresent(System.out::println);
-
-
----
-Avoid overly defensive code if you are not writing a framework.
-
----
-class Person implements Comparable<Person> {
-  private String lastName;
-  private String firstName;
-  private int zipCode;
-
-  public int compareTo(Person other) {
-
-
-    int cmp = lastName.compareTo(other.lastName);
-    if (cmp != 0) {
-      return cmp;
-    }
-    cmp = firstName.compareTo(other.firstName);
-    if (cmp != 0) {
-      return cmp;
-    }
-    return Integer.compare(zipCode, other.zipCode);
-  }
-}
-
-   public int compareTo(Foo that) {
-     return ComparisonChain.start()
-         .compare(this.aString, that.aString)
-         .compare(this.anInt, that.anInt)
-         .compare(this.anEnum, that.anEnum, Ordering.natural().nullsLast())
-         .result();
-   }
-
----
-def payment = payments
-        .get(iban, name, amount, details)
-        .orElseThrow({ new PaymentNotFound("Cannot find payment") })
-
----
-interface Repository {
-     find(Mark mask)
-}
-
-interface Mask
-  boolean matches(File file)
-
-interface AnyFile {
-    true;
-}
-
-
----
-Deprecation
-- Is guava still a thing? Yes. Ranges, Multimaps, Immutable, Ordering, ComparisonChain, CaseFormat, Hashing, BloomFilter, EventBus, EqualsTester
-- Is JodaTime still a thing? No.
-- Are commons/io and other commons still a thing? Yes.
+### Hashing - BloomFilter - EventBus - EqualsTester
 ???
- Briefly, Bloom filters are a probabilistic data structure, allowing you to test if an object is definitely not in the filter, or was probably added to the Bloom filter.
+Briefly, Bloom filters are a probabilistic DS, definitely NOT containing, but if yes - MAYBE
+
 
 ---
-Argument checks - defensive or ignorant?  @NotNull by default.z
+class: middle, center, invert
+# SOLID
 
 ---
-# Functional Java 8
+class: middle, center
+# Singe Responsibility Principle
+---
+# How small the class should be?
+### Size is just an indicator of bloaded responsibilities — *me*
+
+--
+
+### Mind-sized — *me*
+
+--
+
+### Small enough to lower coupling — *Marco Ceconni*
+???
+Marco Cecconi - Dev at StackOverflow
+
+--
+
+### Large enough to maximize cohesion — *Marco Ceconni*
+
+--
+
+### Small enough to be easy to understand, rewrite or replace  — *me*
+
+--
+
+### Inside every large program, there is a small program trying to get out — *Tony Hoare*
+???
+TH - Quicksort
 
 ---
+### Can who spot 2 interwoven concepts?
+```java
+class FtpClient {
+
+  void transferFile(String filename, InputStream input)
+
+  boolean fileExists(String filename);
+
+  void makeDir(String parentDir, String dir);
+
+  boolean folderExists(String folder);
+
+}
 ```
-Converter<String, Integer> converter = (from) -> Integer.valueOf(from);
-Converter<String, Integer> converter = Integer::valueOf; // simply awesome. implicit conversion.
 
-// object method references:
-Something something = new Something();
-Converter<String, String> converter = something::startsWith;
+--
+### Does 1 thing well - processing
+
+```java
+class Trade {
+  void process() {
+    // 1000 LOC
+  }
+}
+```
+
+--
+### Generic naming leads to obesity - Helpers, Utils, Managers, Services...
+
+---
+class: middle, center
+# Open-Closed Principle
+
+---
+```java
+class OmniNotificationChannel {
+
+  private final SmsNotificationChannel viaSms;
+
+  private final EmailNotificationChannel viaEmail;
+
+  @Autowired
+  public OmniNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
+    this.viaSms = viaSms;
+    this.viaEmail = emaviaEmailil
+  }
+
+  void send(Notification notification) {
+      if (notification.isNotTooLongForSms()) {
+        viaSms.send(notification);
+      }
+
+      viaEmail.send(notification);
+  }
+}
+
+class SmsNotificationChannel {
+    void send(Notification notification);
+}
+
+class EmailNotificationChannel {
+    void send(Notification notification);
+}
 ```
 
 ---
-Predicate<Boolean> notZhorik = zhorik.negate();
+```java
+class OmniNotificationChannel {
+
+  private final SmsNotificationChannel viaSms;
+
+  private final EmailNotificationChannel viaEmail;
+
+  @Autowired
+  public OmniNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
+    this.viaSms = viaSms;
+    this.viaEmail = emaviaEmailil
+  }
+
+  void send(Notification notification) {
+      if (notification.isNotTooLongForSms()) {
+        viaSms.send(notification);
+      }
+
+      viaEmail.send(notification);
+  }
+}
+
+class SmsNotificationChannel implements NotificationChannel {
+    void send(Notification notification);
+}
+
+class EmailNotificationChannel implements NotificationChannel {
+    void send(Notification notification);
+}
+
+interface NotificationChannel {
+    void send(Notification notification);
+}
+```
 
 ---
-class Person {
-    String firstName;
-    String lastName;
 
-    Person() {}
+```java
+class OmniNotificationChannel {
 
-    Person(String firstName, String lastName) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+  private final Collection<NotificationChannel> notificationChannels;
+
+  @Autowired
+  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+    this.notificationChannels = notificationChannels;
+  }
+
+  void send(Notification notification) {
+*     if (notification.isNotTooLongForSms()) {
+*       viaSms.send(notification);
+*     }
+
+      viaEmail.send(notification);
+  }
+}
+
+interface NotificationChannel {
+    void send(Notification notification);
+}
+```
+
+---
+
+```java
+class OmniNotificationChannel {
+
+  private final Collection<NotificationChannel> notificationChannels;
+
+  @Autowired
+  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+    this.notificationChannels = notificationChannels;
+  }
+
+  void send(Notification notification) {
+*     if (notification.isNotTooLongForSms()) {
+*       viaSms.send(notification);
+*     }
+
+      viaEmail.send(notification);
+  }
+}
+
+interface NotificationChannel {
+    void send(Notification notification);
+    boolean accepts(Notification notification);
+}
+```
+
+--
+```java
+class SmsNotificationChannel implements NotificationChannel {
+    boolean accepts(Notification notification) {
+        return notification.isSatisifiesBy(new FitsIntoSms());
     }
 }
-Next we specify a person factory interface to be used for creating new persons:
 
-interface PersonFactory<P extends Person> {
-    P create(String firstName, String lastName);
+class EmailNotificationChannel implements NotificationChannel {
+    boolean accepts(Notification notification) { return ALWAYS; }
 }
-Instead of implementing the factory manually, we glue everything together via constructor references:
-
-PersonFactory<Person> personFactory = Person::new;
-Person person = personFactory.create("Peter", "Parker");
-
-
-- WHATABOUTS CHECKED EXCEPTIOnS?
-- andThen(Function): Returns a composed function that first applies this function to its input, and then applies the given function to the result.
-- compose(Function): Similar to andThen but in reversed order (first applies the given function to its input, and then this function).
-
-Function<Integer,String> f = Function.<Integer>identity()
-2         .andThen(i -> 2*i).andThen(i -> "str" + i);
-
----
-String[] array = Stream.of( ... ).toArray( String[]::new );
-vs.
-List<String> list = Stream.of( ... ).filter( ... ).collect( Collectors.toList() );
-String[] array = list.toArray( new String[ list.size() ] );
-
-
----
-```
-A state object for collecting statistics such as count, min, max, sum, and average.
-This class is designed to work with (though does not require) streams. For example, you can compute summary statistics on a stream of ints with:
-   IntSummaryStatistics stats = intStream.collect(IntSummaryStatistics::new,
-                                                 IntSummaryStatistics::accept,
-                                                 IntSummaryStatistics::combine);
-
-IntSummaryStatistics can be used as a reduction target for a stream. For example:
-   IntSummaryStatistics stats = people.stream()
-                                     .collect(Collectors.summarizingInt(Person::getDependents));
-
-This computes, in a single pass, the count of people, as well as the minimum, maximum, sum, and average of their number of dependents.
 ```
 
 ---
+```java
+class OmniNotificationChannel {
+
+  private final Collection<NotificationChannel> notificationChannels;
+
+  @Autowired
+  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+    this.notificationChannels = notificationChannels;
+  }
+
+  void send(Notification notification) {
+      notificationChannels.stream()
+        .filter(channel -> channel.accepts(notification))
+        .forEach(channel -> channel.send(notification));
+  }
+}
 ```
-people.stream()
-        .filter(HasFirstName.class::isInstance)
-        .filter(HasLastName.class::isInstance)
-        .map(person -> (HasFirstName & HasLastName) person)
-        .forEach(person ->
-                System.out.println("Yo, " + person.firstName() + " " + person.lastName())
-        );
+
+--
+
+```java
+class OmniNotificationChannel implements NotificationChannel {
+  ...
+}
 ```
 
 ---
-javax.date
+class: center, middle
+## **[SOLID principles](https://vimeo.com/60193259) — *Eduards Sizovs***
 
 ---
-Access to current time is a dependency, the same as Random number generator.
-
-
-A TemporalAdjuster can be used to do tricky date “math” that is popular in business applications. For example they can be used to find the “first Monday of the month” or “next Tuesday”.
-
-The java.time.temporal.TemporalAdjusters class contains a bunch of useful methods for creating TemporalAdjusters. Here are a few of them:
-
-- firstDayOfMonth()
-- firstDayOfNextMonth()
-- firstInMonth(DayOfWeek)
-- lastDayOfMont()
-- next(DayOfWeek)
-- nextOrSame(DayOfWeek)
-- previous(DayOfWeek)
-- previousOrSame(DayOfWeek)
-
-To use a TemporalAdjuster use the with method. This method returns an adjusted copy of the date-time or date object. For example:
-
-1 import static java.time.temporal.TemporalAdjusters.*;
-2 //...
-3 LocalDate nextTuesday = LocalDate.now().with(next(DayOfWeek.TUESDAY));
+- We can add behaviour with decorators (open-closed)
 
 ---
-instant vs. localtime.
-machine-timeline or human-timeline view of of the world.
-
----
-next.
-
----
-no static methods.
+# Working with legacy code
+### Chia Pet Pattern
+### Most development is about preserving behaviour
+### Refactoring dilemma
 
 ---
 #Modularity
+- Boundaries/joints are important.
+- Bad design is going to be there, so you can localize imperfections from key parts of the software.
 
 ---
 - Weight. slf4j-api dependency only; JSR-330 instead of Spring for DI.
@@ -1644,33 +2006,12 @@ degrees of cohision.
 ---
 From assessing hundreds of software systems on three continents I know that about 90% of software systems are suffering from severe architectural erosion, i.e. there is not a lot of the original architectural structure left in them, and coupling and dependencies are totally out of control. (Alexander von Zitzewitz)
 
----
-Don’t decide everything at the point you know least
+
 
 ---
-SOLID (SRP)
-- Service, Manager, Processor, Helper, Util...
-- Small enough to lower coupling (Marco Ceconni)
-- Large enough to maximize cohesion (Marco Ceconni)
-- Mind-sized (Eduards Sizovs)
-- Small enough to understand and rewrite / replace.
-Inside every large program, there is a small program trying to get out. © C.A.R. Hoare
-
-class FtpClient {
-  transferFile(String filename, InputStream input)
-  fileExists(String filename);
-  makeDir(String parentDir, String dir);
-  folderExists(String folder);
-}
-
----
+### Fighting feature ENVY:
 entity.apply(fn)
 entity.satisfies()
-
----
-Be consistent.
-- Argument order
-- Method naming (e.g. give hints.)
 
 ---
 - Adjacent parameter of the same type, if practical, if possible, should be avoided. (c) Scott Meyers
@@ -1690,16 +2031,6 @@ Bundle advanced functionality into separate objects. Functionality is hidden unl
 Instead of given all stuff, you have to ask for them.
 
 ---
-ALWAYS prefer clarity vs. LOC.
-
-1000 LOC. Does 1 thing - processing.  What is the problem? METHOD IS TOO G.E.N.E.R.I.C.
-
-class Trade {
-  void process()
-}
-
-
----
 Intent. Why intent? RestEndPoint.receive(ACOmmand command). If Rest endpoint is just a translation layer, then, if each command is a use case, we can easily express it in terms of BDD. What the system DOES.
 commands can be combined. Throttled. Whatever.
 Exception handling
@@ -1715,19 +2046,6 @@ implementing an application by
 describing it from the point of view of
 its stakeholders” (c) Dan North
 
-
----
-level of abtraction
-Map<int, Map<int, int>> portfoliosByTraderId;
-if (portfolioIdsByTraderId.get(trader.getId())
- .containsKey(portfolio.getId())) {...}
-•
-Becomes:
-•
-if (trader.canView(portfolio)) {...}
-
----
-fighting feature envy by adding satisfies().
 
 ---
 ```
@@ -1855,7 +2173,7 @@ class Person implements Entity<Person>
 
 Age adultAge = new Age(18);
 Person citizen = new Person(adultAge, Sex.MALE);
-boolean adultMale = citizen.satisfies(new AdultMale());
+boolean adultMale = citizen.isSatisfiedBy(new IsAdultMale());
 ```
 ???
 Entity is an interface! Wohoo!
@@ -1929,26 +2247,6 @@ class SilentTrade {
 
 ---
 Rule of demeter / principle of least knowledge / don't talk to strangers / train wrecks
-
-
----
-Java 8 --parametsrs
-@RequestMapping("/accounts/{id}")
-public Account getAccount(@PathVariable("id") String id)
-
-can be written as
-
-@RequestMapping("/accounts/{id}")
-public Account getAccount(@PathVariable String id)
-
-
----
-
-interface CustomerRepository extends CrudRepository<Customer, Long> {
-  @Query("select c from Customer c where c.lastname = :lastname")
-  List<Customer> findByLastname(String lastname);
-}
-
 
 ---
 Jackson
