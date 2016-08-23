@@ -13,11 +13,19 @@
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
+      .fade {color: #E0E0E0}
+      .spanny { padding: 10px; color: white; background-color: #0b1c2e }
+      .nopadding { padding: 0 }
+      .libs { background-color: #202020}
+      .l50 { float: left; width: 50%; }
+      .r50 { float: right; width: 50%; }
+      .crap pre { border-right: 5px solid #D81F2A; }
+      .nice pre { border-right: 5px solid #69F0AE; }
+
       .corner {border: 5px solid #85C1E9; position: absolute; top: 0px; right: 0px; width: 50%; background-color: #F0F0F0}
       .corner pre {margin: 0; padding: 0}
-      .corner.long {
-        height: 300px;
-      }
+      .corner.long {height: 300px;}
+
       .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
       .invert { background-color: black; color: white; }
       .bad { background-color: #AA1914; color: white;}
@@ -55,7 +63,7 @@ Setting expectations:
 
 ---
 class: center, middle, invert
-# Java 8 additions in 2 slides
+# Java 8 additions in 4 slides
 ---
 ###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
 ???
@@ -127,6 +135,68 @@ PersonFactory personFactory = Person::new;
 Person person = personFactory.create("Peter", "Parker");
 ```
 
+---
+### **checked exception in lambdas**
+.crap[
+```java
+Arrays.stream(dir.listFiles())
+        .map(file -> {
+            try {
+                return file.getCanonicalPath();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+
+            }
+        })
+        .forEach(System.out::println);
+```
+]
+---
+
+.nice[
+```java
+Arrays.stream(dir.listFiles())
+        .map(Unchecked.function(File::getCanonicalPath))
+        .forEach(System.out::println);
+```
+]
+
+--
+
+.nice[
+```java
+class Unchecked {
+  public static <T, R> Function<T, R> function(CheckedFunction<T, R> function) {
+    return t -> {
+        try {
+            return function.apply(t);
+        }
+        catch (Throwable e) {
+          if (e instanceof Error) {
+              throw (Error) e;
+          }
+          if (e instanceof RuntimeException) {
+              throw (RuntimeException) e;
+          }
+          throw new RuntimeException(e);
+        }
+    };
+  }
+
+}
+```
+]
+
+--
+
+.nice[
+```java
+@FunctionalInterface
+public interface CheckedFunction<T, R> {
+    R apply(T t) throws Throwable;
+}
+```
+]
 
 ---
 class: center, middle, invert
@@ -816,6 +886,8 @@ Client.setLastName(lastName);
 ```java
 Client.giveName(String firstName, String lastName);
 ```
+???
+grant permissions vs. set permissions
 
 ```java
 void setPreferredAgreementType(AgreementType preferredAgreementType) { }
@@ -1435,6 +1507,10 @@ class: center, middle
 
 ---
 class: center, middle
+# What I like of comments is deleting them
+
+---
+class: center, middle
 ![](cat.jpg)
 
 ---
@@ -1736,6 +1812,7 @@ Briefly, Bloom filters are a probabilistic DS, definitely NOT containing, but if
 ---
 class: middle, center, invert
 # SOLID
+#### [SOLID principles](https://vimeo.com/60193259) — *Eduards Sizovs*
 
 ---
 class: middle, center
@@ -1804,14 +1881,46 @@ class: middle, center
 
 ---
 ```java
-class OmniNotificationChannel {
+class NotificationService {
+
+  private final SmsNotifer viaSms;
+
+  private final EmailNotifier viaEmail;
+
+  @Autowired
+  public NotificationService(SmsNotifier viaSms, EmailNotifier viaEmail) {
+    this.viaSms = viaSms;
+    this.viaEmail = emaviaEmailil
+  }
+
+  void send(Notification notification) {
+      if (notification.isNotTooLongForSms()) {
+        viaSms.send(notification);
+      }
+
+      viaEmail.send(notification);
+  }
+}
+
+class SmsNotifier {
+    void send(Notification notification);
+}
+
+class EmailNotifier {
+    void send(Notification notification);
+}
+```
+
+---
+```java
+class EveryNotificationChannel {
 
   private final SmsNotificationChannel viaSms;
 
   private final EmailNotificationChannel viaEmail;
 
   @Autowired
-  public OmniNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
+  public EveryNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
     this.viaSms = viaSms;
     this.viaEmail = emaviaEmailil
   }
@@ -1833,17 +1942,19 @@ class EmailNotificationChannel {
     void send(Notification notification);
 }
 ```
+???
+omni - every from latin.
 
 ---
 ```java
-class OmniNotificationChannel {
+class EveryNotificationChannel {
 
   private final SmsNotificationChannel viaSms;
 
   private final EmailNotificationChannel viaEmail;
 
   @Autowired
-  public OmniNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
+  public EveryNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
     this.viaSms = viaSms;
     this.viaEmail = emaviaEmailil
   }
@@ -1873,19 +1984,19 @@ interface NotificationChannel {
 ---
 
 ```java
-class OmniNotificationChannel {
+class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
   @Autowired
-  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+  public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
 
   void send(Notification notification) {
-*     if (notification.isNotTooLongForSms()) {
-*       viaSms.send(notification);
-*     }
+     if (notification.isNotTooLongForSms()) {
+       viaSms.send(notification);
+     }
 
       viaEmail.send(notification);
   }
@@ -1899,19 +2010,19 @@ interface NotificationChannel {
 ---
 
 ```java
-class OmniNotificationChannel {
+class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
   @Autowired
-  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+  public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
 
   void send(Notification notification) {
-*     if (notification.isNotTooLongForSms()) {
-*       viaSms.send(notification);
-*     }
+     if (notification.isNotTooLongForSms()) {
+       viaSms.send(notification);
+     }
 
       viaEmail.send(notification);
   }
@@ -1938,12 +2049,12 @@ class EmailNotificationChannel implements NotificationChannel {
 
 ---
 ```java
-class OmniNotificationChannel {
+class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
   @Autowired
-  public OmniNotificationChannel(Collection<NotificationChannel> notificationChannels) {
+  public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
 
@@ -1958,14 +2069,1142 @@ class OmniNotificationChannel {
 --
 
 ```java
-class OmniNotificationChannel implements NotificationChannel {
+class EveryNotificationChannel implements NotificationChannel {
   ...
 }
 ```
 
 ---
 class: center, middle
-## **[SOLID principles](https://vimeo.com/60193259) — *Eduards Sizovs***
+# Liskov Substitution Principle
+???
+indicators - instanceof checks, UnsupportedOperationException, funny restrictions (don't use this class if...)
+
+---
+background-image:url(toinstant.png)
+???
+java.sql.Date extends java.util.Date
+
+---
+.crap[
+```java
+class MapWithMandatoryValues implements Map<String, String> {
+    @Override
+    String get(Object key) {
+        def value = map.get(key)
+        if (!value) {
+            throw new MissingParameter(key as String)
+        }
+        value
+    }
+}
+```
+]
+
+--
+
+```java
+class TradeOrder {
+  void cancel() {
+    notifyRegulators();
+  }
+}
+```
+
+--
+.crap[
+```java
+class SilentTradeOrder extends Trade {
+  @Override
+  void notifyRegulators() {
+  }
+}
+```
+]
+
+---
+
+```java
+class Amount {
+    private final BigDecimal origin;
+    public Amount(BigDecimal origin) {
+      Preconditions.checkArgument(origin.isPositive(), "Only positive amount is supported");
+      this.origin = origin;
+    }
+}
+```
+
+--
+
+```groovy
+class AmountSpec extends Specification {
+    def "does not support negative numbers"() {
+      when:
+        new Amount(-1.00)
+      then:
+         def e = thrown(IllegalArgumentException)
+         e.message == "Only positive amount is supported"
+    }
+}
+```
+
+---
+
+.crap[
+```java
+class Amount {
+    BigDecimal origin;
+    public Amount(BigDecimal origin) {
+      Preconditions.checkArgument(origin.isPositive(), "Only positive amount is supported");
+      this.origin = origin;
+    }
+    Amount() {
+
+    }
+
+}
+```
+]
+
+--
+.crap[
+```java
+class SignedAmount extends Amount {
+
+    public SignedAmount(BigDecimal origin) {
+      super();
+      this.origin = origin;
+    }
+}
+```
+]
+
+
+---
+### Subclassing is evil because a subclass that breaks invariants may look completely logical in isolation.
+
+--
+### **Normalized hierarchy** is a hieararchy in which no class has more than one implementation of a method.
+
+--
+### Prefer composition over inheritance and, if not possible, stick to **NF**.
+???
+never reuse behaviour via inheritance.
+
+---
+class: center, middle
+# The Interface Segregation Principle
+
+---
+class: center, middle
+# Many client specific interfaces are better than one general purpose interface.
+### — *Robert Martin, Agile Software Development*
+
+---
+# What's wrong with FAT interfaces?
+
+--
+
+### Suffer from low cohesion
+
+--
+
+### Suffer from high afferent/efferent coupling
+???
+afferent - in
+efferent - out
+
+--
+
+### Make subclasses suffer from the same deseases
+
+---
+.crap[
+```java
+package shwitter.config;
+interface ProductSettings {
+    Attempts maxRegistrationAttempts();
+    BonusAmount bonusAmount();
+    Income minimalIncome();
+    ...
+}
+```
+]
+
+--
+.nice[
+```java
+package shwitter.registration;
+interface RegistrationAttempts {
+    Attempts max();
+}
+```
+]
+
+--
+
+.nice[
+```java
+package shwitter.loyalty;
+interface BonusAmount extends DecimalNumber {
+}
+```
+]
+
+--
+
+.nice[
+```java
+package shwitter.lending.rules;
+interface IncomeConstraints {
+    Income minimal();
+}
+```
+]
+
+--
+
+### Consider complexity of an implementor / test?
+???
+test double, decorator
+
+--
+
+### Impact of moving an interface?
+
+---
+```java
+interface BacklogItem {
+    Complexity complexity();
+    void estimate(Duration duration);
+}
+```
+
+--
+
+### Murphy's Law hits the fan
+
+--
+
+.crap[
+```java
+class Forecast {
+    private final BacklogItem backlogItem
+    Duration duration() {
+      Duration duration = forecast(backlogItem.complexity());
+*     backlogItem.estimate(duration);
+      return duration;
+    }
+}
+```
+]
+
+--
+
+```java
+interface Forecastable {
+  Complexity complexity();
+}
+```
+
+--
+
+```java
+interface BacklogItem extends Forecastable {
+    void estimate(Duration duration);
+}
+```
+
+---
+```java
+interface BacklogItem {
+    Complexity complexity();
+    void estimate(Duration duration);
+}
+```
+
+### Murphy's Law hits the fan
+
+.nice[
+```java
+class Forecast {
+    private final Forecastable forecastable;
+    Duration duration() {
+      Duration duration = forecast(forecastable.complexity());
+*     backlogItem.estimate(duration); // compile error
+      return duration;
+    }
+}
+```
+]
+
+```java
+interface Forecastable {
+  Complexity complexity();
+}
+```
+
+```java
+interface BacklogItem extends Forecastable {
+    void estimate(Duration duration);
+}
+```
+
+---
+class: center, middle
+# Dependency Inversion Principle
+
+---
+class: center, middle
+# High-level modules should not depend on low-level modules. Both should depend on abstractions.
+### — *Robert Martin, Agile Software Development*
+???
+the goal is to increase reuse of a high-level modules.
+
+---
+```java
+package infra.pdf;
+
+interface Canvas {
+  OutputStream stream();
+}
+
+class ITextPdfDocument {
+
+    private final Invoice invoice;
+
+    public void render(Canvas canvas) {
+        IText itext = new IText(configuration);
+        itext.enableBuffering();
+        itext.render(invoice.stream(), canvas.stream());
+    }
+}
+```
+
+```java
+package app.invoicing;
+
+class Invoice {
+    InputStream stream();
+}
+```
+
+
+--
+### **[infra.pdf]** is not reusable, because it depends on **[app.invoicing]**.
+
+---
+```java
+package infra.pdf;
+
+interface Canvas {
+  OutputStream stream();
+}
+
+class ITextPdfDocument {
+
+    private final PdfSource source;
+
+    public void render(Canvas canvas) {
+        IText itext = new IText(configuration);
+        itext.enableBuffering();
+        itext.render(source.stream(), canvas.stream());
+    }
+}
+```
+
+.l50[
+```java
+package app.invoicing;
+
+class Invoice implements PdfSource {
+    InputStream stream();
+}
+```
+]
+.r50[
+```java
+package app.invoicing;
+
+interface PdfSource {
+    InputStream stream();
+}
+```
+]
+
+### **[infra.pdf]** is still not reusable, but coupling decreased.
+
+---
+```java
+package infra.pdf;
+
+interface Canvas {
+  OutputStream stream();
+}
+
+class ITextPdfDocument {
+
+    private final PdfSource source;
+
+    public void render(Canvas canvas) {
+        IText itext = new IText(configuration);
+        itext.enableBuffering();
+        itext.render(source.stream(), canvas.stream());
+    }
+}
+```
+
+.l50[
+```java
+package app.invoicing;
+
+class Invoice implements PdfSource {
+    InputStream stream();
+}
+```
+]
+.r50[
+```java
+package infra.pdf;
+
+interface PdfSource {
+    InputStream stream();
+}
+```
+]
+
+### **[infra.pdf]** is now reusable, because of inverted dependency.
+
+### Usage direction can be opposite to dependency direction.
+
+---
+### How to let **[app.invoicing]** plug any PDF implementation?
+
+```java
+package infra.pdf;
+
+interface Canvas {
+  OutputStream stream();
+}
+
+interface PdfSource {
+    InputStream stream();
+}
+
+class ITextPdfDocument {
+
+    private final PdfSource source;
+
+    public void render(Canvas canvas) {
+        IText itext = new IText(configuration);
+        itext.enableBuffering();
+        itext.render(source.stream(), canvas.stream());
+    }
+}
+```
+
+```java
+package app.invoicing;
+
+class Invoice implements PdfSource {
+    InputStream stream();
+}
+```
+
+---
+### How to let **[app.invoicing]** plug any PDF implementation?
+
+```java
+package infra.pdf.api;
+
+interface Canvas {
+  OutputStream stream();
+}
+
+interface PdfSource {
+    InputStream stream();
+}
+
+interface PdfDocument {
+  void render(Canvas canvas);
+}
+```
+
+```java
+package infra.pdf.impl.itext;
+
+class ITextPdfDocument implements PdfDocument {
+    private final PdfSource source;
+
+    public void render(Canvas canvas) {
+        IText itext = ...
+    }
+}
+```
+
+```java
+package infra.pdf.impl.pdfbox;
+
+class BoxPdfDocument implements PdfDocument {
+
+    private final PdfSource source;
+
+    public void render(Canvas canvas) {
+        PDFBox box = ...
+    }
+}
+```
+
+---
+### But **[app.invoicing]** is instatiating concrete PdfDocument instance...
+.crap[
+```java
+package app.invoicing;
+
+@RestController
+class InvoiceEndpoint {
+
+  @GetMapping("/invoices/latest")
+  void download(HttpServletResponse response) {
+    Invoice invoice = invoices.latest();
+*   PdfDocument document = new ITextPdfDocument(invoice); // or BoxPdfDocument
+    Canvas canvas = new HttpOutCanvas(response);
+    document.render(canvas);
+  }
+}
+```
+]
+
+--
+
+```java
+package infra.pdf.api;
+
+interface PdfDocumentFactory  {
+    PdfDocument create(PdfSource source);
+}
+```
+
+--
+
+```java
+package infra.pdf.impl.itext;
+
+@Singleton
+class ITextPdfDocumentFactory implements PdfDocumentFactory {
+
+    public PdfDocument create(PdfSource source) {
+        return new ITextPdfDocument(source);
+    }
+}
+```
+
+---
+### Voila!
+.nice[
+```java
+package app.invoicing;
+
+@RestController
+class InvoiceEndpoint {
+
+  private final PdfDocumentFactory pdfDocumentFactory;
+
+  @Autowired
+  InvoiceEndpoint(PdfDocumentFactory pdfDocumentFactory) {
+    this.pdfDocumentFactory = pdfDocumentFactory;
+  }
+
+
+  @GetMapping("/invoices/latest")
+  void download(HttpServletResponse response) {
+    Invoice invoice = invoices.latest();
+*   PdfDocument document = pdfDocumentFactory.document(invoice);
+
+    Canvas canvas = new HttpOutCanvas(response);
+    document.render(canvas);
+  }
+}
+```
+]
+
+---
+### Consider **weight**
+```java
+package infra.pdf.impl.itext;
+*@javax.inject.Singleton // javax.inject:javax.inject
+class ITextPdfDocumentFactory implements PdfDocumentFactory {
+    ...
+}
+```
+
+### vs.
+
+```java
+package infra.pdf.impl.itext;
+*@org.springframework.stereotype.Component // org.springframework:spring-context
+class ITextPdfDocumentFactory implements PdfDocumentFactory {
+    ...
+}
+```
+
+---
+background-image:url(repackage.png)
+
+---
+### Consider **granularity**
+```groovy
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+}
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-web:1.4.0.RELEASE")
+    compile("org.springframework.boot:spring-boot-starter-jetty:1.4.0.RELEASE")
+    // ...
+}
+```
+???
+but in general, Spring Boot is very fine grained.
+
+---
+class:libs
+background-image:url(jetty.png)
+
+---
+background-image:url(aws.png)
+
+---
+# More on modularity
+![](kirk.jpg)
+
+
+---
+class: nopadding
+background-image:url(hibernate.png)
+### .spanny[Hibernate Core v4.3.8.Final]
+???
+ok, you have nice physical modularity, but what about logical design?
+
+---
+class: nopadding
+background-image:url(jdk7.png)
+### .spanny[JDK v1.7.0_51]
+
+---
+class: nopadding
+background-image:url(findbugs10.png)
+### .spanny[Findbugs V1.0 - A great start]
+
+---
+class: nopadding
+background-image:url(findbugs11.png)
+### .spanny[Findbugs V1.1 – Imperfection creeps in]
+
+---
+class: nopadding
+background-image:url(findbugs12.png)
+### .spanny[Findbugs V1.2 – Imperfection takes hold]
+
+---
+class: nopadding
+background-image:url(findbugs13.png)
+### .spanny[Findbugs V1.3 – Chaos begins]
+
+---
+class: nopadding
+background-image:url(findbugs14.png)
+### .spanny[Findbugs V1.4 – Explosion]
+
+---
+class: nopadding
+background-image:url(spring.png)
+### .spanny[Spring v4.1.6]
+
+
+---
+class: right, middle
+## **A JDK code base is deeply interconnected** at both the API and the implementation levels, having been built over many years primarily in the style of a monolithic software system. .fade[We’ve spent considerable effort eliminating or at least simplifying as many API and implementation dependences as possible, so that both the Platform and its implementations can be presented as a coherent set of interdependent modules, but some particularly thorny cases remain.]
+### — *Mark Reinholds, Chief Architect of the Java Platform*
+
+
+---
+class: center, middle
+## From assessing hundreds of software systems on three continents I know that about 90% of software systems are suffering from severe architectural erosion, i.e. there is not a lot of the original architectural structure left in them, and **coupling and dependencies are totally out of control**.
+### — *Alexander von Zitzewitz*
+
+---
+# Hints
+### Manage dependencies (Stan4j, Structure 101, VeriPacks)
+
+--
+
+### Avoid circular dependencies (merging, DI, demotion, escalation)
+
+--
+### Prefer smaller packages over large ones
+
+--
+
+### Provide slim interface and hide implementation details
+???
+@Component package-private.
+
+--
+
+### Group tightly-coupled classes together (Common Closure Principle)
+
+--
+
+### Reify! (e.g. String traderId vs TraderId traderId)
+
+
+--
+
+### [Architecting well-structured Java applications](https://www.youtube.com/watch?v=99VFdX1WS7o) — *Eduards Sizovs*
+
+---
+class:libs
+background-image:url(layering_veripacks.png)
+
+---
+# VeriPacks Demo:
+### 1.  **[application]** cannot be accessed by **[domain]** and **[infra]**
+
+--
+
+### 2. **[domain]** is accessible only by [**application**], never **[infra]**
+
+--
+
+### 3. **[infra.emailing]** **publishes** EmailProvider and Email interfaces. SmtpEmailProvider is only accessible by subpackages.
+
+--
+
+### 4. **[org.hibernate]** can only be used by **[infra.hibernate]**
+
+---
+# Application layer a-ka Service layer
+
+--
+
+### - defines a use case, what the system does
+
+--
+
+### - defines a use case contract (input / output)
+
+--
+
+### - defines transaction boundary
+
+--
+
+### - never ever to be confused with a domain service
+
+---
+
+.crap[
+```java
+interface MemberPermissionService {
+  void grantPermission(String memberId, String permissionId);
+
+  PermissionsDto listPermissions(String memberId);
+}
+
+@Transactional
+class DefaultMemberPermissionServiceImpl implements MemberPermissionService {
+  @Override
+  public void grantPermission(String memberId, String permissionId) { ... }
+
+  @Override
+  public PermissionsDto listPermissions(String memberId) { ... }
+}
+```
+]
+
+--
+
+### Tend to grow like hell
+
+--
+
+### No single entry point
+
+--
+
+### Always blocking
+
+--
+
+### Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...
+
+---
+
+.nice[
+```java
+interface Command<R extends Command.Response> {
+    interface Response {
+    }
+}
+```
+]
+
+--
+
+.nice[
+```java
+class Blank implements Command.Response {
+}
+```
+]
+
+--
+
+```java
+interface CommandHandler<C extends Command<R>, R extends Command.Response> {
+    R handle(C $);
+}
+```
+
+--
+
+```java
+interface Now {
+    <C extends Command<R>, R extends Command.Response> R execute(C command);
+}
+```
+???
+finds and executes appropriate impl for a command using generics
+
+--
+
+```java
+interface Future {
+    <C extends Command<R>, R ...> CompletableFuture<R> schedule(C command);
+}```
+
+--
+
+```java
+interface Rx {
+    <C extends Command<R>, R ...> Observable<R> observe(C command);
+}
+```
+
+--
+```java
+interface Durable {
+    <C extends Command> void enqueue(C command);
+}
+```
+
+---
+.nice[
+```java
+public class GrantPermissionCommand implements Command<Blank> {
+
+    private final String memberId, permissionId;
+
+    public GrantPermissionCommand(String memberId, String permissionId) { ... }
+
+    public String memberId() {
+        return memberId;
+    }
+
+    public String permissionId() {
+        return permissionId;
+    }
+}
+```
+]
+
+--
+.nice[
+```java
+class GrantPermissionCommandHandler implements CommandHandler<GrantPermissionCommand, Blank> {
+
+    private final Members members;
+    private final Permissions permissions;
+
+    @Autowired
+    public GrantPermissionCommandHandler(Permissions permissions, Members members) { ... }
+
+    @Override
+    public Blank handle(GrantPermissionCommand $) {
+        MemberId memberId = new MemberId($.memberId());
+        Member member = members.byId(memberId);
+
+        PermissionId permissionId = new PermissionId($.permissionId());
+        Permission permission = permissions.byId(permissionId);
+
+        member.grantPermission(permission);
+        return new Blank();
+    }
+}
+```
+]
+
+---
+```java
+@RestController
+class GrantPermissionEndpoint {
+
+    @Autowired
+    Now now;
+
+    @Autowired
+    Future future;
+
+    @Autowired
+    Rx rx;
+
+    @Autowired
+    Durable durable;
+
+    @PostMapping("/users/$userId/permissions")
+    void accept(
+      @PathVariable String userId,
+      @RequestBody GrantPermissionCommand grantPermissionCommand) {
+
+        Blank blank = now.execute(grantPermissionCommand);
+
+        future.schedule(grantPermissionCommand)
+          .thenAccept(response -> System.out.println("Completed!"));
+
+        rx.observe(grantPermissionCommand)
+          .subscribe(blank -> System.out.println("Completed!"));
+
+        durable.enqueue(grantPermissionCommand);
+    }
+
+}
+```
+
+---
+```java
+public interface Command<R extends Command.Response> {
+
+    interface Response {
+    }
+
+    default R execute(Now now) {
+        return now.execute(this);
+    }
+
+    default CompletableFuture<R> schedule(Future future) {
+        return future.schedule(this);
+    }
+
+    default Observable<R> observe(Rx rx) {
+        return rx.observe(this);
+    }
+
+    default void enqueue(Durable durable) {
+        durable.enqueue(this);
+    }
+}
+```
+
+--
+```java
+void seeTheDifference() {
+  GrantPermissionCommand grantPermissionCommand =
+      new GrantPermissionCommand("memberId", "permissionId")
+
+  grantPermissionCommand.execute(now);
+
+  grantPermissionCommand.schedule(future)
+
+  ...
+}
+
+```
+
+---
+```java
+class RetryCommand<R extends Command.Response> implements Command<R> {
+
+    private final Command<R> origin;
+
+    private Optional<Duration> timeout = Optional.empty();
+
+    public RetryCommand(Command<R> origin) {
+        this.origin = origin;
+    }
+
+    public Command<R> origin() {
+        return origin;
+    }
+
+
+    public RetryCommand<R> timeoutAfter(Duration duration) {
+        this.timeout = Optional.of(duration);
+        return this;
+    }
+
+    public Optional<Duration> timeout() {
+        return timeout;
+    }
+}
+```
+
+---
+```java
+class RetryCommandHandler<R extends Command.Response> implements CommandHandler<RetryCommand<R>, R> {
+
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+
+    @Override
+    public R handle(RetryCommand<R> $) {
+
+        TimeoutRetryPolicy policy = new TimeoutRetryPolicy();
+
+        Duration timeout = $.timeout().orElse(DEFAULT_TIMEOUT);
+        policy.setTimeout(timeout.toMillis());
+
+        RetryTemplate template = new RetryTemplate();
+        template.setRetryPolicy(policy);
+
+        return template.execute(context -> {
+            Command<R> origin = $.origin();
+            CommandHandler<Command<R>, R> originHandler = findHandlerFor(origin);
+            return originHandler.handle(origin);
+        });
+    }
+}
+```
+
+--
+
+```java
+GrantPermissionCommand grantPermissionCommand = new GrantPermission...
+new RetryCommand<>(grantPermissionCommand)
+        .timeoutAfter(Duration.ofSeconds(5))
+        .execute(now);
+```
+
+---
+
+### .strike[Tend to grow like hell]
+
+--
+
+
+### .strike[No single entry point]
+???
+can make all commands transactional
+
+--
+
+### .strike[Always blocking]
+
+--
+
+### .strike[Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...]
+
+---
+can be prototype! and use power of setting state in constructor, avoid threadlocals.
+instead of returning a set of validation errors, throw them!
+calling commands from commands indicates a problem of reuse and are DANGEROUS. Change in UC1 can break UC2. Let them evolve independently!
+
+---
+
+```java
+package infra.authentication;
+class Anonym {
+  private final Members members;
+  Optional<Token> authenticationToken(String username, String password) {
+    Optional<Member> member = members.byLoginAndPassword(username, password);
+    return member.flatMap(() -> new JwtToken(username));
+  }
+}
+```
+--
+
+```java
+package app.membership;
+
+class LogInCommandHandler implements CommandHandler<LogInCommand, LogInCommand.R> {
+  @Autowired
+  private final Anonym anonym;
+  public R handle(LogInCommand $) {
+    Token authToken = anonym
+      .authenticationToken($.username(), $.password())
+      .orElseThrow(() -> throw new InvalidCredentialsException($));
+
+    return new R(authToken.text());
+  }
+}
+```
+
+--
+
+```java
+package app.membership;
+interface Members {
+  Member byLoginAndPassword(username, password);
+}
+```
+
+--
+
+.corner[
+  ### - Bidi usage
+  ### - Bidi dependency :(
+  ### - Let's make Anonym reusable
+]
+
+---
+
+```java
+package infra.authentication;
+class Anonym {
+  private final Credentials credentials;
+  Optional<Token> authenticationToken(String username, String password) {
+    boolean validCredentials = credentials.areValid(username, password);
+    return validCredentials ? Optional.of(new JwtToken(username)) : Optional.empty();
+  }
+}
+```
+
+```java
+package infra.authentication;
+interface Credentials {
+  boolean areValid(String username, String password);
+}
+```
+
+--
+
+```java
+package app.membership;
+class MemberCredentials implements Credentials {
+  private final Members members;
+  @Override
+  public boolean areValid(String username, String password) {
+    members
+      .byLoginAndPassword(username, password);
+      .isPresent();
+  }
+}
+```
+
+--
+
+.corner[
+  ### - Bi-di usage
+  ### - Uni-di dependency
+  ### - Anonym is reusable now!
+]
+
+---
+```java
+javajitsu.infrastructure.sms
+javajitsu.infrastructure.sms.twilio
+javajitsu.application.notification
+javajitsu.domain.notification
+```
 
 ---
 - We can add behaviour with decorators (open-closed)
@@ -1975,37 +3214,6 @@ class: center, middle
 ### Chia Pet Pattern
 ### Most development is about preserving behaviour
 ### Refactoring dilemma
-
----
-#Modularity
-- Boundaries/joints are important.
-- Bad design is going to be there, so you can localize imperfections from key parts of the software.
-
----
-- Weight. slf4j-api dependency only; JSR-330 instead of Spring for DI.
-- Stability.
-- No alternative JVM languages, preferably.
-To minimize the chance that any given framework will overlap with another framework, choose frameworks that have a high utility-to-baggage ratio, in the context of your system requirements. Utility is the functionality or data representation that your project needs from the framework. Your system should be comprised of mutually exclusive frameworks, each of which may be a master of its domain, but which is also simple, humble, and flexible.
-
----
-Lightweightness!
-
-Why modules?
-- Modularises use case scenarios and algorithms in the software so you
-can reason about, unit test, and formally analyze the code with
-respect to functional requirements.
-- Maps the architecture onto a domain model that reduces the time and
-expense of determining where new functionality should be added.
-
-This is, in fact, Parnas’ original deﬁnition of the term module: that it hides a ‘‘design secret’’ that can be changed internally without instigating a ripple effect across the rest of the code (Parnas 1978)
-
----
-layering and packaging - logical cohesion is at the bottom (see pic.)
-degrees of cohision.
-
----
-From assessing hundreds of software systems on three continents I know that about 90% of software systems are suffering from severe architectural erosion, i.e. there is not a lot of the original architectural structure left in them, and coupling and dependencies are totally out of control. (Alexander von Zitzewitz)
-
 
 
 ---
@@ -2190,60 +3398,7 @@ The expression problem refers to the desire to implement an existing set of abst
 Encapsulated properties must not be used to change the behavior of an object.
 for example - Password.
 
----
-SOLID (interface segregation)
-```
-final class File implements Measurable {
-  @Override
-  public int size() {
-    // calculate the size of the file and return
-  }
-}
-```
 
----
-SOLID (liskov)
-java.sql.Date.toInstant()
-java.util.Date.toInstant()
-```
-class MapWithMandatoryValues implements Map<String, String> {
-
-    @Delegate
-    Map<String, String> map
-
-    @Override
-    String get(Object key) {// violates liskov substitution
-        def value = map.get(key)
-        if (!value) {
-            throw new MissingParameter(key as String)
-        }
-        value
-    }
-}
-```
-
----
-We may BREAK invariants with inheritance. Rectable extends Square example. In isolation, everything is logical. But the client is dead.
-- the subclass is not a subclass, if it weakens supclass behaviours to keep its own invariant.
-- "is a" is not enough.
-- state becomes invalid if used in the context of a sueprclass.
-- leads to instanceof :-)
-- square is not a subtype of it. It must have size().
-- Normalized Hierarchy - in a NH, no class has more than one implementation of a method.
-
----
-class Trade {
-  void process() {
-    notifyRegulators();
-  }
-}
-
-class SilentTrade {
-  @Override
-  void notifyRegulators() {
-    // WEAKEN POSTCONDITION
-  }
-}
 
 ---
 Rule of demeter / principle of least knowledge / don't talk to strangers / train wrecks
@@ -2405,7 +3560,7 @@ appender("CHATOPS", SlackAppender) {
 root DEBUG, ["DEFAULT", "CHATOPS"]
 ```
 ???
-- you also filter-out messages for a given marker (instead of using IFs)
+- you also filter-out messages for a given marker (e.g. commands that do not need to be logged)
 
 ---
 background-image:url(12factor.jpg)
@@ -2610,14 +3765,94 @@ public class LogbackVerifier implements TestRule {
 }
 ```
 
+---
+### Case against Spring Data
+### Case against JPA
+### Go Hibernate or JDBC (or some better wrapper, like [Fluent JDBC](http://jdbc.jcabi.com/), [JDBI](http://www.jdbi.org/), [JdbcTemplate](https://docs.spring.io/spring/docs/2.0.x/javadoc-api/org/springframework/jdbc/core/JdbcTemplate.html))
+
+```
+jDBI provides a convenience interface for SQL operations in Java. **It is not intended as an abstraction layer, but rather a library** which makes the common things easy and the hard things possible, to paraphrase Larry Wall.
+```
+
+### no save();
+### Redis no save() with IMMEDIATE changes, so RedisQuestionCount implements QuestionCount
+
 
 ---
-- Stepdown rule
-
-
+background-image:url(javaslang.png)
 
 ---
-- http://stefanbirkner.github.io/system-rules/  (testing System.stop(0), Sysout, Sysin, Sysprops, Envvars etc.)
+```java
+Arrays.asList(2, 3, 1)
+  .stream()
+  .sorted()
+  .collect(Collectors.toList());
+```
+
+--
+
+```java
+List.of(2, 3, 1).sort();
+```
+
+--
+```java
+Try.of(() -> bunchOfWork()).getOrElse(other);
+```
+
+--
+```java
+String s = Match(i).of(
+    Case(is(1), "one"),
+    Case(is(2), "two"),
+    Case($(), "?")
+);
+```
+
+--
+### Be careful, doesn't seem the right place for circuit breaking!
+http://www.javaslang.io/javaslang-circuitbreaker/0.5.0/
+
+---
+background-image:url(immutables.png)
+
+---
+```java
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface ValueObject {
+  String name();
+  List<Integer> counts();
+  Optional<String> description();
+}
+```
+
+--
+
+```java
+ValueObject valueObject =
+    ImmutableValueObject.builder()
+        .name("My value")
+        .addCounts(1)
+        .addCounts(2)
+        .build();
+```
+
+--
+
+```java
+ValueObject newImmutable = valueObject.withName("New");
+```
+
+---
+### More
+- [curated list of great IT videos](https://github.com/latcraft/what2watch)
+- [my goodreads](https://goodreads.com/eduardsi)
+
+---
+DevTernity
+
 
 ----
 
