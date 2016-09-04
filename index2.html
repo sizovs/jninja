@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="ocean.css" />
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      /* new */
+      .example { background-color: #007ebc}
+      .example h2 { color: #00394f; font-weight: bold; line-height: 0;}
+      .example h1 { color: #fff; font-weight: bold; background-color: #00394f; padding: 10px }
+
+      .codeonly { padding: 1em; background-color: #2b303b }
+      .codeonly pre { margin: 0 }
+
+      .remark-code-line-highlighted { background-color: #5e626e;}
+      /* new end */
+      .fade {color: #E0E0E0}
+      .spanny { padding: 10px; color: white; background-color: #0b1c2e }
+      .nopadding { padding: 0 }
+      .libs { background-color: #202020}
+      .l50 { float: left; width: 50%; }
+      .r50 { float: right; width: 50%; }
+      .crap pre { border-right: 5px solid #D81F2A; }
+      .nice pre { border-right: 5px solid #69F0AE; }
+
+      .corner {border: 5px solid #85C1E9; position: absolute; top: 0px; right: 0px; width: 50%; background-color: #F0F0F0}
+      .corner pre {margin: 0; padding: 0}
+      .corner.long {height: 300px;}
+
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .invert { background-color: black; color: white; }
+      .bad { background-color: #AA1914; color: white;}
+      .oki { background-color: #3D9972; color: white;}
+      .strike { text-decoration: line-through; }
+      .lint { background-color: #f3f3f3; }
+      .conversation h3 { margin: 17px; font-size: 28px; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Part II
+
+---
+class: center, middle, example
+# Application a-ka Service layer
+
+---
+## - defines a use case, what the system does
+
+--
+
+## - defines a use case contract (input / output)
+
+--
+
+## - defines transaction boundary
+
+--
+
+## - never ever to be confused with a domain service
+
+---
+class: codeonly
+
+.crap[
+```java
+interface MemberPermissionService {
+
+  void grantPermission(String memberId, String permissionId);
+
+  PermissionsDto listPermissions(String memberId);
+
+}
+```
+]
+
+--
+
+.crap[
+```java
+@Transactional
+class MemberPermissionServiceImpl implements MemberPermissionService {
+
+  @Override
+  public void grantPermission(String memberId, String permissionId) { ... }
+
+  @Override
+  public PermissionsDto listPermissions(String memberId) { ... }
+
+}
+```
+]
+
+---
+class: bad
+
+## - tend to grow like hell
+
+--
+
+## - no single entry point
+
+--
+
+## - always blocking
+
+--
+
+## - hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...
+
+---
+class: codeonly
+.nice[
+```java
+interface Command<T extends Command.R> {
+    interface R {
+      class Void implements Command.R {
+      }
+    }
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface Reaction<C extends Command<R>, R extends Command.R> {
+    R react(C $);
+}
+```
+]
+
+--
+.nice[
+```java
+interface Now {
+    <C extends Command<R>, R extends Command.R> R execute(C command);
+}
+```
+]
+???
+a funnel finds and executes appropriate impl for a command using generics
+
+--
+
+.nice[
+```java
+interface Future {
+    <C extends Command<R>, R ...> CompletableFuture<R> schedule(C command);
+}```
+]
+
+--
+
+.nice[
+```java
+interface Rx {
+    <C extends Command<R>, R ...> Observable<R> observe(C command);
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface Durable {
+    <C extends Command> void enqueue(C command);
+}
+```
+]
+
+---
+class: codeonly
+.nice[
+```java
+class GrantPermission implements Command<Command.R.Void> {
+
+    private final String memberId, permissionId;
+
+    public GrantPermission(String memberId, String permissionId) { ... }
+
+    public String memberId() {
+        return memberId;
+    }
+
+    public String permissionId() {
+        return permissionId;
+    }
+}
+```
+]
+
+--
+.nice[
+```java
+class GrantPermissionReaction implements Reaction<GrantPermission, Command.R.Void> {
+
+    private final Members members;
+    private final Permissions permissions;
+
+    public GrantPermissionReaction(Permissions permissions, Members members) { ... }
+
+    @Override
+    public Command.R.Void react(GrantPermissionCommand $) {
+        MemberId memberId = new MemberId($.memberId());
+        Member member = members.byId(memberId);
+
+        PermissionId permissionId = new PermissionId($.permissionId());
+        Permission permission = permissions.byId(permissionId);
+
+        member.grantPermission(permission);
+        return new Command.R.Void();
+    }
+}
+```
+]
+
+---
+class: codeonly
+```java
+@RestController
+class GrantPermissionEndpoint {
+
+    @Autowired
+    Now now;
+
+    @PostMapping("/users/{memberId}/permissions")
+    Command.R.Void accept(@PathVariable String memberId, @RequestParam String permissionId) {
+        GrantPermission grantPermission = new GrantPermission(memberId, permissionId);
+        return now.execute(grantPermission);
+    }
+```
+
+--
+
+```java
+    ...
+
+    @Autowired
+    Future future;
+
+    future.schedule(grantPermission)
+      .thenAccept(System.out::println)
+      .thenAccept(...)
+```
+
+--
+
+```java
+    ...
+
+    @Autowired
+    Rx rx;
+
+    rx.observe(grantPermission).subscribe(System.out::println);
+```
+
+--
+
+```java
+    ...
+
+    @Autowired
+    Durable durable;
+
+    durable.enqueue(grantPermission);
+```
+
+---
+class: codeonly
+```java
+interface Command<T extends Command.R> {
+
+    default T execute(Now now) {
+        return now.execute(this);
+    }
+
+    default CompletableFuture<T> schedule(Future future) {
+        return future.schedule(this);
+    }
+
+    default Observable<T> observe(Rx rx) {
+        return rx.observe(this);
+    }
+
+    default void enqueue(Durable durable) {
+        durable.enqueue(this);
+    }
+}
+```
+
+--
+```java
+GrantPermission grantPermission = new GrantPermission("memba", "permission");
+
+grantPermission.execute(now);
+```
+
+--
+
+```java
+grantPermission.schedule(future);
+```
+
+--
+
+```java
+grantPermission.observe(rx);
+```
+
+--
+
+```java
+grantPermission.enqueue(durable);
+```
+
+---
+class: codeonly
+```java
+class Try<C extends Command<R>, R extends Command.R> implements Command<R> {
+
+    private final C origin;
+
+    private long times = 3;
+
+    public Try(C origin) {
+        this.origin = origin;
+    }
+
+    public Command<R> origin() {
+        return origin;
+    }
+
+
+    public Try<C, R> times(long times) {
+        this.times = times;
+        return this;
+    }
+
+    public long times() {
+        return times;
+    }
+}
+```
+
+---
+class: codeonly
+```java
+class TryReaction<C extends Command<R>, R extends Command.R>
+                                          implements Reaction<Try<C, R>, R> {
+
+    private final Reactions reactions;
+
+    @Override
+    public R react(Try<R> $) {
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts($.times());
+
+        RetryTemplate template = new RetryTemplate();
+        template.setRetryPolicy(retryPolicy);
+
+        return template.execute(context -> {
+            Command<R> origin = $.origin();
+            Reaction<Command<R>, R> reaction = reactions.byCommand(origin);
+            return reaction.react(origin);
+        });
+    }
+}
+```
+
+--
+
+```java
+new Try<>(
+  new GrantPermission(...))
+      .times(5)
+      .execute(now);
+```
+
+---
+class: codeonly
+```java
+@Component
+class Reactions {
+
+    private final LoadingCache<Type, Reaction> cachedReactions;
+
+    @Autowired
+    public Reactions(ListableBeanFactory beanFactory) {
+        this.cachedReactions = Caffeine.newBuilder()
+            .build(reactionType -> reactions(beanFactory).stream()
+                .filter(reaction -> reaction.commandType().isSupertypeOf(reactionType))
+                .findFirst()
+                .orElseThrow(() -> new NoReactionFound(commandType)));
+    }
+
+    private Collection<Reaction> reactions(ListableBeanFactory beanFactory) {
+        return beanFactory.getBeansOfType(Reaction.class).values();
+    }
+
+    <C extends Command<R>, R extends Command.R> Reaction<C, R> byCommand(C command) {
+        return cachedReactions.get(command.type());
+    }
+}
+```
+
+--
+
+```java
+
+
+interface Reaction<C extends Command<R>, R extends Command.R> {
+
+    R react(C $);
+
+    default TypeToken<C> commandType() {
+        return new TypeToken<C>(getClass()) {
+        };
+    }
+}
+```
+
+---
+
+## .strike[Tend to grow like hell]
+
+--
+
+## .strike[No single entry point]
+
+--
+
+## .strike[Always blocking]
+
+--
+
+## .strike[Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...]
+
+---
+class: center, middle
+## Centralized Transaction management?
+
+---
+class: codeonly
+```java
+interface Command<T extends Command.R> {
+
+    interface R {
+        class Void implements R {
+
+        }
+    }
+
+*   interface TxFlag {
+*
+*       TxFlag READ_ONLY = tx -> tx.setReadOnly(true);
+*
+*       void apply(TransactionTemplate tx);
+*   }
+
+*   default Collection<TxFlag> txFlags() {
+*       return Collections.emptyList();
+*   }
+}
+```
+
+--
+
+```java
+class GetMobileNumbers implements Command<GetMobileNumbers, MobileNumbers>
+
+    @Override
+    public Collection<TxFlag> txFlags() {
+        return ImmutableList.of(TransactionTxFlag.READ_ONLY);
+    }
+
+}
+```
+
+---
+class: codeonly
+```java
+@Component
+class TransactionalNow implements Now {
+
+    private final Reactions reactions;
+
+    private final PlatformTransactionManager txManager;
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+
+        Reaction<C, R> reaction = reactions.byCommand(command);
+
+        TransactionTemplate tx = new TransactionTemplate(txManager);
+        command.txFlags().forEach(flag -> flag.apply(tx));
+
+        R response = tx.execute(txStatus -> reaction.react(command));
+
+        return response;
+    }
+}
+```
+
+---
+class: center, middle
+## Logging?
+
+---
+```java
+@Component
+class TransactionalAndLoggingNow implements Now {
+
+    private final Reactions reactions;
+
+    private final PlatformTransactionManager txManager;
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+
+        Reaction<C, R> reaction = reactions.byCommand(command);
+
+        TransactionTemplate tx = new TransactionTemplate(txManager);
+        command.txFlags().forEach(flag -> flag.apply(tx));
+
+*       log.info(">>> {}", command.toLogString());
+        R response = tx.execute(txStatus -> reaction.react(command));
+*       log.info("<<< {}", response.toLogString());
+
+        return response;
+    }
+}
+```
+
+---
+class: center, middle
+## Logging correlation?
+
+---
+class: codeonly
+```java
+@Component
+class CommandCorrelationId {
+
+    private static final String MDC_KEY = "ccid";
+
+    private final AtomicLong counter = new AtomicLong();
+
+    @Value("${unique.node.id}")
+    private String node;
+
+
+    public void storeForLogging() {
+        MDC.put(MDC_KEY, next());
+    }
+
+    public void stashFromLogging() {
+        MDC.remove(MDC_KEY);
+    }
+
+    private String next() {
+        return node + counter.incrementAndGet() % 1000;
+    }
+}
+```
+
+---
+class: codeonly
+```java
+@Component
+class GrowingNow implements Now {
+
+    private final Reactions reactions;
+
+    private final PlatformTransactionManager txManager;
+
+    private final CommandCorrelationId correlationId;
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+
+        Reaction<C, R> reaction = reactions.byCommand(command);
+
+*       correlationId.storeForLogging();
+
+        TransactionTemplate tx = new TransactionTemplate(txManager);
+        command.txFlags().forEach(flag -> flag.apply(tx));
+
+        log.info(">>> {}", command.toLogString());
+        R response = tx.execute(txStatus -> reaction.react(command));
+        log.info("<<< {}", response.toLogString());
+
+*       correlationId.stashFromLogging();
+
+        return response;
+    }
+}
+```
+
+---
+class: center, middle
+## Refactoring to decorators
+
+---
+class: codeonly
+```java
+@Component
+class PipedNow implements Now {
+
+    private final Reactions reactions;
+
+    private final PlatformTransactionManager txManager;
+
+    private final CommandCorrelationId correlationId;
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+        Now pipe = new Correlable(
+                      new Loggable(
+                         new Transactional(
+                            new Reacting())));
+
+        return pipe.execute(command);
+    }
+```
+
+--
+```java
+    class Correlable implements Now {
+
+        private final Now origin;
+
+        public Correlable(Now origin) {
+            this.origin = origin;
+        }
+
+        @Override
+        public <C extends Command<R>, R extends Command.R> R execute(C command) {
+            correlationId.storeForLogging();
+            R response = origin.execute(command);
+            correlationId.stashFromLogging();
+            return response;
+        }
+    }
+```
+
+---
+class: codeonly
+```java
+@Component
+class PipedNow implements Now {
+
+    ...
+
+    class Loggable implements Now {
+
+        private final Logger log = LoggerFactory.getLogger(Loggable.class);
+
+        private final Now origin;
+
+        public Loggable(Now origin) {
+            this.origin = origin;
+        }
+
+        @Override
+        public <C extends Command<R>, R extends Command.R> R execute(C command) {
+            log.info(">>> {}", command.toLogString());
+            R response = origin.execute(command);
+            log.info(">>> {}", command.toLogString());
+            return response;
+        }
+    }
+
+```
+
+--
+
+```java
+    class Transactional implements Now {
+
+        private final Now origin;
+
+        @Override
+        public <C extends Command<R>, R extends Command.R> R execute(C command) {
+            TransactionTemplate tx = new TransactionTemplate(txManager);
+            command.txFlags().forEach(flag -> flag.apply(tx));
+            return tx.execute(txStatus -> origin.execute(command));
+        }
+    }
+```
+
+---
+class: codeonly
+```java
+@Component
+class PipedNow implements Now {
+
+    ...
+
+    class Reacting implements Now {
+
+        @Override
+        public <C extends Command<R>, R extends Command.R> R execute(C command) {
+            Reaction<C, R> reaction = reactions.byCommand(command);
+            return reaction.react(command);
+        }
+    }
+    
+}
+```
+
+---
+# Concurrency?
+
+---
+```java
+@Immutable
+@Enclosing
+interface GetSocialAccounts extends Command<GetSocialAccounts.R> {
+
+    String networkerId();
+
+    @Immutable
+    interface R extends Command.R {
+        List<SocialAccount> socialAccounts();
+    }
+}
+```
+
+--
+```java
+@Immutable
+interface SocialAccount {
+    SocialAccountType type();
+    String username();
+}
+```
+
+--
+
+```java
+class GetSocialAccountsReaction implements Reaction<GetSocialAccounts, GetSocialAccounts.R> {
+
+    public GetSocialAccounts.R handle(GetSocialAccounts $) {
+        SocialAccount facebook = ImmutableSocialAccount.builder()
+          .type(SocialAccountType.FB)
+          .username("facebook@devchampions.com").build();
+
+        SocialAccount twitter = ImmutableSocialAccount.builder()
+          .type(SocialAccountType.TW)
+          .username("twitter@devchampions.com").build();
+
+        return R.builder()
+          .addSocialAccounts(facebook, twitter).build();
+    }
+}
+```
+
+---
+```java
+@Immutable
+@Enclosing
+interface GetSocialConnections extends Command<GetSocialConnections.R> {
+
+    SocialAccount socialAccount();
+
+    @Immutable
+    interface R extends Command.R {
+        List<SocialConnection> connections();
+    }
+}
+```
+
+--
+
+```java
+@Immutable
+interface SocialConnection {
+    String emailAddress();
+}
+```
+
+--
+
+```java
+class GetSocialConnectionsReaction implements Reaction<GetSocialConnections, GetSocialConnections.R> {
+
+    @Override
+    public GetSocialConnections.R react(GetSocialConnections $) {
+        return R.builder()
+                .addConnections(randomConnection())
+                .addConnections(randomConnection())
+                .addConnections(randomConnection())
+                .build();
+    }
+
+    private ImmutableSocialConnection randomConnection() {
+        return ImmutableSocialConnection.builder().emailAddress(random()).build();
+    }
+}
+```
+
+---
+### collecting social connections concurrently
+```java
+return ImmutableGetSocialAccounts
+        .builder()
+        .networkerId("123")
+        .build()
+        .schedule(future)
+        .thenApply(GetSocialAccounts.R::socialAccounts)
+        .thenCompose(socialAccounts -> socialAccounts
+            .stream()
+            .map(account -> ImmutableGetSocialConnections
+                .builder()
+                .socialAccount(account)
+                .build()
+                .schedule(future))
+                .collect(new FuturesCollector<>()))
+        .thenApply(allDone -> allDone
+            .stream()
+            .map(GetSocialConnections.R::connections)
+            .flatMap(connections -> connections
+                .stream()
+                .map(SocialConnection::emailAddress)))
+        .thenApply(allEmails -> allEmails
+            .distinct()
+            .count())
+        .get();
+```
+
+---
+```java
+@Component
+class DefaultFuture implements Future {
+
+    @Retention(RenentionPolicy.RUNTIME)
+    public @interface Executor {
+    }
+
+    private final Reactions reactions;
+    private final ExecutorService executor;
+
+    @Autowired
+    public DefaultFuture(Reactions reactions, @Executor ExecutorService executor) {
+        this.reactions = reactions;
+        this.executor = executor;
+    }
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> CompletableFuture<R> schedule(C command) {
+        Reaction<C, R> reaction = reactions.byCommand(command);
+        return CompletableFuture.supplyAsync(() ->
+            reaction.react(command), executor);
+    }
+}
+```
+
+```java
+@Configuration
+class DefaultFutureConfiguration {
+
+    @Bean
+    @DefaultFuture.Executor
+    ExecutorService executorService() {
+        return Executors.newFixedThreadPool(100);
+    }
+}
+```
+
+---
+
+```java
+class FuturesCollector<T> implements Collector<CompletableFuture<T>, Collection<CompletableFuture<T>>, CompletableFuture<Collection<T>>> {
+
+    @Override
+    public Supplier<Collection<CompletableFuture<T>>> supplier() {
+        return ArrayList::new;
+    }
+
+    @Override
+    public BiConsumer<Collection<CompletableFuture<T>>, CompletableFuture<T>> accumulator() {
+        return Collection::add;
+    }
+
+    @Override
+    public BinaryOperator<Collection<CompletableFuture<T>>> combiner() {
+        return (one, another) -> ImmutableList.<CompletableFuture<T>>builder()
+                .addAll(one)
+                .addAll(another)
+                .build();
+    }
+
+    @Override
+    public Function<Collection<CompletableFuture<T>>, CompletableFuture<Collection<T>>> finisher() {
+        return futures -> CompletableFuture.allOf(futures
+                .stream()
+                .toArray(CompletableFuture[]::new))
+                .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
+    }
+
+    @Override
+    public Set<Characteristics> characteristics() {
+        return Collections.singleton(Characteristics.CONCURRENT);
+    }
+}
+```
+
+---
+
+```java
+public class SocialNetwork {
+
+    private final Future future;
+
+    @Autowired
+    public SocialNetwork(Future future) {
+        this.future = future;
+    }
+
+    public Networker networker(String networkerId) {
+        return new Networker(networkerId);
+    }
+
+    class Networker {
+        private final String id;
+
+        public Networker(String id) {
+            this.id = id;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public long distinctConnectionCount() throws ExecutionException, InterruptedException {
+            return ImmutableGetSocialAccounts
+                    .builder()
+                    .networkerId(id)
+                    .build()
+                    .schedule(future)
+                    .thenApply(GetSocialAccounts.R::socialAccounts)
+                    .thenCompose(socialAccounts -> socialAccounts.stream().map(account -> ImmutableGetSocialConnections
+                            .builder()
+                            .socialAccount(account)
+                            .build()
+                            .schedule(future)).collect(new FuturesCollector<>()))
+                    .thenApply(allDone -> allDone
+                            .stream()
+                            .map(GetSocialConnections.R::connections)
+                            .flatMap(connections -> connections.stream().map(SocialConnection::emailAddress)))
+                    .thenApply(allFullNames -> allFullNames.distinct().count())
+                    .get();
+
+        }
+    }
+}
+```
+
+---
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    def future = Mock(Future)
+
+    @Subject
+    SocialNetwork socialNetwork
+    SocialNetwork.Networker networker
+
+    SocialAccount facebookAccount
+    SocialAccount twitterAccount
+
+    def setup() {
+        socialNetwork = new SocialNetwork(future)
+        networker = socialNetwork.networker("whatever")
+        facebookAccount = socialAccount("whateverUsernameFB", FB)
+        twitterAccount = socialAccount("whateverUsernameTW", TW)
+    }
+
+    def "calculates number of unique emails 2"() {
+        given:
+        networkerOwns(facebookAccount, twitterAccount)
+
+        and:
+        networkerHasUniqueTwitterConnection()
+
+        and:
+        networkerHasDuplicateFacebookConnections()
+
+        when:
+        def distinctConnections = networker.distinctConnectionCount();
+
+        then:
+        distinctConnections == 2L
+    }
+```
+
+---
+```java
+def networkerOwns(SocialAccount... accounts) {
+    future.schedule(queryForSocialAccounts()) >>
+      returnsSocialAccounts(accounts)
+          .inFuture()
+}
+
+def queryForSocialAccounts() {
+    ImmutableGetSocialAccounts
+            .builder()
+            .networkerId(networker.id())
+            .build()
+}
+
+def returnsSocialAccounts(SocialAccount... socialAccounts) {
+    ImmutableGetSocialAccounts.R
+            .builder()
+            .addSocialAccounts(socialAccounts)
+            .build()
+}
+
+def networkerHasUniqueTwitterConnection() {
+    future.schedule(queryForSocialConnections(twitterAccount) >>
+        returnsSocialConnectionsWithEmails("email@twitter.com")
+            .inFuture()
+}
+
+def queryForSocialConnections(SocialAccount account) {
+    ImmutableGetSocialConnections
+            .builder()
+            .socialAccount(account)
+            .build()
+}
+
+def returnsSocialConnectionsWithEmails(String... socialConnectionEmails) {
+    ImmutableGetSocialConnections.R
+            .builder()
+            .addAllConnections(socialConnectionEmails.collect { socialConnection(it) })
+            .build()
+}
+```
+
+---
+```java
+class CommandModule {
+
+    static <T extends Command.R> CompletableFuture<T> inFuture(final T self) {
+        CompletableFuture.<T> completedFuture(self)
+    }
+
+}
+```
+
+```prop
+// src/test/resources/META-INF/services/org.codehaus.groovy.runtime.ExtensionModule
+moduleName=command-module
+moduleVersion=1.0
+extensionClasses=com.devchampions.jninja.modules.command.CommandModule
+```
+
+---
+### Avoiding callback hell with CompletableFutures
+.crap[
+```java
+Firebase firebase = new Firebase("https://your-app.firebaseio.com");
+Firebase expenses = firebase.child("expenses");
+
+CountDownLatch firebaseWait = new CountDownLatch(1);
+
+AtomicReference<DataSnapshot> snapshot = new AtomicReference<>();
+AtomicReference<FirebaseError> exception = new AtomicReference<>();
+
+expenses.addListenerForSingleValueEvent(new ValueEventListener() {
+   @Override
+   public void onDataChange(DataSnapshot dataSnapshot) {
+       snapshot.set(dataSnapshot);
+       firebaseWait.countDown();
+   }
+
+   @Override
+   public void onCancelled(FirebaseError firebaseError) {
+       exception.set(firebaseError);
+       firebaseWait.countDown();
+   }
+});
+
+firebaseWait.await(5, TimeUnit.SECONDS);
+
+System.out.println(snapshot.get());
+```
+]
+
+---
+```java
+public class RxFirebase {
+
+  private final Firebase root;
+
+  public RxFirebase(Firebase root) {
+      this.root = root;
+  }
+
+  public CompletableFuture<DataSnapshot> snapshot(String path) {
+      Firebase children = root.child(path);
+      CompletableFuture<DataSnapshot> completableFuture = new CompletableFuture<>();
+      children.addListenerForSingleValueEvent(new Notify(completableFuture));
+      return completableFuture;
+  }
+
+
+  private class Notify implements ValueEventListener {
+
+      private final CompletableFuture<DataSnapshot> completableFuture;
+
+      public Notify(CompletableFuture<DataSnapshot> completableFuture) {
+          this.completableFuture = completableFuture;
+      }
+
+      @Override
+      public void onDataChange(DataSnapshot dataSnapshot) {
+          completableFuture.complete(dataSnapshot);
+      }
+
+      @Override
+      public void onCancelled(FirebaseError firebaseError) {
+          completableFuture.completeExceptionally(firebaseError.toException());
+      }
+  }
+}
+```
+
+---
+.nice[
+```java
+Firebase firebase = new Firebase("https://your-app.firebaseio.com");
+
+RxFirebase rxFirebase = new RxFirebase(firebase);
+
+CompletableFuture<DataSnapshot> expenses = rxFirebase.snapshot("expenses");
+
+DataSnapshot snapshot = expenses.get(5, TimeUnit.SECONDS);
+
+System.out.println(snapshot);
+```
+]
+
+---
+# vs.
+### RxJava
+### Spring Reactor
+### Reactive Streams
+
+---
+### Testing CompletableFuture
+```java
+  CompletableFuture.complete(T value);
+  CompletableFuture.completeExceptionally(Throwable ex);
+  CompletableFuture.completedFuture(U u);
+  CompletableFuture.get();
+```
+
+--
+
+### Awaitility
+```java
+@Test
+public void updatesCustomerStatus() throws Exception {
+    publishEvent(updateCustomerStatusEvent);
+    await().atMost(5, SECONDS).until(eventStore::size(), is(1));
+}
+```
+
+--
+
+```java
+AtomicInteger atomic = new AtomicInteger();
+await().untilAtomic(atomic, equalTo(1));
+```
+
+---
+
+### Thread-weaver (https://github.com/google/thread-weaver)
+
+```java
+public class UniqueListTest {
+
+  private static final String HELLO = "Hello";
+
+  private volatile UniqueList<String> uniqueList;
+
+  @ThreadedBefore
+  public void init() {
+    uniqueList = new UniqueList<String>();
+  }
+
+  @ThreadedMain
+  public void putHelloIfAbsent() {
+    uniqueList.putIfAbsent(HELLO);
+  }
+
+  @ThreadedSecondary
+  public void putAnotherHelloIfAbsent() {
+    uniqueList.putIfAbsent(HELLO);
+  }
+
+  @ThreadedAfter
+  public void check() {
+    assertThat(uniqueList, hasSize(1));
+    assertThat(uniqueList, contains(HELLO));
+  }
+}
+```
+???
+exercises lines of putIfAbsent in diffent combinations in 2 threads.
+
+---
+class: center, middle, invert
+# Validation
+
+---
+class: center, middle
+## Never create an inconsistent domain model.
+???
+because others can rely on it.
+
+---
+.crap[
+```java
+class User {
+
+    @Email
+    private String email;
+
+    @Strong
+    private String password;
+
+    private LocalDateTime registeredAt;
+
+    public User(String email, String password) {
+        this.email = email;
+        this.password = password;
+    }
+
+    public void changePassword(String newPassword) {
+        this.password = newPassword;
+    }
+
+    public void register() {
+        this.registeredAt = LocalDateTime.now();
+    }
+
+    public String email() {
+        return email;
+    }
+}
+```
+]
+---
+.crap[
+```java
+class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Void> {
+
+    private final WelcomeNotification notification;
+
+    @Override
+    public Command.R.Void react(RegisterNewUser $) {
+        User user = makeUser($);
+        user.register();
+
+        users.persist(user);
+        welcomeNotification.schedule(user);
+
+        return new Command.R.Void();
+    }
+
+}
+
+class WelcomeNotification {
+    void schedule(User user) {
+        user.email(); // lies! not an email
+    }
+}
+```
+]
+???
+by default, Hibernate validates during FLUSH :-)
+
+---
+```java
+class Email {
+
+  private final String text;
+
+  public Email(String text) {
+      boolean validEmail = new Email.Text(text).isEmail();
+      checkArgument(validEmail, "%s is not an RFC-5322 compliant email.", text);
+      this.text = text;
+  }
+
+  static class Text {
+
+      private static final String LOCAL_PART = "^[\\w!#$%&’*+/=?`{|}~^-]+(?:\\.[\\w!#$%&’*+/=?`{|}~^-]+)*";
+      private static final String AT_SIGN = "@";
+      private static final String HOSTNAME_FOLLOWED_BY_DOT = "(?:[a-zA-Z0-9-]+\\.)+";
+      private static final String COUNTRY_CODE = "[a-zA-Z]{2,6}";
+      private static final String END_OF_LINE = "$";
+
+      private final Pattern RFC_5322 = compile(
+              LOCAL_PART + AT_SIGN + HOSTNAME_FOLLOWED_BY_DOT + COUNTRY_CODE + END_OF_LINE);
+
+      private String rawText;
+
+      public Text(String rawText) {
+          this.rawText = rawText;
+      }
+
+      public boolean isEmail() {
+          return RFC_5322.asPredicate().test(rawText);
+      }
+
+      @Override
+      public String toString() {
+          return rawText;
+      }
+  }
+}
+```
+
+---
+```java
+@Override
+public Command.R.Void react(RegisterNewUser $) {
+
+* boolean validEmail = new Email.Text($.email()).isEmail();
+* if (validEmail) {
+*   throw new ValidationException("Dooh! The email " + $.email() + " is not valid");
+* }
+
+* Email email = new Email($.email());
+
+  User user = makeUser(email, ...);
+  user.register();
+
+  users.persist(user);
+  welcomeNotification.schedule(user);
+
+  return new Command.R.Void();
+}
+```
+
+--
+
+```java
+static class Text {
+  ...
+  public Optional<Email> email() {
+      return isEmail() ? Optional.of(new Email(rawText)) : Optional.empty();
+  }
+  ...
+}
+```
+
+---
+```java
+@Override
+public Command.R.Void react(RegisterNewUser $) {
+
+* Email email = new Email.Text($.email())
+*                   .email()
+*                   .orElseThrow(() -> new ValidationException("Dooh! ..."));
+
+  User user = makeUser(email, ...);
+  user.register();
+
+  users.persist(user);
+  welcomeNotification.schedule(user);
+
+  return new Command.R.Void();
+}
+```
+
+--
+
+```java
+@Override
+public Command.R.Void react(RegisterNewUser $) {
+
+  Email email = new Email.Text($.email())
+                    .email()
+                    .orElseThrow(() -> new ValidationException("Dooh! ..."));
+
+  Password password = new Password($.form().password());
+  if (password.isWeak()) {
+      throw new ValidationException("Weak password, sorry fella");
+  }
+
+  ...
+
+  return new Command.R.Void();
+}
+```
+
+---
+```java
+@Override
+public Command.R.Void react(RegisterNewUser $) {
+
+  Email.Text emailText = new Email.Text($.email());
+  Password password = new Password($.password());
+
+  Validator validator = new FailFastValidator();
+  validator
+          .when(emailText, text -> !text.isEmail())
+          .then("Sorry man, email (%s) is completely wrong.");
+  validator
+          .when(password, Password::isWeak)
+          .then("Password is too weak. Make it secure by adding some weird characters.");
+
+  validator.throwViolations();
+
+  ...
+
+  return new Command.R.Void();
+}
+```
+
+---
+```java
+interface Validator {
+
+    <T> IfCondition when(T value, Predicate<T> predicate);
+
+    void throwViolations();
+
+}
+```
+
+--
+
+```java
+class IfCondition<T> {
+
+    private final T item;
+    private final Predicate<T> predicate;
+
+    private String failureMessage;
+
+    public If(T item, Predicate<T> predicate) {
+        this.item = item;
+        this.predicate = predicate;
+    }
+
+    void then(String failureMessage) {
+        this.failureMessage = failureMessage;
+    }
+
+    boolean isTrue() {
+        return predicate.test(item);
+    }
+
+    String message() {
+        return failureMessage.replaceAll("%s", item.toString());
+    }
+
+}
+```
+
+---
+```java
+class FailFastValidator implements Validator {
+
+    private Collection<IfCondition> ifConditions = new LinkedList<>();
+
+    @Override
+    public <T> If when(T value, Predicate<T> predicate) {
+        IfCondition<T> ifCondition = new IfCondition<>(value, predicate);
+        ifConditions.add(ifCondition);
+        return ifCondition;
+    }
+
+    @Override
+    public void throwViolations() {
+        IfCondition.stream()
+                .filter(IfCondition::isTrue)
+                .findFirst()
+                .ifPresent(ifCondition -> {
+                    throw new ValidationException(ifCondition.message());
+                });
+
+    }
+}
+```
+
+---
+```java
+class Email {
+
+    private final String text;
+
+    public Email(String text) {
+        ...
+    }
+
+    ...
+
+*   interface Uniqueness {
+*     boolean guaranteed(Email email);
+*   }
+
+```
+
+--
+
+```java
+@Repository
+interface Users {
+    Optional<User> byEmail(Email email);
+}
+```
+
+--
+
+```java
+@Component
+class UniquenessAmongUsers implements Email.Uniqueness {
+
+    private final Users users;
+
+    @Override
+    public boolean guaranteed(Email email) {
+        return !users.byEmail(email).isPresent();
+    }
+}
+```
+
+---
+```java
+
+*private final Uniqueness uniqueness;
+
+@Override
+public Command.R.Void react(RegisterNewUser $) {
+
+  Email.Text emailText = new Email.Text($.email());
+  Password password = new Password($.password());
+
+  Validator validator = new FailFastValidator();
+  validator
+          .when(emailText, text -> !text.isEmail())
+          .then("Sorry man, email (%s) is completely wrong.");
+* validator
+*         .when(emailText.email(), email -> !uniqueness.guaranteed(email));
+*         .then("Argh, email is busy.")
+  validator
+          .when(password, Password::isWeak)
+          .then("Password is too weak. Make it secure by adding some weird characters.");
+
+  validator.throwViolations();
+
+  ...
+
+  return new Command.R.Void();
+}
+```
+
+---
+### Optionals
+```java
+validator
+        .when($.affiliateId(), (affiliateId) -> !affiliateId.isPresent())
+        .then("Omg, missing affiliate id!");
+
+```
+
+--
+
+```java
+class IsMissing<T> implements Predicate<Optional<T>> {
+    @Override
+    public boolean test(Optional<T> t) {
+        return !t.isPresent() || t.get() == null;
+    }
+}
+
+validator
+        .when($.affiliateId(), new IsMissing<>())
+        .then("Omg, missing affiliate id!");
+```
+
+--
+### Junction
+
+```java
+validator
+        .when($.affiliateId(), new IsMissing<>().or(new IsMalformed()))
+        .then("Affiliate id is malformed crap.");
+
+```
+
+---
+### Passing constraints as parameters?
+
+```java
+class OutOfRange<T extends Comparable> implements Predicate<T> {
+
+    private final Range<T> range;
+
+    public OutOfRange(Range<T> range) {
+        this.range = range;
+    }
+
+    @Override
+    public boolean test(T t) {
+        return !range.contains(t);
+    }
+}
+```
+
+--
+
+```java
+validator
+        .when($.age(), new OutOfRange<>(atLeast(18)))
+        .then("Sorry, dude, you have to be at least %p years old", 18);
+```
+
+--
+### client-side l10n + lazy
+
+```java
+validator
+        .when($.age(), new OutOfRange<>(atLeast(18)))
+        .then("error.too_young", () -> 18);
+```
+
+---
+class: center, middle
+## Do we need Hibernate Validator aka JSR-349 RI?
+
+
+---
+.crap[
+```java
+class Email {
+
+  private final String text;
+  ...
+  public Email(String text) {
+    ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+    ExecutableValidator validator = factory.getValidator().forExecutables();
+    Constructor<Email> constructor = ClassUtils
+      .getConstructorIfAvailable(Email.class, String.class);
+
+    validator
+            .validateConstructorParameters(constructor, new Object[]{text})
+            .stream()
+            .findAny();
+            .ifPresent(violation -> {
+                throw new IllegalArgumentException(violation.getMessage());
+            });
+
+    this.text = rawText;
+  }
+  ...
+```
+]
+
+---
+```java
+@Documented
+@Constraint(validatedBy = { ElonMuskValidator.class })
+@Target({ TYPE })
+@Retention(RUNTIME)
+public @interface ElonMusk {
+
+    String message() default "{com.devchampions.ElonMusk.message}";
+
+    Class<?>[] groups() default { };
+
+    Class<? extends Payload>[] payload() default { };
+}
+```
+
+--
+
+```java
+class ElonMuskValidator implements ConstraintValidator<ElonMusk, Hiree> {
+
+    @Override
+    public void initialize(ElonMusk annotation) {}
+
+    @Override
+    public boolean isValid(Hiree hiree, ConstraintValidatorContext context) {
+        if (hiree == null) {
+            return true;
+        }
+        return hiree.hasInvented(Invention.SPACEX);
+    }
+}
+```
+
+---
+
+```java
+class ApplyForAJob implements Command<Command.R.Void> {
+
+  @ElonMusk
+  Hiree hiree;
+
+}
+```
+
+```java
+@Component
+class DefaultNow implements Now {
+
+  private final Validator validator;
+
+  DefaultNow() {
+    ValidatorFactory validationFactory = Validation.buildDefaultValidatorFactory();
+    this.validator = validationFactory.getValidator();
+  }
+
+  public <C extends Command<R>, R extends Command.R> R execute(C command) {}
+    Set<ConstraintViolation<C>> violations = validation.validate(command);
+    if (!violations.isEmpty()) {
+        throw new ConstraintViolationException("Boom!", violations);
+    }
+  }
+
+
+}
+```
+
+---
+class: center, middle, invert
+# Persistence
+
+---
+# DAO aka Data Access Object (2001)
+
+--
+
+### - Encapsulates access to data behind a well-defined interface
+
+--
+
+### - Makes client code persistence agnostic (db, ldap, REST...)
+
+--
+
+### - Don't do this at home:
+
+.crap[
+```java
+interface CustomerDAO {
+  UUID insert(Customer customer);
+  UUID insert(CustomerDTO customer);
+  Customer insert(String personalId, String fullName);
+  boolean saveOrUpdate(Customer customer);
+  boolean updateFullname(Customer customer, String newFullName);
+  boolean delete(Customer customer);
+  boolean deleteByPersonalId(String personalId);
+  Customer findByPersonalId(String personalId);
+  Collection<Customer> findAll();
+  Collection<PhoneNumber> findMobileNumbers(String personalId);
+  void merge(Customer detached);
+  ...
+}
+```
+]
+
+---
+class: center, middle
+# **Repository** mediates between the domain and data mapping layers using a **collection-like interface** for accessing domain objects.
+### — *Fowler, PoEAA*
+
+---
+.crap[
+```java
+interface CustomerDAO {
+  UUID insert(Customer customer);
+  UUID insert(CustomerDTO customer);
+  Customer insert(String personalId, String fullName);
+  boolean saveOrUpdate(Customer customer);
+  boolean updateFullname(Customer customer, String newFullName);
+  boolean delete(Customer customer);
+  boolean deleteByPersonalId(String personalId);
+  Customer findByPersonalId(String personalId);
+  Collection<Customer> findAll();
+  Collection<PhoneNumber> findMobileNumbers(String personalId);
+  void merge(Customer detached);
+  ...
+}
+```
+]
+
+--
+
+```java
+interface Customers extends Repository<Customer> {
+  void add(Customer customer);
+  // UUID insert(CustomerDTO customer);
+  // Customer insert(String personalId, String fullName);
+  // boolean saveOrUpdate(Customer customer);
+  // boolean updateFullname(Customer customer, String newFullName);
+  void delete(Customer customer);
+  // boolean deleteByPersonalId(String personalId);
+  // Customer findByPersonalId(String personalId);
+  Collection<Customer> list();
+  // Collection<PhoneNumber> findMobileNumbers(String personalId);
+  // void merge(Customer detached);
+}
+```
+
+--
+
+### UnitOfWork patterns is implied.
+???
+implement proper equality in hibernate. Hiber's dirty check may go crazy and issue a plenty of update statements.
+
+
+---
+### A problem with storage-generated ids
+.crap[
+```java
+class Account {
+    @GeneratedValue(strategy= GenerationType.AUTO)
+    private UUID id;
+
+    private String iban;
+
+    public Account(String iban) {
+        this.iban = iban;
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+interface Customers extends Repository<Customer> {
+  UUID add(Customer customer);
+```
+]
+
+--
+
+```java
+Account offshore = new Account("DZ4000400174401001050486");
+
+Collection<Account> accounts = new HashSet<>();
+accounts.add(offshore);
+
+accountRepository.add(offshore); // generates UUID
+
+accounts.contains(offshore) // false
+```
+
+---
+### Use pre-generated UUIDs
+
+.nice[
+```java
+interface Customers extends Repository<Customer> {
+  void add(Customer customer);
+```
+]
+
+.nice[
+```java
+@Entity
+class Customer {
+
+    @Id
+    private UUID id = UUID.randomUUID();
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        User other = (User) obj;
+        return Objects.equals(this.id, other.id);
+    }
+```
+]
+???
+now you can use the uuds before the persistance
+
+---
+class: center, middle
+# Repository communicate design decisions about object access.
+### — *Evans, DDD*
+???
+- you can't derive all your repos from a single CRUD repo
+- you can't design repositories like java collections :-) which are modifiable
+
+---
+class: right, middle
+### .fade[For each type of object that needs global access, create an object that can] provide the illusion of an in-memory collection .fade[ of all objects of that type. Set up access through a well-known global interface. Provide methods to add and remove objects, which will encapsulate the actual insertion of removal of data in the data store. Provide methods that select objects based on some criteria and return fully instantiated objects or collections of objects whose attribute values meet the criteria, thereby encapsulating the actual storage and query technology. ]Provide repositories only for aggregate roots .fade[that actually need direct access. Keep the client focused on the model, delegating all object storage and access to the Repositories.]
+### — *Evans, DDD*
+
+---
+class: center, middle
+# An aggregate is a cluster of domain objects that can be treated as a single unit. Any references from outside the aggregate should only go to the aggregate root.
+### — *Fowler, Bliki*
+
+---
+class: center, middle
+# Aggregate root ensures consistency of an aggregate.
+
+---
+```java
+@Entity
+class BankAccount {
+
+    @Id
+    private UUID id = UUID.randomUUID();
+
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.OPEN;
+
+    @Embedded
+    private WithdrawalLimit withdrawalLimit = WithdrawalLimit.DEFAULT;
+
+    @ElementCollection
+    @CollectionTable(name = "BANK_ACCOUNT_TX")
+    private List<Transaction> transactions = new ArrayList<>();
+
+    @Version
+    private long version;
+
+    ...
+
+```
+
+```java
+@Embeddable
+class Transaction {
+
+    private DecimalNumber amount;
+
+    private LocalDate bookedAt = LocalDate.now();
+
+    @Enumerated(EnumType.STRING)
+    private TransactionType type;
+
+    ...
+}
+```
+
+---
+
+```java
+@Entity
+class BankAccount {
+
+    private List<Transaction> transactions = new ArrayList<>();
+
+    public DecimalNumber balance() {
+        DecimalNumber totalDeposited = transactions.stream()
+                .filter(tx -> tx.type().equals(DEPOSIT))
+                .map(Transaction::amount)
+                .reduce(new Const(0), DecimalNumber::plus);
+
+        return transactions.stream()
+                .filter(tx -> tx.type().equals(WITHDRAWAL))
+                .map(Transaction::amount)
+                .reduce(totalDeposited, DecimalNumber::minus);
+    }
+
+    public Transaction deposit(DecimalNumber amount) {
+        Domain.ensure(!isClosed(), "Cannot deposit funds to closed account.");
+
+        Transaction depositTx = new Transaction(DEPOSIT, amount);
+        transactions.add(depositTx);
+
+        return depositTx;
+    }
+
+    private boolean isClosed() {
+        return status.equals(Status.CLOSED);
+    }
+
+    public void close() {
+        status = Status.CLOSED;
+    }
+```
+
+---
+
+```java
+@Entity
+class BankAccount {
+
+    public Transaction withdraw(DecimalNumber amount) {
+        Domain.ensure(!isClosed(), "Cannot withdraw funds from closed account.");
+
+        Transaction withdrawalTx = new Transaction(WITHDRAWAL, amount);
+        transactions.add(withdrawalTx);
+
+        ensurePositiveBalance();
+        ensureDailyWithdrawalLimitIsNotExceeded();
+
+        return withdrawalTx;
+    }
+
+    private void ensurePositiveBalance() {
+        Domain.ensure(balance().isPositive(),
+          "Cannot withdraw more funds than available on your account.");
+    }
+
+```
+
+---
+
+```java
+@Entity
+class BankAccount {
+
+    private void ensureDailyWithdrawalLimitIsNotExceeded() {
+        DecimalNumber dailyLimit = withdrawalLimit.dailyLimit();
+        DecimalNumber withdrawnToday = totalWithdrawn(now());
+        boolean dailyLimitExceeded = withdrawnToday.isGreaterThan(dailyLimit);
+        Domain.ensure(!dailyLimitExceeded,
+          "Cannot withdraw funds. Daily withdrawal limit (%s) reached.", dailyLimit);
+    }
+
+    private DecimalNumber totalWithdrawn(LocalDate bookedAt) {
+        return transactions.stream()
+                .filter(tx -> tx.type().equals(WITHDRAWAL))
+                .filter(tx -> tx.bookedAt().isEqual(bookedAt))
+                .map(Transaction::amount)
+                .reduce(new Const(0), DecimalNumber::plus);
+    }
+}
+```
+
+---
+## BankAccount gives the following guarantees:
+
+--
+
+### there is no way to create withdraw/deposit a CLOSED account
+
+--
+### there is no way to withdraw more funds than available
+
+--
+
+### there is no way to withdraw more funds than allowed by a daily limit
+
+--
+
+### returned Transactions fulfill all rules imposed by BankAccount
+???
+PLEASE MAKE THE IMMUTABLE!!!
+
+--
+
+### an aggregate is protected by a single optimistic lock
+
+--
+
+### lifecycle of Transactions is bound to BankAccount
+
+---
+class: bottom, middle
+background-image:url(thrones_aggregate.jpg)
+background-size: 50%
+???
+Effective Aggregate Design by Vaughn Vernon (https://vaughnvernon.co/?p=838)
+
+---
+class: center, middle
+# Aggregate root defines transactional boundaries.
+### ...and can only be designed after careful transactional analysis.
+
+---
+```java
+@Entity
+@GuardedByOptimisticLock
+public class Customer extends DomainEntity {
+
+    @Embedded
+    @AttributeOverride(name = "text", column = @Column(name = "EMAIL_ADDRESS"))
+    private Email emailAddress;
+
+    @Embedded
+    @AttributeOverride(name = "text", column = @Column(name = "PASSWORD"))
+    private Password password;
+
+    @Embedded
+    @AttributeOverride(name = "text", column = @Column(name = "ADDRESS"))
+    private Address address;
+
+    public Customer(Email emailAddress, Password password) {
+        this.emailAddress = emailAddress;
+        this.password = password;
+    }
+
+    private Customer() {
+    }
+
+    public void relocateTo(Address address) {
+        this.address = address;
+    }
+
+    public void changePassword(Password newPassword) {
+        this.password = newPassword;
+    }
+
+}
+```
+
+---
+### org.springframework.orm.ObjectOptimisticLockingFailureException
+```java
+Customer customer = new Customer(
+  new Email("hello@devchampions.com"),
+  new Password("qwerty123"));
+
+executeInTx(() -> entityManager.persist(customer));
+
+CyclicBarrier coordinator = new CyclicBarrier(2);
+
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Customer.class, customer.id())
+          .relocateTo(new Address("New York, Central Park"));
+        coordinator.await();
+    })
+).start();
+
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Customer.class, customer.id())
+          .changePassword(new Password("whatever"));
+        coordinator.await();
+    })
+).start();
+```
+
+---
+class: center, middle
+# Map aggregates by identity, not by pointer to avoid risk of modifying more than one aggregate per transaction.
+### (concurrency exceptions can reach the point where the system becomes unusable)
+
+---
+```java
+@Entity
+public class BankAccount extends DomainEntity {
+
+    @ManyToOne
+    private Bank bank;
+
+    public BankAccount(Bank bank) {
+        this.bank = bank;
+    }
+
+    public void transfer(Bank newBank, LocalDate effectiveAt) {
+        Bank currentBank = this.bank;
+        newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
+        this.bank = newBank;
+    }
+```
+
+```java
+@Entity
+public class Bank extends DomainEntity {
+
+    private String name;
+
+    @ElementCollection
+    @CollectionTable(name = "BANK_TRANSFER_AGREEMENTS")
+    private Collection<TransferAgreement> transferAgreements = new ArrayList<>();
+
+    public void sign(TransferAgreement transferAgreement) {
+        transferAgreements.add(transferAgreement);
+    }
+
+    public void rename(String name) {
+        this.name = name;
+    }
+}
+```
+
+---
+### org.springframework.orm.ObjectOptimisticLockingFailureException
+```java
+Bank swedbank = new Bank("Swedbank");
+Bank bankOfAmerica = new Bank("Bank of America");
+BankAccount account = new BankAccount(swedbank);
+
+executeInTx(() ->
+  persist(swedbank, bankOfAmerica, account);
+);
+
+CyclicBarrier coordinator = new CyclicBarrier(2);
+
+new Thread(() ->
+    executeInTx(() ->
+        Bank newBank = entityManager.find(Bank.class, bankOfAmerica.id());
+        account.transfer(newBank, now().with(lastDayOfMonth()));
+        coordinator.await();
+    })
+).start();
+
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Bank.class, bankOfAmerica.id())
+          .rename("The Royal Bank of America");
+        coordinator.await();
+    })
+).start();
+```
+
+---
+background-image:url(eventual.jpg)
+background-size: 50%
+
+---
+.crap[
+```java
+public void transfer(Bank newBank, LocalDate effectiveAt) {
+    Bank currentBank = this.bank;
+*   newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
+    this.bank = newBank;
+}
+```
+]
+
+.nice[
+```java
+public void transfer(Bank newBank, LocalDate effectiveAt) {
+    Bank currentBank = this.bank;
+*   DomainEvents.durable().publish(
+*      new BankAccountTransferred(
+*          id(),
+*          currentBank.id(),
+*          newBank.id(),
+*          effectiveAt
+*      )
+    );
+    this.bank = newBank;
+}
+```
+]
+
+--
+
+```java
+@RunInASeparateTransaction
+@RetryBeforePanic(times = 3)
+class SignInterbankTransferAgreement implements SideEffect<BankAccountTransferred> {
+    @Override
+    public void occur(BankAccountTransferred $) {
+        Bank oldBank = banks.findBy($.oldBankId());
+        Bank newBank = banks.findBy($.newBankId());
+        newBank.sign(new TransferAgreement(oldBank.id(), $.effectiveAt));
+    }
+}
+```
+
+---
+.crap[
+```java
+@ManyToOne
+private Bank bank;
+
+public void transfer(Bank newBank, LocalDate effectiveAt) {
+    Bank currentBank = this.bank;
+    DomainEvents.durable().publish(
+       new BankAccountTransferred(
+           id(),
+           currentBank.id(),
+           newBank.id(),
+           effectiveAt
+       )
+    );
+    this.bank = newBank;
+}
+```
+]
+
+--
+
+.nice[
+```java
+@Embedded
+private BankId bankId;
+
+public void transfer(BankId newBankId, LocalDate effectiveAt) {
+    BankId currentBankId = this.bankId;
+    DomainEvents.durable().publish(
+       new BankAccountTransferred(
+           id(),
+           currentBankId,
+           newBankId,
+           effectiveAt
+       )
+    );
+    this.bankId = newBankId;
+}
+```
+]
+
+
+---
+class: center, middle, example
+## an example of
+# ephemeral domain events
+
+---
+class: codeonly
+
+```java
+interface DomainEvent {
+
+    default Type type() {
+        return this.getClass();
+    }
+}
+```
+
+--
+
+```java
+interface SideEffect<E extends DomainEvent> {
+
+    void occur(E $);
+
+    default TypeToken<E> eventType() {
+        return new TypeToken<E>(getClass()) {
+        };
+    }
+}
+```
+
+--
+
+```java
+interface DomainEvents {
+
+    void publish(DomainEvent event);
+
+    static DomainEvents ephemeral() {
+        return EphemeralDomainEvents.instance();
+    }
+
+    static DomainEvents durable() {
+        return DurableDomainEvents.instance();
+    }
+}
+```
+
+---
+class: codeonly
+```java
+class EphemeralDomainEvents implements DomainEvents {
+
+    private static DomainEvents instance;
+
+    @WhyWorkStealing("http://bit.ly/forkjoinj8")
+    private final ExecutorService executor = Executors.newWorkStealingPool();
+
+    private final TransactionTemplate tx;
+
+    private final SideEffects sideEffects;
+
+    public EphemeralDomainEvents(SideEffects sideEffects, TransactionTemplate tx) {
+        EphemeralDomainEvents.instance = this;
+        ...
+    }
+
+    public void publish(DomainEvent event) {
+        sideEffects.byEvent(event)
+                .forEach(sideEffect -> inFuture(inTx(txStatus -> sideEffect.occur(event))));
+    }
+
+    private CompletableFuture<Void> inFuture(Runnable runnable) {
+        return CompletableFuture.runAsync(runnable, executor);
+    }
+
+    private Runnable inTx(Consumer<TransactionStatus> consumer) {
+        return () -> tx.execute(status -> { consumer.accept(status); return empty(); });
+    }
+
+    public static DomainEvents instance() {
+        return checkNotNull(instance, "Ephemeral domain events have not been initialized yet.");
+    }
+}
+```
+
+---
+class: codeonly
+```java
+class SideEffects {
+
+    private final LoadingCache<Type, Collection<SideEffect>> cachedSideEffects;
+
+    public SideEffects(ListableBeanFactory beanFactory) {
+        this.cachedSideEffects = Caffeine.newBuilder()
+                .build(eventType -> sideEffects(beanFactory)
+                        .stream()
+                        .filter(sideEffect -> sideEffect.eventType().isSupertypeOf(eventType))
+                        .collect(toList()));
+
+    }
+
+    private Collection<SideEffect> sideEffects(ListableBeanFactory beanFactory) {
+        return beanFactory
+                .getBeansOfType(SideEffect.class)
+                .values();
+    }
+
+    public Collection<SideEffect> byEvent(DomainEvent event) {
+        return cachedSideEffects.get(event.type());
+    }
+}
+```
+
+---
+# Spring Data JPA boo-boos:
+### - method naming is not really repositorish (e.g. save())
+
+--
+
+### - save() method calls merge() if identifier is assigned
+
+--
+
+### - does not work with wrapped primary keys (e.g. UserId)
+
+--
+
+### - findFirst10DistinctPeopleByLastnameAndFirstnameAllIgnoreCase();
+
+--
+
+### - findByAddress_ZipCode(ZipCode zipCode);
+
+--
+
+### - adds extra bugs on top of Hibernate
+
+--
+
+### - may not support the latest JPA/Hibernate features
+
+---
+
+# Spring Data JPA niceties:
+### - returns Page, Slice, Stream, CompletableFuture, Optional
+### - accepts Pageable, Sort and Specification
+### - accepts Specification
+
+```java
+interface Customers extends Repository<Customer, UUID>,
+                                   JpaSpecificationExecutor<Customer> {
+}
+
+Sort ordering = new Sort(ASC, "registeredAt");
+Stream<Customer> longTermCustomers = customers.findAll(longTerm(), ordering);
+
+Specification<Customer> longTerm() {
+    return (root, query, builder) -> {
+        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+        return builder.lessThan(root.get("registeredAt"), longTimeAgo);
+    };
+}
+```
+
+---
+# Type-safety magic
+```java
+Specification<Customer> longTerm() {
+    return (root, query, builder) -> {
+*       Customer $ = Expressions.of(Customer.class, root);
+*       Expression<LocalDate> registeredAt = $.expression($::registeredAt);
+        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+        return builder.lessThan(registeredAt, longTimeAgo);
+    };
+}
+```
+
+--
+
+### Or if you want to hide accessors:
+```java
+return (root, query, builder) -> {
+    LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+*   Expression<LocalDate> registeredAt = Customer.REGISTERED_AT.apply(root);
+    return builder.lessThan(registeredAt, longTimeAgo);
+}
+```
+
+
+http://in.relation.to/2016/04/14/emulating-property-literals-with-java-8-method-references/
+
+---
+### Repositories without Spring Data
+```java
+interface DomainEntities<T, ID extends Id> {
+
+    Optional<T> uniqueOptional(ID id);
+
+    T unique(ID id);
+
+    T unique(Criterion<T> criterion);
+
+    Collection<T> all(Criterion<T> criterion);
+
+    void add(T entity);
+
+    void remove(T entity);
+
+    long count(Criterion<T> criterion);
+
+    ...
+}
+```
+
+---
+```java
+abstract class JpaDomainEntities<T, ID extends Id> implements DomainEntities<T, ID> {
+
+    private final EntityManager entityManager;
+    private final Class<T> entityType;
+
+    // constructor goes here
+
+    @Override
+    public T unique(ID id) {
+        return uniqueOptional(id)
+                .orElseThrow(() -> new DomainEntityNotFound(id));
+    }
+
+    @Override
+    public Optional<T> uniqueOptional(ID id) {
+        T entity = entityManager.find(entityType, id.uuid());
+        return Optional.ofNullable(entity);
+    }
+
+    @Override
+    public T unique(Criterion<T> criterion) {
+        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(entityType);
+        Root<T> root = query.from(entityType);
+
+        Predicate predicate = criterion.predicate(root, builder);
+        query.where(predicate);
+        query.select(root);
+
+        return entityManager
+                .createQuery(query)
+                .getSingleResult();
+    }
+    ...
+}
+```
+
+---
+```java
+interface Customers extends DomainEntities<Customer, CustomerId> {
+}
+```
+
+--
+```java
+@Component
+class JpaCustomers extends JpaDomainEntities<Customer, CustomerId>
+                   implements Customers {
+    public JpaCustomers(EntityManager entityManager) {
+        super(entityManager, Customer.class);
+    }
+}
+```
+
+--
+
+```java
+@Autowired
+Customers customers;
+
+void addingShowtime() {
+  Customer customer = new Customer(...);
+  customers.add(customer);
+}
+
+void uniqueShowtime(CustomerId customerId) {
+  Customer unique = customers.unique(customerId);
+}
+
+void allShowtime() {
+  Criterion<Customer> withoutPassword = (root, builder) -> {
+      Path<String> password = root.get("password");
+      return builder.isNull(password);
+  };
+  customers
+    .all(withoutPassword)
+    .stream() ...
+};
+```
+
+---
+```java
+class CustomerId extends Id {
+
+    public CustomerId(UUID uuid) { super(uuid); }
+
+    public CustomerId(Id id) { super(id); }
+}
+```
+
+--
+
+```java
+abstract class Id {
+
+    private final UUID uuid;
+
+    public Id(UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    public Id(Id id) {
+        this.uuid = id.uuid();
+    }
+
+    public UUID uuid() {
+        return uuid;
+    }
+
+    // customerId.as(BannedUserId::new);
+    public <T> T as(Function<Id, T> convert) {
+        return convert.apply(this);
+    }
+
+    // hashCode and equals()...
+}
+```
+
+---
+```java
+@Entity
+public class Customer extends DomainEntity<CustomerId> {
+
+    @javax.persistence.Id
+    private UUID id = UUID.randomUUID();
+
+    ...
+
+    public CustomerId id() {
+        return new CustomerId(id);
+    }
+}
+```
+
+--
+
+```java
+@MappedSuperclass
+abstract class DomainEntity<ID extends Id> {
+
+    @javax.persistence.Id
+    private UUID id = UUID.randomUUID();
+
+    protected abstract Function<UUID, ID> typesafeId();
+```
+
+--
+
+```java
+@Entity
+class Customer extends DomainEntity<CustomerId> {
+
+    @Override
+    protected Function<UUID, CustomerId> typesafeId() {
+        return CustomerId::new;
+    }
+}
+```
+
+---
+# Few more things:
+### - Hibernate and Spring Data JPA support Geo Spatial queries
+
+--
+
+### - Hibernate supports multi tenancy
+```java
+session = sessionFactory
+            .withOptions()
+            .tenantIdentifier( tenant )
+            .openSession();
+```
+
+--
+
+### - Hibernate supports change auditing (Envers)
+
+--
+
+### - Hibernate 5 deprecated (Detached)Criteria in favour of JPA criteria
+
+--
+
+### - Test repositories in-memory with H2
+
+
+---
+# Often Repository is not the way to go
+
+--
+
+```java
+interface RegistrationCount {
+    void increment(long diff);
+    void decrement(long diff);
+    void reset();
+}
+```
+
+--
+
+```java
+class RedisRegistrationCount implements RegistrationCount {
+
+    private static final String KEY = "total_registrations";
+
+    private final RedisTemplate<String, Long> redis;
+
+    @Override
+    public void increment(long diff) {
+        redis.opsForValue().increment(KEY, diff);
+    }
+
+    @Override
+    public void decrement(long diff) {
+        redis.opsForValue().increment(KEY, -diff);
+    }
+
+    @Override
+    public void reset() {
+        redis.opsForValue().set(KEY, 0L);
+    }
+}
+```
+
+---
+# A drop of (uncomfortable) OO code
+```java
+class Post {
+
+  private final DataSource source;
+  private final int id;
+
+  public Post(DataSource source, int id) {
+    this.source = source;
+    this.id = id;
+  }
+
+  public int id() {
+    return this.id;
+  }
+
+  public Date date() {
+    return new JdbcSession(this.source)
+      .sql("SELECT date FROM post WHERE id = ?")
+      .set(this.number)
+      .select(new SingleOutcome<Utc>(Utc.class));
+  }
+
+  public String title() {
+    return new JdbcSession(this.source)
+      .sql("SELECT title FROM post WHERE id = ?")
+      .set(this.number)
+      .select(new SingleOutcome<String>(String.class));
+  }
+}
+```
+
+---
+# A drop of (uncomfortable) OO code
+```java
+class Book {
+
+  private final DataSource source;
+  private final int id;
+
+  public Book(DataSource source, int id) {
+    this.source = source;
+    this.id = id;
+  }
+
+  public void rename(String title) {
+    return new JdbcSession(this.source)
+      .sql("UPDATE book SET title=? WHERE id=?")
+      .set(title)
+      .set(this.id)
+      .update();
+  }
+}
+```
+
+---
+background-image:url(testcontainers.png)
+
+---
+```java
+class RedisBackedCacheTest {
+
+    @Rule
+    public GenericContainer redis = new GenericContainer("redis:3.0.6")
+                                            .withExposedPorts(6379);
+    private Cache cache;
+
+    @Before
+    public void setUp() {
+        Jedis jedis = new Jedis(redis.getIpAddress(), redis.getMappedPort(6379));
+        cache = new RedisBackedCache(jedis, "test");
+    }
+    @Test
+    public void findsAnInsertedValueInCache() {
+        String MAGIC_KEY = "foo";
+        String MAGIC_VALUE = "whatever";
+        cache.put(MAGIC_KEY, MAGIC_VALUE);
+
+        Optional<String> cachedValue = cache.get(MAGIC_KEY, String.class);
+        assertThat(cachedValue, isPresent());
+    }
+}
+```
+
+---
+Wrap commands in Hystryx. And that's it.
+
+
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js"></script>
+    <script>
+      var slideshow = remark.create({
+        highlightLines: true,
+        slideNumberFormat: function (current, total) { return "" }
+      });
+    </script>
+
+  </body>
+</html>

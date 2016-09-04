@@ -52,14 +52,7 @@ Setting expectations:
 - Not Java 8 course.
 - Learn principles, practices and patterns for writing readable, maintainable and effective code - CLEAN CODE. In modern Java.
 - My goal is to make you feel that he rules will tell you to do things that are really weird or NOT to do something that you did. Be open minded.
-
-
-
----
-# Agenda
-- Day I: General Software Design
-- Day II:
-- Homework (with group code review).
+- **HOMEWORK**
 
 ---
 class: center, middle, invert
@@ -367,6 +360,7 @@ class: center, middle
 
 ---
 background-image:url(SonarQube-02.png)
+background-size: 100%
 ???
 - not used
 - running on every push
@@ -376,6 +370,7 @@ background-image:url(SonarQube-02.png)
 ---
 class: lint
 background-image:url(sonarlint.png)
+background-size: 100%
 
 ---
 class: center, middle, invert
@@ -416,30 +411,35 @@ public class Example {
 The code is not HONEST.
 
 ---
+.crap[
 ```java
-// quite a big surprise for a client
 void update(Entity entity) {
   if (!entity.isIdAssigned()) {
     return;
   }
 }
 ```
+]
 
+--
+
+.nice[
 ```java
-// if you can't do something - fail
-// force client to check the conditional
 void update(Entity entity) {
   checkArgument(entity.isIdAssigned(), "Cannot update entity. Id is missing");
   ...
 }
 ```
+]
+
+--
 
 ```java
-// if you really need to communicate conditional execution
 void updateIfIdAssigned(Entity entity) {
   if (!entity.isIdAssigned()) {
     return;
   }
+  ...
 }
 ```
 ---
@@ -453,6 +453,9 @@ interface Employee {
   String address();
 }
 ```
+
+--
+
 ```java
 class Transaction {
   enum TransactionScope { }
@@ -462,6 +465,8 @@ class Transaction {
   enum Scope { }
 }
 ```
+
+--
 
 ```java
 // Packages are usually exception to the rule
@@ -495,6 +500,9 @@ class AwsS3Bucket {
 
 }
 ```
+
+--
+
 ```java
 class AwsCredentials {
 
@@ -526,6 +534,8 @@ class AwsS3Bucket {
 
 }
 ```
+
+--
 
 ```java
 class AwsAccount {
@@ -563,37 +573,44 @@ class AwsS3Bucket {
 ```java
 class CancelTransaction { }
 
-// vs.
-
 class CancelTransactionCommand { }
+
+class CancelTransactionCommandHandler { }
+
+class CancelTransactionHandler { }
 ```
+
+--
 
 ```java
 class NotifyOnApplicationCanceled
   implements DomainEventHandler<LoanApplicationCanceled> {
 }
 
-// vs.
-
 class NotifyOnLoanApplicationCanceled
   implements DomainEventHandler<LoanApplicationCanceled> {
 }
 ```
 
-### Stay consistent
+--
+
+### Avoid dumb suffixing
 ```java
 class RegistrationFailure extends BusinessException { }
 
 // vs.
 
-class RegistrationException extends BusinessException { }
+class RegistrationFailureException extends BusinessException { }
 ```
+
+--
 
 ---
 class: center, middle
 # Prefer creating objects that represent **what they are**, rather than what they do
 
 ---
+.crap[
 ```java
 class File { }
 
@@ -601,41 +618,68 @@ interface FileReader {
    Data read(File file) { }
 }
 ```
+]
+
+--
+
+.nice[
 ```java
 interface DataFile {
    Data data();
 }
 ```
+]
+
+--
+
+.crap[
 ```java
 interface EmailSender {
   void send(Email email);
 }
 ```
+]
 
+--
+
+.nice[
 ```java
 interface EmailProvider {
   void send(Email email);
 }
-```
+```]
 
+--
+
+.crap[
 ```java
 interface ConditionChecker {
   boolean checkCondition()
 }
 ```
+]
 
-```java
+--
+
+.nice[```java
 interface Condition {
   boolean isTrue();
 }
 ```
+]
 
 ---
+
+.crap[
 ```java
 interface MoneyFormatter {
   String format(Money money);
 }
-```
+```]
+
+--
+
+.nice[
 ```java
 interface PrettyMoney {
 
@@ -653,6 +697,9 @@ interface PrettyMoney {
 
 }
 ```
+]
+
+--
 
 ```java
 public static void main(String[] args) {
@@ -667,16 +714,26 @@ public static void main(String[] args) {
 - why not toString()
 
 ---
+.crap[
 ```java
 class FuckupProbabilityCalculator {
     BigDecimal calculate() { ... }
 }
-```
+```]
+
+--
+
+.nice[
 ```java
 class FuckupProbability implements DecimalNumber {
     BigDecimal decimal();
 }
-```
+```]
+???
+why not bigdecimal?
+
+--
+
 ```java
 interface DecimalNumber {
 
@@ -710,6 +767,8 @@ public static void main(String[] args) {
 }
 ```
 
+--
+
 ```java
 public static void main(String[] args) {
     DecimalNumber minimal = new FuckupProbability(...);
@@ -717,6 +776,9 @@ public static void main(String[] args) {
     DecimalNumber average = new Average(minimal, maximal)
 }
 ```
+
+--
+
 ```java
 class Average implements DecimalNumber {
 
@@ -737,7 +799,7 @@ class Average implements DecimalNumber {
 }
 ```
 ---
-class: bad
+.crap[
 ```java
 public final class BigDecimalUtils {
 
@@ -771,6 +833,7 @@ public final class BigDecimalUtils {
 
 }
 ```
+]
 ---
 class: center, middle
 # Methods are either **commands** or **queries**.
@@ -785,6 +848,8 @@ interface Iterator<T> {
 }
 ```
 
+--
+
 ```java
 interface Iterator<T> {
   void advance();
@@ -792,17 +857,25 @@ interface Iterator<T> {
 }
 ```
 
+--
+
 ```java
 InputStream load(URL url);
 ```
+
+--
 
 ```java
 InputStream stream(URL url);
 ```
 
+--
+
 ```java
 String read(File file);
 ```
+
+--
 
 ```java
 String content(File file);
@@ -814,6 +887,9 @@ class Document {
   int write(InputStream stream); // returns number of bytes written :(
 }
 ```
+
+--
+
 ```java
 class Document {
    OutputPipe output();
@@ -832,6 +908,9 @@ class OutputPipe {
 ---
 # Avoid getters
 ## Getters are verbs
+
+--
+
 ## Get **may** have a side effect
 ### - get married
 ### - get money from the ATM
@@ -845,92 +924,129 @@ class Client {
 }
 ```
 
+--
+
 ```java
 interface Iterator<T> {
   T current();
 }
 ```
-### Sometimes booleans are not nouns, but are NEVER verbs
+
+--
+
+### Sometimes booleans are **adjectives**
 ```java
 class Customer {
   boolean isSatisfiedBy(Specification); // satisfiedBy -> confusing
 }
 ```
+
+--
+
 ```java
 enum Severity {
   boolean isMajor(); // major() -> confusing
 }
 ```
+
+--
+
 ```java
 class ProductCatalog {
   boolean contains(Product);
 }
 ```
+
+--
+
 ```java
 interface Input {
-  boolean validate(); // verb! :(((
+  boolean isValid(); // validate() -> verb! :(((
 }
 ```
 
 ---
-# Avoid setters
-## ...and don't treat your objects as **data structures**
+# Avoid setters in objects
+## ...and don't confuse objects with **data structures**
 ???
 - Pure OO design require encapsulation. Frameworks as for data. Conflict.
 
+--
+
+.crap[
 ```java
 Client.setFirstName(firstName);
 Client.setLastName(lastName);
 ```
+]
 
+--
+
+.nice[
 ```java
 Client.giveName(String firstName, String lastName);
 ```
+]
 ???
 grant permissions vs. set permissions
 
+--
+
+.crap[
 ```java
 void setPreferredAgreementType(AgreementType preferredAgreementType) { }
 ```
+]
 
+--
+
+.nice[
 ```java
 void preferAgreement(AgreementType preferredAgreementType) { }
 ```
+]
 
+--
+
+.crap[
 ```java
 void setAgreementSigned(boolean agreementSigned) {}
 ```
+]
 
+--
+
+.nice[
 ```java
 void signAgreement() {} // agreement().sign() would be way better
 ```
+]
+
+--
+
+.nice[
 ```java
 void unsignAgreement() {}
 ```
-
+]
 
 ---
 # Data structures
 ## Do not have behaviour
 ## **Can** have getters and setters (if needed)
 ```java
-class UserRepresentation {
+@Immutable
+interface UserRepresentation {
 
-  public final String firstName;
-  public final String lastName;
-  public Optional<String> middleName = Optional.empty();
-
-  UserRepresentation(String firstName, String lastName) {
-    this.firstName = firstName;
-    this.lastName = lastName;
-  }
+  String firstName();
+  String lastName();
+  Optional<String> middleName();
 }
 ```
-```java
-UserRepresentation userRepresentation = new UserRepresentation("Jackie", "Chan");
-println userReprensetation.firstName;
-println userReprensetation.lastName;
-```
+
+---
+background-image:url(immutables.png)
+background-size: 100%
 
 ---
 # Package naming
@@ -950,6 +1066,9 @@ package shipyard.maps; // contains different maps and nothing else
 ```java
 package shipyard.map; // everything related to maps
 ```
+
+--
+
 ```java
 package shipyard.navigation;      // everything related to navigation
 package shipyard.navigation.maps;
@@ -1070,7 +1189,7 @@ void orElse() {
 ```java
 void orElseThrow() {
   Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...))
-      .orElseThrow(() -> new MissingPhoneNumberException()
+      .orElseThrow(() -> new MissingPhoneNumberException(phoneNumber)
 }
 ```
 --
@@ -1129,6 +1248,10 @@ class: center, middle
 - KISS (keep it simple and straightforward)
 
 ---
+## It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.
+— *Sherlock Holmes*
+
+---
 class: center, middle
 # **Emergent design** depends on code that is **easy to change**.
 
@@ -1145,7 +1268,7 @@ class: center, middle
 
 ---
 ```java
-Map<int, Map<int, int>> portfoliosByTraderId;
+Map<Long, Map<Long, Long>> portfoliosByTraderId;
 if (portfolioIdsByTraderId.get(trader.getId())
  .containsKey(portfolio.getId())) {...}
 ```
@@ -1154,23 +1277,6 @@ if (portfolioIdsByTraderId.get(trader.getId())
 
 ```java
 if (trader.canView(portfolio)) {...}
-```
-
----
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = applicationCheckFactory.make(when, application, countryCode);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  def checkResult = check.run();
-  persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-  return checkResult;
-}
 ```
 
 ---
@@ -1190,6 +1296,8 @@ public def checkApplication(LoanApplication application, Date when) {
 }
 ```
 
+--
+
 ```groovy
 @Override
 public def checkApplication(LoanApplication application, Date when) {
@@ -1205,6 +1313,7 @@ public def checkApplication(LoanApplication application, Date when) {
   return checkResult;
 }
 ```
+
 ---
 ```groovy
 @Override
@@ -1221,6 +1330,9 @@ public def checkApplication(LoanApplication application, Date when) {
   return checkResult;
 }
 ```
+
+--
+
 ```groovy
 @Override
 public def checkApplication(LoanApplication application, Date when) {
@@ -1231,7 +1343,6 @@ public def checkApplication(LoanApplication application, Date when) {
   if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application, checkResult);
   }
-  return checkResult;
 }
 ```
 ---
@@ -1245,9 +1356,11 @@ public def checkApplication(LoanApplication application, Date when) {
   if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application, checkResult);
   }
-  return checkResult;
 }
 ```
+
+--
+
 ```groovy
 @Override
 public def checkApplication(LoanApplication application, Date when) {
@@ -1258,7 +1371,6 @@ public def checkApplication(LoanApplication application, Date when) {
   if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application, checkResult);
   }
-  return checkResult;
 }
 ```
 
@@ -1273,9 +1385,11 @@ public def checkApplication(LoanApplication application, Date when) {
 * if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application, checkResult);
   }
-  return checkResult;
 }
 ```
+
+--
+
 ```groovy
 @Override
 public def checkApplication(LoanApplication application, Date when) {
@@ -1286,44 +1400,71 @@ public def checkApplication(LoanApplication application, Date when) {
 * if (shouldRunScorecard(application)) {
     runScorecard(application, checkResult);
   }
-  return checkResult;
 }
 ```
+
 ---
+.crap[
 ```groovy
 private boolean shouldRunScorecard(LoanApplication application) {
 *  return runScorecard && LoanAgreementType.MAIN.equals(application.agreementType());
 }
 ```
+]
+
+--
+
+.crap[
 ```groovy
 private boolean shouldRunScorecard(LoanApplication application) {
 *  return scoringEnabled && application.agreementType().equals(MAIN);
 }
 ```
+]
+
+--
+
+.crap[
 ```groovy
-private boolean shouldRunScorecard(LoanApplication application) { // inflexble
+private boolean shouldRunScorecard(LoanApplication application) {
 *  return scoringEnabled && application.isAgreementOfTypeMain()); // WTF is Type?
 }
 ```
+]
+
+--
+
+.crap[
 ```groovy
-private boolean shouldRunScorecard(LoanApplication application) { // flexible
-*  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF anyway?
+private boolean shouldRunScorecard(LoanApplication application) {
+*  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF is Type?
 }
 ```
+]
+
+--
+
+.nice[
 ```groovy
 private boolean shouldRunScorecard(LoanApplication application) {
    Agreement agreement = application.agreement();
 *  return scoringEnabled && agreement.isMain();
 }
 ```
+]
+
+--
+
+.nice[
 ```groovy
 private boolean shouldRunScorecard(LoanApplication application) {
    Agreement agreement = application.agreement();
    boolean agreementIsApplicableForScoring =
-        agreement.satisfies(new IsApplicableForScoring());
+        agreement.isSatisfiedBy(new IsApplicableForScoring());
 *  return scoringEnabled && agreementIsApplicableForScoring;
 }
 ```
+]
 
 ---
 ```groovy
@@ -1336,9 +1477,11 @@ public def checkApplication(LoanApplication application, Date when) {
 * if (shouldRunScorecard(application)) {
 *    runScorecard(application, checkResult);
 * }
-  return checkResult;
 }
 ```
+
+--
+
 ```groovy
 public def checkApplication(LoanApplication application, Date when) {
   def check = makeCheck(application, when);
@@ -1349,7 +1492,6 @@ public def checkApplication(LoanApplication application, Date when) {
 * if (scoring.isNecessary()) { // NullObject can remove if, but should we?
 *    scoring.score();
 * }
-  return checkResult;
 }
 ```
 ---
@@ -1360,12 +1502,14 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persist(checkResult);
   def scoring = scoring(application);
-  if (scoring.isNecessary()) {
+* if (scoring.isNecessary()) {
     scoring.score();
   }
-  return checkResult;
 }
 ```
+
+--
+
 ```groovy
 public def checkApplication(LoanApplication application, Date when) {
   def check = makeCheck(application, when);
@@ -1373,7 +1517,11 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persist(checkResult);
 }
+```
 
+--
+
+```groovy
 public def scoreApplicationIfNecessary(LoanApplication application) {
   def scoring = scoring(application);
   if (scoring.isNecessary()) {
@@ -1381,77 +1529,66 @@ public def scoreApplicationIfNecessary(LoanApplication application) {
   }
 }
 ```
-```groovy
-// making things more explicit...
-// don't even consider extending LoanApplication
-class ScorableLoanApplication {
-    void score();
-}
-```
 
 ---
+.crap[
 ```java
 public interface EShopService {
     Map<String, String> prepareNotificationParams(EShopSession session);
 }
 ```
+]
+
+--
+
+.nice[
 ```java
 public interface EShopNotificationParams {
     NotifationParams prepare(EShopSession session);
 }
 ```
----
-```java
-public interface EShopService {
-    Map<String, String> prepareNotificationParams(EShopSession session);
-}
-```
-```java
-public interface EShopNotificationParams {
-    NotifationParams prepare(EShopSession session);
-}
-```
+]
+
+--
+
 #### ----
+.crap[
 ```java
 MultivaluedMap<String, String> formParams = new Form();
 for (String key : params.keySet()) {
     formParams.add(key, params.get(key));
 }
 ```
-```java
-Form form = new Form(new Params(params));
-```
+]
 
----
-```java
-public interface EShopService {
-    Map<String, String> prepareNotificationParams(EShopSession session);
-}
-```
-```java
-public interface EShopNotificationParams {
-    NotifationParams prepare(EShopSession session);
-}
-```
-#### ----
-```java
-MultivaluedMap<String, String> formParams = new Form();
-for (String key : params.keySet()) {
-    formParams.add(key, params.get(key));
-}
-```
+--
+
+.nice[
 ```java
 Form form = new Form(new Params(params));
 ```
+]
+
+--
+
 #### ----
+
+.crap[
 ```java
 Map<String, Boolean> checkboxes = new HashMap<>();
 ```
+]
+
+--
+
+.nice[
 ```java
 Collection<Checkbox> checkboxes = ...
 ```
+]
 
 ---
+.crap[
 ```java
 interface EquifaxFacade {
     public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
@@ -1461,12 +1598,22 @@ interface EquifaxFacade {
     }
 }
 ```
+]
+
+--
+
+.nice[
 ```java
 class Answer {
     String questionId;
     String answerId;
 }
 ```
+]
+
+--
+
+.nice[
 ```java
 class UnvalidatedAnswers {
 
@@ -1478,12 +1625,19 @@ class UnvalidatedAnswers {
     }
 }
 ```
+]
+
+--
+
+.nice[
 ```java
   UnvalidatedAnswers unvalidatedAnswers = new UnvalidatedAnswers(answers);
   if (!unvalidatedAnswers.areValid()) {
     ....
   }
 ```
+]
+
 ---
 class: center, middle
 # Reification - a process of making something concrete (implicit -> explicit).
@@ -1498,7 +1652,12 @@ class: center, middle
 
 ---
 class: center, middle
+# Comments
+
+---
+class: center, middle
 # Commenting code is like explaining a bad joke.
+— *Someone*
 
 ---
 class: center, middle
@@ -1508,6 +1667,7 @@ class: center, middle
 ---
 class: center, middle
 # What I like of comments is deleting them
+— *Someone*
 
 ---
 class: center, middle
@@ -1515,6 +1675,7 @@ class: center, middle
 
 ---
 background-image:url(yaml.png)
+background-size: 100%
 
 ---
 ```java
@@ -1529,6 +1690,8 @@ class NoOpAuthenticationHandler implements AuthenticationHandler {
 }
 ```
 
+--
+
 ```java
 @RequestMapping(value = "", method = { RequestMethod.GET, RequestMethod.POST })
 public String index() {
@@ -1540,6 +1703,76 @@ public String index() {
 ![](butwhy.png)
 
 ---
+.crap[
+```java
+class Jetty {
+    /**
+     * Port on which jetty would run. Defaults to 8082;
+     */
+    public void setPort(int port) {
+
+    }
+}
+```
+]
+
+--
+
+```java
+class Jetty {
+
+    private final int DEFAULT_PORT = 8082;
+
+    public void run(int port) {
+
+    public void run() {
+      run(DEFAULT_PORT);
+    }
+
+    public int port() {
+      return port;
+    }
+}
+```
+
+---
+```java
+interface Port {
+
+  Port DEFAULT = () -> 8082;
+
+  int number();
+}
+```
+
+--
+
+```java
+class Jetty {
+
+  public void run(Port port) { ... }
+
+  public Port port() {
+    return port;
+  }
+}
+```
+
+--
+
+```java
+class WebApplication {
+  void start() {
+      Jetty jetty = new Jetty();
+      jetty.run(Port.DEFAULT);
+  }
+}
+```
+
+
+
+---
+.crap[
 ```java
 @Transactional
 public Client getClient() {
@@ -1549,48 +1782,113 @@ public Client getClient() {
   return client;
 }
 ```
+]
+
+--
 
 ```java
 @Transactional
-public <T> T applyToClient(Function<Client, T> fn) {
+<T> T clientProjection(Function<Client, T> fn) {
   Client client = repository.getRequired(Client.class, clientId);
-  return client.apply(fn);
+  return fn.apply(client);
 }
 ```
 
+--
+
 ```java
-void take() {
-* // Base64 encoding is required by SauceLabs
-  String base64Screenshot = webDriver.getScreenshotAs(OutputType.BASE64);
+class Screenshot {
+  void take() {
+*   // Base64 encoding is required by SauceLabs
+    String base64Screenshot = webDriver.getScreenshotAs(OutputType.BASE64);
+  }
 }
 ```
 
-```java
-private static final OutputType SAUCELABS_ENCODING = OutputType.BASE64;
+--
 
-void take() {
-  String screenshot = webDriver.getScreenshotAs(SAUCELABS_ENCODING);
+```java
+class SauceScreenshot {
+  private static final OutputType SAUCELABS_ENCODING = OutputType.BASE64;
+
+  void take() {
+    String screenshot = webDriver.getScreenshotAs(SAUCELABS_ENCODING);
+  }
 }
 ```
 
 ---
 ```java
-// Disable "web-security", enable all possible "ssl-protocols" and
-// "ignore-ssl-errors" for PhantomJSDriver
-capabilities.setCapability(PhantomJSDriverService.PHANTOMJS_CLI_ARGS,
-  new String[] {
+// "--web-security=false"     -> allows XHR,
+// "--ssl-protocols=any"      -> enable support for all SSL protocol versions
+// "--ignore-ssl-errors=true" -> ignores SSL errors
+String[] args = new String[] {
     "--web-security=false",
     "--ssl-protocol=any",
     "--ignore-ssl-errors=true" });
+
+DesiredCapabilities capabilities = new DesiredCapabilities();
+capabilities.setCapability(PHANTOMJS_CLI_ARGS, args);
+WebDriver driver = new PhantomJSDriver(capabilities);
 ```
+
 --
 ```java
-String disableWebSecurity = "--web-security=false";
-String enableAllSslProtocols = "--ssl-protocol=any";
-String ignoreSslErrors = "--ignore-ssl-errors";
+String allowCrossOriginXhr = "--web-security=false";
+String supportAllSslProtocolVersions = "--ssl-protocols=any";
+String ignoreSslErrors = "--ignore-ssl-errors=true";
 
-String args = new String[] { disableWebSecurity, enableAllSslProtocols, ignoreSslErrors };
+String[] args = new String[] {
+    allowCrossOriginXhr,
+    supportAllSslProtocolVersions,
+    ignoreSslErrors
+);
+
+DesiredCapabilities capabilities = new DesiredCapabilities();
 capabilities.setCapability(PHANTOMJS_CLI_ARGS, args);
+WebDriver driver = new PhantomJSDriver(capabilities);
+```
+
+---
+
+```java
+class PhantomJSCapabilities {
+
+    private final Collection<String> args = new HashSet<>();
+
+    public PhantomJSCapabilities allowCrossOriginXhr() {
+      args.add("--web-security=false");
+      return this;
+    }
+
+    public PhantomJSCapabilities supportAllSslProtocolVersions() {
+      args.add("--ssl-protocol=any");
+      return this;
+    }
+
+    public PhantomJSCapabilities ignoreSslErrors() {
+      args.add("--ignore-ssl-errors=true");
+      return this;
+    }
+
+    public DesiredCapabilities desired() {
+      DesiredCapabilities capabilities = new DesiredCapabilities();
+      capabilities.setCapability(PHANTOMJS_CLI_ARGS, args.toArray(String[]::new));
+      return capabilities;
+    }
+
+}
+```
+
+--
+
+```java
+WebDriver driver = new PhantomJSDriver(
+  new PhantomJSCapabilities()
+    .allowCrossOriginXhr()
+    .supportAllSslProtocolVersions()
+    .ignoreSslErrors()
+    .desired());
 ```
 
 ---
@@ -1632,23 +1930,6 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 
 ---
 ```java
-*// function to configure for send to debts
-*// possible to use overDueDays and paymentAmount
-void sendToDebts() {
-  if (overDueDays >= 4 && overDueDays <= 6) {
-    doLoanSendToDebts()
-  }
-
-* // safeguard
-  if (overDueDays >= 10 && overDueDays <= 13) {
-    doLoanSendToDebts()
-  }
-}
-```
-![](butwhy.png)
-
----
-```java
 //
 // Dear maintainer:
 //
@@ -1663,10 +1944,22 @@ void sendToDebts() {
 
 
 ---
-### Express intent with code (meta-annotations are also code)
+### Express intent with code (meta-annotation is code)
+
+--
+
 ### No FIXMEs
+
+--
+
 ### No TODOs
+
+--
+
 ### No commented out code
+
+--
+
 ### JavaDocs are made for public APIs. Within a team, express use-cases with tests.
 
 ---
@@ -1816,12 +2109,13 @@ class: middle, center, invert
 
 ---
 class: middle, center
-# Singe Responsibility Principle
+# Single Responsibility Principle
 ---
 # How small the class should be?
-### Size is just an indicator of bloaded responsibilities — *me*
+???
 
 --
+
 
 ### Mind-sized — *me*
 
@@ -1841,12 +2135,16 @@ Marco Cecconi - Dev at StackOverflow
 
 --
 
+### Small enough to be easy to test  — *me*
+
+--
+
 ### Inside every large program, there is a small program trying to get out — *Tony Hoare*
 ???
 TH - Quicksort
 
 ---
-### Can who spot 2 interwoven concepts?
+### Can you spot 2 interwoven concepts?
 ```java
 class FtpClient {
 
@@ -1874,6 +2172,198 @@ class Trade {
 
 --
 ### Generic naming leads to obesity - Helpers, Utils, Managers, Services...
+
+---
+### Fighting feature bloat
+```java
+public class Tweet implements AggregateRoot<Tweet> {
+
+    private LocalDate postedAt = LocalDate.now();
+
+    private Collection<Like> likes = new LinkedList<>();
+
+    public LocalDate postedAt() {
+        return postedAt;
+    }
+
+*   public Collection<Like> likes() {
+*       return ImmutableList.copyOf(likes);
+*   }
+*
+*   public void like(Like like) {
+*     likes.add(like);
+*   }
+*
+*   public long totalLikes() {
+*     return likes.size();
+*   }
+*
+*   public long totalLikesBy(LikerId likerId) {
+*     return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+*   }
+```
+
+---
+```java
+public class Tweet {
+
+    private LocalDate postedAt = LocalDate.now();
+
+    private Collection<Like> likes = new LinkedList<>();
+
+    public LocalDate postedAt() {
+        return postedAt;
+    }
+
+    public Likes likes() {
+        return new Likes();
+    }
+
+    class Likes {
+
+        public void put(Like like) {
+            likes.add(like);
+        }
+
+        public long total() {
+            return likes.size();
+        }
+
+        public long totalBy(LikerId likerId) {
+            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+        }
+
+        public Collection<Like> all() {
+            return ImmutableList.copyOf(likes);
+        }
+    }
+}
+```
+
+---
+### Total likes during Black Friday?
+
+--
+
+```java
+class BlackFriday {
+
+    public boolean fallsOn(LocalDate date) {
+        return blackFridayAt().isEqual(date);
+    }
+
+    private LocalDate blackFridayAt() {
+        return thanksGivingAt().plusDays(1);
+    }
+
+    private LocalDate thanksGivingAt() {
+        return Year.now()
+                .atMonth(Month.NOVEMBER)
+                .atDay(1)
+                .with(TemporalAdjusters.lastInMonth(DayOfWeek.THURSDAY));
+    }
+
+}
+```
+
+--
+
+.crap[
+```java
+class Likes {
+*   public long totalDuring(BlackFriday blackFriday) {
+        return likes
+            .stream()
+            .filter(like -> blackFriday.fallsOn(like.when()))
+            .count();
+    }
+}
+```
+]
+
+---
+```java
+public interface Entity<T> {
+    default <R> R collect(Function<T, R> fn) {
+        return fn.apply((T) this);
+    }
+}
+```
+
+--
+
+```java
+class Likes implements Entity<Likes> {
+  ...
+}
+```
+
+--
+
+```java
+class TotalLikesDuringBlackFriday implements Function<Tweet.Likes, Long> {
+
+    private final BlackFriday blackFriday = new BlackFriday();
+
+    @Override
+    public Long apply(Tweet.Likes likes) {
+        return
+          likes
+            .all()
+            .stream()
+            .filter(like -> blackFriday.fallsOn(like.when()))
+            .count();
+    }
+}
+```
+
+--
+
+```java
+Tweet tweet = ...
+Tweet.Likes likes = tweet.likes();
+long total = likes.collect(new TotalLikesDuringBlackFriday());
+```
+???
+- must side effect free!
+- btw, can be written inline, as lambdas
+
+
+---
+```java
+public interface Entity<T> {
+    default <R> R collect(Function<T, R> fn) {
+        return fn.apply((T) this);
+    }
+*   default boolean isSatisfiedBy(Predicate<T> predicate) {
+*       return predicate.test((T) this);
+*   }
+}
+```
+
+--
+
+```java
+class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
+
+        @Override
+        public boolean test(Tweet tweet) {
+            long likesOnAPostingDay = tweet
+                    .likes()
+                    .all()
+                    .stream()
+                    .filter(like -> like.isPutAt(postedAt))
+                    .count();
+            return likesOnAPostingDay >= 10000000;
+        }
+    }
+```
+
+--
+```java
+Tweet tweet = ...
+boolean yeahBabyYeah = tweet.isSatisfiedBy(new GotMillionLikesOnAPostingDay());
+```
 
 ---
 class: middle, center
@@ -2082,6 +2572,7 @@ indicators - instanceof checks, UnsupportedOperationException, funny restriction
 
 ---
 background-image:url(toinstant.png)
+background-size: 100%
 ???
 java.sql.Date extends java.util.Date
 
@@ -2650,6 +3141,7 @@ class ITextPdfDocumentFactory implements PdfDocumentFactory {
 
 ---
 background-image:url(repackage.png)
+background-size: 100%
 
 ---
 ### Consider **granularity**
@@ -2670,9 +3162,11 @@ but in general, Spring Boot is very fine grained.
 ---
 class:libs
 background-image:url(jetty.png)
+background-size: 100%
 
 ---
 background-image:url(aws.png)
+background-size: 100%
 
 ---
 # More on modularity
@@ -2682,6 +3176,7 @@ background-image:url(aws.png)
 ---
 class: nopadding
 background-image:url(hibernate.png)
+background-size: 100%
 ### .spanny[Hibernate Core v4.3.8.Final]
 ???
 ok, you have nice physical modularity, but what about logical design?
@@ -2689,36 +3184,43 @@ ok, you have nice physical modularity, but what about logical design?
 ---
 class: nopadding
 background-image:url(jdk7.png)
+background-size: 100%
 ### .spanny[JDK v1.7.0_51]
 
 ---
 class: nopadding
 background-image:url(findbugs10.png)
+background-size: 100%
 ### .spanny[Findbugs V1.0 - A great start]
 
 ---
 class: nopadding
 background-image:url(findbugs11.png)
+background-size: 100%
 ### .spanny[Findbugs V1.1 – Imperfection creeps in]
 
 ---
 class: nopadding
 background-image:url(findbugs12.png)
+background-size: 100%
 ### .spanny[Findbugs V1.2 – Imperfection takes hold]
 
 ---
 class: nopadding
 background-image:url(findbugs13.png)
+background-size: 100%
 ### .spanny[Findbugs V1.3 – Chaos begins]
 
 ---
 class: nopadding
 background-image:url(findbugs14.png)
+background-size: 100%
 ### .spanny[Findbugs V1.4 – Explosion]
 
 ---
 class: nopadding
 background-image:url(spring.png)
+background-size: 100%
 ### .spanny[Spring v4.1.6]
 
 
@@ -2740,8 +3242,11 @@ class: center, middle
 --
 
 ### Avoid circular dependencies (merging, DI, demotion, escalation)
+???
+- you have seen escalation with a Black Friday
 
 --
+
 ### Prefer smaller packages over large ones
 
 --
@@ -2783,1078 +3288,6 @@ background-image:url(layering_veripacks.png)
 
 ### 4. **[org.hibernate]** can only be used by **[infra.hibernate]**
 
----
-# Application layer a-ka Service layer
-
---
-
-### - defines a use case, what the system does
-
---
-
-### - defines a use case contract (input / output)
-
---
-
-### - defines transaction boundary
-
---
-
-### - never ever to be confused with a domain service
-
----
-
-.crap[
-```java
-interface MemberPermissionService {
-  void grantPermission(String memberId, String permissionId);
-
-  PermissionsDto listPermissions(String memberId);
-}
-
-@Transactional
-class DefaultMemberPermissionServiceImpl implements MemberPermissionService {
-  @Override
-  public void grantPermission(String memberId, String permissionId) { ... }
-
-  @Override
-  public PermissionsDto listPermissions(String memberId) { ... }
-}
-```
-]
-
---
-
-### Tend to grow like hell
-
---
-
-### No single entry point
-
---
-
-### Always blocking
-
---
-
-### Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...
-
----
-
-.nice[
-```java
-interface Command<R extends Command.Response> {
-    interface Response {
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-class Blank implements Command.Response {
-}
-```
-]
-
---
-
-```java
-interface CommandHandler<C extends Command<R>, R extends Command.Response> {
-    R handle(C $);
-}
-```
-
---
-
-```java
-interface Now {
-    <C extends Command<R>, R extends Command.Response> R execute(C command);
-}
-```
-???
-finds and executes appropriate impl for a command using generics
-
---
-
-```java
-interface Future {
-    <C extends Command<R>, R ...> CompletableFuture<R> schedule(C command);
-}```
-
---
-
-```java
-interface Rx {
-    <C extends Command<R>, R ...> Observable<R> observe(C command);
-}
-```
-
---
-```java
-interface Durable {
-    <C extends Command> void enqueue(C command);
-}
-```
-
----
-.nice[
-```java
-public class GrantPermissionCommand implements Command<Blank> {
-
-    private final String memberId, permissionId;
-
-    public GrantPermissionCommand(String memberId, String permissionId) { ... }
-
-    public String memberId() {
-        return memberId;
-    }
-
-    public String permissionId() {
-        return permissionId;
-    }
-}
-```
-]
-
---
-.nice[
-```java
-class GrantPermissionCommandHandler implements CommandHandler<GrantPermissionCommand, Blank> {
-
-    private final Members members;
-    private final Permissions permissions;
-
-    @Autowired
-    public GrantPermissionCommandHandler(Permissions permissions, Members members) { ... }
-
-    @Override
-    public Blank handle(GrantPermissionCommand $) {
-        MemberId memberId = new MemberId($.memberId());
-        Member member = members.byId(memberId);
-
-        PermissionId permissionId = new PermissionId($.permissionId());
-        Permission permission = permissions.byId(permissionId);
-
-        member.grantPermission(permission);
-        return new Blank();
-    }
-}
-```
-]
-
----
-```java
-@RestController
-class GrantPermissionEndpoint {
-
-    @Autowired
-    Now now;
-
-    @Autowired
-    Future future;
-
-    @Autowired
-    Rx rx;
-
-    @Autowired
-    Durable durable;
-
-    @PostMapping("/users/$userId/permissions")
-    void accept(
-      @PathVariable String userId,
-      @RequestBody GrantPermissionCommand grantPermissionCommand) {
-
-        Blank blank = now.execute(grantPermissionCommand);
-
-        future.schedule(grantPermissionCommand)
-          .thenAccept(response -> System.out.println("Completed!"));
-
-        rx.observe(grantPermissionCommand)
-          .subscribe(blank -> System.out.println("Completed!"));
-
-        durable.enqueue(grantPermissionCommand);
-    }
-
-}
-```
-
----
-```java
-public interface Command<R extends Command.Response> {
-
-    interface Response {
-    }
-
-    default R execute(Now now) {
-        return now.execute(this);
-    }
-
-    default CompletableFuture<R> schedule(Future future) {
-        return future.schedule(this);
-    }
-
-    default Observable<R> observe(Rx rx) {
-        return rx.observe(this);
-    }
-
-    default void enqueue(Durable durable) {
-        durable.enqueue(this);
-    }
-}
-```
-
---
-```java
-void seeTheDifference() {
-  GrantPermissionCommand grantPermissionCommand =
-      new GrantPermissionCommand("memberId", "permissionId")
-
-  grantPermissionCommand.execute(now);
-
-  grantPermissionCommand.schedule(future)
-
-  ...
-}
-
-```
-
----
-```java
-class RetryCommand<R extends Command.Response> implements Command<R> {
-
-    private final Command<R> origin;
-
-    private Optional<Duration> timeout = Optional.empty();
-
-    public RetryCommand(Command<R> origin) {
-        this.origin = origin;
-    }
-
-    public Command<R> origin() {
-        return origin;
-    }
-
-
-    public RetryCommand<R> timeoutAfter(Duration duration) {
-        this.timeout = Optional.of(duration);
-        return this;
-    }
-
-    public Optional<Duration> timeout() {
-        return timeout;
-    }
-}
-```
-
----
-```java
-class RetryCommandHandler<R extends Command.Response> implements CommandHandler<RetryCommand<R>, R> {
-
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
-
-    @Override
-    public R handle(RetryCommand<R> $) {
-
-        TimeoutRetryPolicy policy = new TimeoutRetryPolicy();
-
-        Duration timeout = $.timeout().orElse(DEFAULT_TIMEOUT);
-        policy.setTimeout(timeout.toMillis());
-
-        RetryTemplate template = new RetryTemplate();
-        template.setRetryPolicy(policy);
-
-        return template.execute(context -> {
-            Command<R> origin = $.origin();
-            CommandHandler<Command<R>, R> originHandler = findHandlerFor(origin);
-            return originHandler.handle(origin);
-        });
-    }
-}
-```
-
---
-
-```java
-GrantPermissionCommand grantPermissionCommand = new GrantPermission...
-new RetryCommand<>(grantPermissionCommand)
-        .timeoutAfter(Duration.ofSeconds(5))
-        .execute(now);
-```
-
----
-
-### .strike[Tend to grow like hell]
-
---
-
-
-### .strike[No single entry point]
-???
-can make all commands transactional
-
---
-
-### .strike[Always blocking]
-
---
-
-### .strike[Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...]
-
----
-can be prototype! and use power of setting state in constructor, avoid threadlocals.
-instead of returning a set of validation errors, throw them!
-calling commands from commands indicates a problem of reuse and are DANGEROUS. Change in UC1 can break UC2. Let them evolve independently!
-
----
-
-```java
-package infra.authentication;
-class Anonym {
-  private final Members members;
-  Optional<Token> authenticationToken(String username, String password) {
-    Optional<Member> member = members.byLoginAndPassword(username, password);
-    return member.flatMap(() -> new JwtToken(username));
-  }
-}
-```
---
-
-```java
-package app.membership;
-
-class LogInCommandHandler implements CommandHandler<LogInCommand, LogInCommand.R> {
-  @Autowired
-  private final Anonym anonym;
-  public R handle(LogInCommand $) {
-    Token authToken = anonym
-      .authenticationToken($.username(), $.password())
-      .orElseThrow(() -> throw new InvalidCredentialsException($));
-
-    return new R(authToken.text());
-  }
-}
-```
-
---
-
-```java
-package app.membership;
-interface Members {
-  Member byLoginAndPassword(username, password);
-}
-```
-
---
-
-.corner[
-  ### - Bidi usage
-  ### - Bidi dependency :(
-  ### - Let's make Anonym reusable
-]
-
----
-
-```java
-package infra.authentication;
-class Anonym {
-  private final Credentials credentials;
-  Optional<Token> authenticationToken(String username, String password) {
-    boolean validCredentials = credentials.areValid(username, password);
-    return validCredentials ? Optional.of(new JwtToken(username)) : Optional.empty();
-  }
-}
-```
-
-```java
-package infra.authentication;
-interface Credentials {
-  boolean areValid(String username, String password);
-}
-```
-
---
-
-```java
-package app.membership;
-class MemberCredentials implements Credentials {
-  private final Members members;
-  @Override
-  public boolean areValid(String username, String password) {
-    members
-      .byLoginAndPassword(username, password);
-      .isPresent();
-  }
-}
-```
-
---
-
-.corner[
-  ### - Bi-di usage
-  ### - Uni-di dependency
-  ### - Anonym is reusable now!
-]
-
----
-```java
-javajitsu.infrastructure.sms
-javajitsu.infrastructure.sms.twilio
-javajitsu.application.notification
-javajitsu.domain.notification
-```
-
----
-- We can add behaviour with decorators (open-closed)
-
----
-# Working with legacy code
-### Chia Pet Pattern
-### Most development is about preserving behaviour
-### Refactoring dilemma
-
-
----
-### Fighting feature ENVY:
-entity.apply(fn)
-entity.satisfies()
-
----
-- Adjacent parameter of the same type, if practical, if possible, should be avoided. (c) Scott Meyers
-- It is possible to call them in the wrong order.
-Date, Month, Day, Year. also more readable.
-
----
-Don't be afraid of creating types.
-- CustomerName
-- FileName
-
----
-Database is a detail. It's one of the way of representing your entity. Fine.
-
----
-Bundle advanced functionality into separate objects. Functionality is hidden unless such objects are requested. (c) Scott Meyers
-Instead of given all stuff, you have to ask for them.
-
----
-Intent. Why intent? RestEndPoint.receive(ACOmmand command). If Rest endpoint is just a translation layer, then, if each command is a use case, we can easily express it in terms of BDD. What the system DOES.
-commands can be combined. Throttled. Whatever.
-Exception handling
-Transaciton management.
-Single funcking entry point
-command is INTENT. Logs :-)
-* What the system is (domain) vs. what the system does (use cases). Commands / Domain
-Exhanging messages w/o calling each other. EvenBus!
-
----
-“Behaviour-driven development is about
-implementing an application by
-describing it from the point of view of
-its stakeholders” (c) Dan North
-
-
----
-```
-class Person {
-
-    private final Age age;
-
-    private final Sex sex;
-
-    public Person(Age age, Sex sex) {
-        this.age = age;
-        this.sex = sex;
-    }
-
-    public Age age() {
-        return age;
-    }
-
-    public Sex sex() {
-        return sex;
-    }
-}
-
-class Age {
-
-    private final int age;
-
-    public Age(int age) {
-        this.age = age;
-    }
-
-    boolean isMajor() {
-        return age > 18;
-    }
-
-    @Override
-    public int compareTo(Age that) {
-        // Guava in use!
-        return Ints.compare(this.age, that.age);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(age);
-    }
-
-    @Override
-    public boolean equals(@Nullable Object that) {
-        if (that == null || getClass() != that.getClass()) {
-            return false;
-        }
-        Age other = (Age) that;
-        return Objects.equals(this.age, other.age);
-    }
-    guava-testlib
-
-}
-
-```
-    Challenge: write equality w/o if conditions
-    @Override
-    public boolean equals(@Nullable Object that) {
-        return new Equality<>(Age::age, Age::isMajor).equals(this, that);
-    }
-
-```
----
-```
-new EqualsTester()
-    .addEqualityGroup("hello", "h" + "ello")
-    .addEqualityGroup("world", "wor" + "ld")
-    .addEqualityGroup(2, 1 + 1)
-    .testEquals();
-```
----
-
-```
-class Equality<T> {
-
-    private final Collection<BiFunction<T, T, Boolean>> checks = new LinkedList<>();
-
-    @SafeVarargs
-    public Equality(Property<T, ?>... properties) {
-        checks.add((me, you) -> you != null);
-        checks.add((me, you) -> me.getClass() == you.getClass());
-        checks.addAll(Arrays
-                .stream(properties)
-                .map(property -> (BiFunction<T, T, Boolean>) (T me, T you) -> Objects.equals(property.take(me), property.take(you)))
-                .collect(Collectors.toList()));
-    }
-
-
-    boolean equals(Object me, @Nullable Object you) {
-        return checks.stream().allMatch(fn -> fn.apply((T) me, (T) you));
-    }
-}
-}
-```
-
-
-enum Sex {
-    MALE, FEMALE
-}
-```
----
-```
-        Collection<Person> people = new ArrayList<>();
-        List<Person> adultMales = people.stream().filter(new AdultMale()).collect(Collectors.toList());
-```
-
----
-
----
-```
-interface Entity<T> {
-
-    default boolean is(Predicate<T> predicate) {
-        return predicate.test((T) this);
-    }
-
-}
-
-class Person implements Entity<Person>
-....
-
-Age adultAge = new Age(18);
-Person citizen = new Person(adultAge, Sex.MALE);
-boolean adultMale = citizen.isSatisfiedBy(new IsAdultMale());
-```
-???
-Entity is an interface! Wohoo!
-
----
-SOLID (open/closed principle)
-- Tempting to sublclass. We never subclass (almost.)
-- DECORATORS! Hmm, also, with Decorators you can avoid making objects Configurable, A-ka SomeSettings.
-The expression problem
-The expression problem refers to the desire to implement an existing set of abstract methods for an existing concrete class without having to change the code that defines either. Object-oriented languages allow you to implement an existing abstract method in a concrete class you control (interface inheritance), but if the concrete class is outside your control, the options for making it implement new or existing abstract methods tend to be sparse. Many popular programming languages such as Ruby, Scala, C#, Groovy, and JavaScript provide partial solutions to this problem by allowing you to add methods to an existing concrete object, a feature sometimes known as monkey-patching, or interpose a different object between mismatched types via implicit conversion.
-
-
----
-Encapsulated properties must not be used to change the behavior of an object.
-for example - Password.
-
-
-
----
-Rule of demeter / principle of least knowledge / don't talk to strangers / train wrecks
-
----
-Jackson
-- Jackson Guava (https://github.com/FasterXML/jackson-datatypes-collections) -> Multimap, Range, HashCode, InternetDomainName, HostAndPort, Optional
-- Jackson JDK8 (https://github.com/FasterXML/jackson-datatype-jdk8) -> Optional
-- Jackson JSR310 (https://github.com/FasterXML/jackson-datatype-jsr310) -> javax.date
-- Jackson Parameter Names module (https://github.com/FasterXML/jackson-module-parameter-names) ->
-
----
-```
-class Person {     // mandatory fields     private final String name;     private final String surname;     // optional fields     private String nickname;     // no annotations are required if preconditions are met (details below)     public Person(String name, String surname) {
-```
-
----
-Afterburner
-```
-<dependency>
-  <groupId>com.fasterxml.jackson.module</groupId>
-  <artifactId>jackson-module-afterburner</artifactId>
-  <version>2.7.1</version>
-</dependency>
-```
-
-```
-ObjectMapper mapper = new ObjectMapper()
-mapper.registerModule(new AfterburnerModule());
-```
-
----
-# Frameworks
-- awaitility
-- hicariCP -  the fastest connection pool in Java land
-- caffeine - the fastes near-cache in Java land. Can be used as Spring Cache in Spring 4.3
-
----
-LoadingCache<String, Book> booksByTitle = Caffeine.newBuilder()
-    .maximumSize(10_000)
-    .expireAfterAccess(5, TimeUnit.MINUTES)
-    .refreshAfterWrite(1, TimeUnit.MINUTES)
-    .build(title -> { // Using a jOOQ repository
-      return database.selectFrom(BOOK)
-          .where(BOOK.TITLE.eq(title))
-          .fetchOneInto(Book.class);
-    });
-
-// A classic about a prison revolt (TANSTAAFL!)
-Book favorite = booksByTitle.get(“The Moon Is a Harsh Mistress”);
-
-// A good way to spend a long, rainy weekend
-Map<String, Book> series = booksByTitle.getAll(Arrays.asList(
-  “A Game of Thrones”, “A Clash of Kings”, ...));
-
----
-Stability Patterns
-- Retries
-
----
-I like comments! What I like of comments is deleting them
-- make implicit explicit
-- method names instead of comments
-- comments explain each code block :( methods!
-- exceptions - performance implications, regexes.
-- todo: use paper.
-- QCs :-) version control is for that.
-- kill commented out code. That's what VC is for.
-- javadocs
-
----
-Exception handling
-throw new Exception("o_O")
-Validation may be a differnet kind of exception.
-
----
-background-image:url(prodex.jpg)
-
----
-- JSR validation is not designed for domain validation / business rules. Only input.
-- Business stuff depends on INPUT being correct, not NULLS etc. So it comes first.
-- Input validation is (normally) connected to a FIELD. Business - not composition of stuff.
-
----
-class: center, middle, invert
-# Logging
-
----
-# Slf4j please.
-### - Bridges for all common logging frameworks
-### - Single dependency on `slf4-api`
-
----
-# Logback please.
-### - Native, zero-overhead implementation of Slf4j
-### - Supports configuration via flexible Groovy DSL
-### - Supports asynchonous logging via AsyncAppender
-### - Supports {} to variables to avoid concatenation
-### - log.isDebugEnabled() check is [almost] obsolete.
-???
-- Groovy can access your classpath. So you can do type-safe stuff.
-- Consider log4j 2 - faster async via disruptor, custom log levels, custom formatters, lazy args.
-- Lambda support in Slf4j is planned in the next release - 1.8.
-
----
-# MDC (Mapped Diagnostic Context)
-```java
-MDC.put("userId", new LoggedUserId(user));
-// userId is available to logger
-MDC.remove("userId");
-```
-```java
-MDC.MDCCloseable handle = MDC.putCloseable("userId", new LoggedUserId(user));
-// userId is available to logger
-handle.close();
-```
-
-```groovy
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-import ch.qos.logback.core.ConsoleAppender
-appender("STDOUT", ConsoleAppender) {
-    encoder(PatternLayoutEncoder) {
-      pattern = "[%thread] %mdc{userId:-UNKNOWN} - %msg%n"
-    }
-}
-root DEBUG, ["STDOUT"]
-```
-???
-- so you don't have to pass userId every time you log the message.
-- every log message will contain a userId information.
-- *putCloseable** is awkward. MDCItem.remove();
-
----
-# Markers
-```java
-class Tx {
-
-  static Marker CHATOPS = MarkerManager.getMarker("CHATOPS");
-
-  void execute() {
-    log.error(CHATOPS, "Oh sh%t, transaction failed", new Tx.Failed(cause));
-  }
-}
-```
-```groovy
-appender("DEFAULT", ConsoleAppender) {
-    encoder(PatternLayoutEncoder) {
-        pattern = "%m%n"
-    }
-}
-appender("CHATOPS", SlackAppender) {
-    channel = "chatops"
-    filter(EvaluatorFilter) {
-        evaluator(OnMarkerEvaluator) { marker = "CHATOPS" }
-        onMatch = "ACCEPT"
-    }
-}
-
-root DEBUG, ["DEFAULT", "CHATOPS"]
-```
-???
-- you also filter-out messages for a given marker (e.g. commands that do not need to be logged)
-
----
-background-image:url(12factor.jpg)
-???
-- Software must write to sysout
-- Fluentd
-
----
-# Make implicit explicit
-```java
-class Command {
-
-    String firstName;
-    String lastName;
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("firstName", firstName)
-                .add("lastName", lastName)
-                .toString();
-    }
-}
-
-log.info("Command received", new Command("Chuck", "Norris"));
-```
-
----
-# Make implicit explicit
-```java
-class Command implements Loggable {
-
-    String firstName;
-    String lastName;
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("firstName", firstName)
-                .add("lastName", lastName)
-                .toString();
-    }
-
-    @Override
-    public String toLogString() {
-      return Joiner.on(' ').join(firstName, lastName);
-    }
-}
-
-log.info("Command received", new Command("Chuck", "Norris").toLogString());
-```
-
----
-# Log or rethrow. Never do both.
-```java
-  class Mailgun {
-      void send(Email email) {
-        try {
-            // try to send email...
-        } catch(IOException e) {
-*           log.error("Mailgun is unavailable", e);
-            throw new MailgunUnavailable("Mailgun is unavailable", e);
-        }
-      }
-  }
-
-  class SubscriptionReminder {
-      Mailgun mailgun;
-      void remind() {
-          Email email = new Email(...);
-          try {
-            mailgun.send(email);
-          } catch (MailgunUnavailable e) {
-            log(e);
-            reschedule();
-          }
-      }
-  }
-```
-???
-- MESS in log files. Same shit many times.
-- VERY common and hard to make right.
-- preserve exception cause hierarchy.
-
----
-# Log or rethrow. Never do both.
-```java
-  class Mailgun {
-      void send(Email email) {
-        try {
-            // try to send email...
-        } catch(IOException e) {
-            throw new MailgunUnavailable("Mailgun is unavailable", e);
-        }
-      }
-  }
-
-  class SubscriptionReminder {
-      Mailgun mailgun;
-      void remind() {
-          Email email = new Email(...);
-          try {
-            mailgun.send(email);
-          } catch (MailgunUnavailable e) {
-            log(e);
-            reschedule();
-          }
-      }
-  }
-```
-???
-- Hei, fucking handle me, calle!
-- This why the idea of CHECKED exception is not THAT bad :-)
-- log(e) and reschedule() level of abstraction!!!
-
----
-# Use color-coding and indentation
-```groovy
-pattern = "%highlight(%-6(%level)) | %+20(%logger{20}) | %thread | %cyan(%mdc{tx}) | %m%n"
-```
-![](color-code.png)
-
----
-```java
-class Vault {
-
-    private final Logger log;
-    private final String accessToken;
-
-    public Vault(String accessToken) {
-        this(accessToken, LoggerFactory.getLogger(Vault.class));
-    }
-
-    @VisibleForTesting
-    Vault(String accessToken, Logger log) {
-        this.accessToken = accessToken;
-        this.log = log;
-    }
-
-}
-
-class VaultSpec {
-
-    Logger logger = Mock(Logger.class);
-    Vault vault = new Vault("someToken", logger);
-
-    void doesSomeBlackMagic() {
-        // ...
-    }
-
-}
-```
-
----
-```java
- @Rule
- public LogbackVerifier logbackVerifier = new LogbackVerifier();
-
-    private MyTestedService service = new MyTestedService();
-
-    @Test
-    public void verifyGoodScenario() throws Exception {
-        logbackVerifier.expectMessage(Level.INFO, "it worked");
-    }
-```
-
----
-```java
-public class LogbackVerifier implements TestRule {
-
-    private Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    private Appender<ILoggingEvent> appender = ... // your Appender impl.
-
-    @Override
-    public Statement apply(final Statement base, Description description) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                before();
-                try {
-                    base.evaluate();
-                    verify();
-                } finally {
-                    after();
-                }
-            }
-        };
-    }
-
-    private void before() {
-        rootLogger.addAppender(appender);
-    }
-
-    private void after() {
-        rootLogger.detachAppender(appender);
-    }
-
-    private void verify() { ... }
-
-    public void expectMessage(Level level, String message) { ... }
-
-}
-```
-
----
-### Case against Spring Data
-### Case against JPA
-### Go Hibernate or JDBC (or some better wrapper, like [Fluent JDBC](http://jdbc.jcabi.com/), [JDBI](http://www.jdbi.org/), [JdbcTemplate](https://docs.spring.io/spring/docs/2.0.x/javadoc-api/org/springframework/jdbc/core/JdbcTemplate.html))
-
-```
-jDBI provides a convenience interface for SQL operations in Java. **It is not intended as an abstraction layer, but rather a library** which makes the common things easy and the hard things possible, to paraphrase Larry Wall.
-```
-
-### no save();
-### Redis no save() with IMMEDIATE changes, so RedisQuestionCount implements QuestionCount
-
-
----
-background-image:url(javaslang.png)
-
----
-```java
-Arrays.asList(2, 3, 1)
-  .stream()
-  .sorted()
-  .collect(Collectors.toList());
-```
-
---
-
-```java
-List.of(2, 3, 1).sort();
-```
-
---
-```java
-Try.of(() -> bunchOfWork()).getOrElse(other);
-```
-
---
-```java
-String s = Match(i).of(
-    Case(is(1), "one"),
-    Case(is(2), "two"),
-    Case($(), "?")
-);
-```
-
---
-### Be careful, doesn't seem the right place for circuit breaking!
-http://www.javaslang.io/javaslang-circuitbreaker/0.5.0/
-
----
-background-image:url(immutables.png)
-
----
-```java
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface ValueObject {
-  String name();
-  List<Integer> counts();
-  Optional<String> description();
-}
-```
-
---
-
-```java
-ValueObject valueObject =
-    ImmutableValueObject.builder()
-        .name("My value")
-        .addCounts(1)
-        .addCounts(2)
-        .build();
-```
-
---
-
-```java
-ValueObject newImmutable = valueObject.withName("New");
-```
-
----
-### More
-- [curated list of great IT videos](https://github.com/latcraft/what2watch)
-- [my goodreads](https://goodreads.com/eduardsi)
-
----
-DevTernity
-
-
-----
 
     </textarea>
     <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
