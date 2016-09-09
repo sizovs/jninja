@@ -3,6 +3,7 @@
   <head>
     <title>Title</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="ocean.css" />
     <style>
       @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
       @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
@@ -13,6 +14,9 @@
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
+      .large code { font-size: 1.5em }
+      .large .hljs-comment { color: white !important}
+      .squeez h3 { margin: 0.5em }
       .fade {color: #E0E0E0}
       .spanny { padding: 10px; color: white; background-color: #0b1c2e }
       .nopadding { padding: 0 }
@@ -21,7 +25,20 @@
       .r50 { float: right; width: 50%; }
       .crap pre { border-right: 5px solid #D81F2A; }
       .nice pre { border-right: 5px solid #69F0AE; }
+      /* new */
+      .example { background-color: #007ebc}
+      .example h2 { color: #00394f; font-weight: bold; line-height: 0;}
+      .example h1 { color: #fff; font-weight: bold; background-color: #00394f; padding: 10px }
 
+      .codeonly { padding: 1em; background-color: #2b303b }
+      .codeonly pre { margin: 0 }
+
+      .remark-code-line-highlighted { background-color: #2d9967; color: white}
+      .remark-code-line-highlighted * { color: white !important; }
+
+      .remark-slide-scaler { -webkit-box-shadow: 0 !important; box-shadow: none !important; }
+      .remark-slide-container {background-color: #2b303b}
+      /* new end */
       .corner {border: 5px solid #85C1E9; position: absolute; top: 0px; right: 0px; width: 50%; background-color: #F0F0F0}
       .corner pre {margin: 0; padding: 0}
       .corner.long {height: 300px;}
@@ -33,30 +50,102 @@
       .strike { text-decoration: line-through; }
       .lint { background-color: #f3f3f3; }
       .conversation h3 { margin: 17px; font-size: 28px; }
+      .img100 img { width: 100%}
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css">
   </head>
   <body>
     <textarea id="source">
 
-class: center, middle
-
+class: center, middle, example
 # Effective Coding Principles and Patterns in Java 8
+???
+- Introduce myself and let others introduce themselves.
+- Setting expectations
+- Not Java 8 course
+
+---
+class: squeez
+# Part I
+
+--
+
+## - java 8 in 4 slides
+
+--
+
+## - software design economics
+
+--
+
+## - naming
+
+--
+
+## - solid
+
+--
+
+## - modularity
+
+---
+# Part II
+
+--
+
+## - application layer
+
+--
+
+## - tx
+
+--
+
+## - validation
+
+--
+
+## - peristence
+
+--
+
+## ...
+
+---
+# Part III
+
+--
+
+## - Lean Coffee
+
+--
+
+## - more Lean Coffee
+
+---
+
+# Part IV
+
+--
+
+## - Homework shared on GitHub
+
+--
+
+## - Homework reviewed by a peer
+
+--
+
+## - Homework reviewed by Eduards
 
 ---
 class: center, middle
-# Welcome.
-???
-Introduce myself and let others introduce themselves.
-Setting expectations:
-- Not Java 8 course.
-- Learn principles, practices and patterns for writing readable, maintainable and effective code - CLEAN CODE. In modern Java.
-- My goal is to make you feel that he rules will tell you to do things that are really weird or NOT to do something that you did. Be open minded.
-- **HOMEWORK**
+# Part I
 
 ---
-class: center, middle, invert
-# Java 8 additions in 4 slides
+class: center, middle, example
+# Java 8 additions
+## (in 4 slides)
 ---
 ###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
 ???
@@ -192,7 +281,7 @@ public interface CheckedFunction<T, R> {
 ]
 
 ---
-class: center, middle, invert
+class: center, middle, example
 # The economics of software design 101
 ???
 Before HOW -> WHY
@@ -251,10 +340,24 @@ name: throughput
 
 ---
 #  Reinforcing loops:
+
+--
+
 ### low throughput -> pressure -> more corners cut -> lower throghput
+
+--
 ### low throughput -> unmet deadlines -> more people to work on features -> lower throughput (Brook's Law)
+
+--
+
 ### low quality tolerated -> lower quality (Broken window theory)
+
+--
+
 ### low quality tolerated -> lower quality -> tolerated -> even bigger decline in quality -> ... (Drift to Low Performace)
+
+--
+
 ### Graham's Law
 ???
 - BWT - if there is mess, or rush, you don't be the first to make a mess.
@@ -264,10 +367,18 @@ name: throughput
 ![](donella.png)
 
 ---
+class: center, middle
+# Technical debt
+
+
+---
+class: center, middle
+##  Technical debt is a metaphor to express cumulative **future** consequences of corners being cut.
+---
 name: debt
 <div id="debt" style="width: 100%; height: 100%;"></div>
 ???
-- TD - cumulative consequences of corners being cut.
+- TD - cumulative future consequences of corners being cut.
 - In this example, we pay TD in terms of throughput.
 
 ---
@@ -289,15 +400,43 @@ class: center, middle
 ---
 class: conversation
 ### **Manager**: When will the new permission be done?
+
+--
+
 ### **Dev**: Mmmm, I hope tomorrow, in the end of the day.
+
+--
+
 ### **Manager**: We need it today. Can’t you find a “creative” way to do it?
+
+--
+
 ### **Dev**: Let me think…
+
+--
+
 ### **Manager**: We have 5 clients that really need this today. Else they will probably not sign the contract.
+
+--
+
 ### **Dev**: But the…
+
+--
+
 ### **Manager**: Look, it’s important that you understand the business value of it. Isn’t it just a new condition in the code? Just put it there, and we’ll “fix it” later.
+
+--
+
 ### **Dev**: Ok.
+
+--
+
 ### **Manager**: So we’ll be able to deploy today?
+
+--
+
 ### **Dev**: Aham.
+
 #### *— [Technical Debt 101](https://medium.com/@joaomilho/festina-lente-e29070811b84#.7d8asvofr)*
 
 ---
@@ -349,7 +488,7 @@ class: center, middle
 
 ---
 class: center, middle
-# It only takes one crappy class to harm your reputation.
+# Consider your reputation.
 ???
 
 
@@ -373,44 +512,50 @@ background-image:url(sonarlint.png)
 background-size: 100%
 
 ---
-class: center, middle, invert
+class: center, middle, example
 # Naming
 
 ---
-### Astonishing / non-intention revealing Twilio API
+class: codeonly
+.crap[
 ```java
-import com.twilio.sdk.TwilioRestClient;
-import com.twilio.sdk.TwilioRestException;
-import com.twilio.sdk.resource.factory.MessageFactory;
-import com.twilio.sdk.resource.instance.Message;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
+@AstonishingTwilioApi
+class Example {
 
-public class Example {
-
-  // Find your Account Sid and Token at twilio.com/console
   public static final String ACCOUNT_SID = "{{ account_sid }}";
   public static final String AUTH_TOKEN = "{{ auth_token }}";
 
   public static void main(String[] args) throws TwilioRestException {
     TwilioRestClient client = new TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN);
 
-    // Build a filter for the MessageList
     List<NameValuePair> params = new ArrayList<NameValuePair>();
     params.add(new BasicNameValuePair("Body", "Hello from Java"));
     params.add(new BasicNameValuePair("To", "+12345678901"));
     params.add(new BasicNameValuePair("From", "+12345678901"));
 
     MessageFactory messageFactory = client.getAccount().getMessageFactory();
-*   // this guy actually sends a message. Violates Least Astonishment Principle
-*   Message message = messageFactory.create(params);
+    Message message = messageFactory.create(params);
   }
 }
 ```
+]
 ???
-The code is not HONEST.
+- Stroup effect
+- Naming issues has cumulative effect
+- The code is not HONEST.
 
 ---
+class: codeonly
+```java
+@WhatDoYouExpectToHappen
+void code() {
+  Entity entity ...
+  dao.update(entity);
+}
+```
+
+--
+
 .crap[
 ```java
 void update(Entity entity) {
@@ -442,45 +587,209 @@ void updateIfIdAssigned(Entity entity) {
   ...
 }
 ```
+
 ---
-### Take scope into account
+class: codeonly
+.crap[
 ```java
 interface Employee {
   String employeeAddress();
 }
+```
+]
 
+--
+
+.nice[
+```java
 interface Employee {
   String address();
 }
 ```
+]
 
 --
 
+.crap[
 ```java
 class Transaction {
   enum TransactionScope { }
 }
+```
+]
 
+--
+
+.nice[
+```java
 class Transaction {
   enum Scope { }
 }
 ```
+]
 
 --
 
+.crap[
 ```java
-// Packages are usually exception to the rule
+@PackagesAreExceptionToTheRule
 package org.framework.batch
-
-interface Reader { }         // :(
-interface Operation { }      // :(
-
-interface BatchReader { }    // :)
-interface BatchOperation { } // :)
+interface Reader { }
+interface Operation { }
 ```
+]
+
+--
+
+.nice[
+```java
+interface BatchReader { }
+interface BatchOperation { }
+```
+]
+
+--
+
+.nice[
+```java
+interface Batch {
+  interface Reader { }
+  interface Operation { }
+}
+```
+]
+
+--
+
+.crap[
+```java
+void increment(long incBy) {}
+```
+]
+
+--
+
+.nice[
+```java
+void increment(long by) {}
+```
+]
+
+--
+
+.nice[
+```java
+void increment(long diff) {}
+```
+]
 
 ---
-### Composite names usually indicate lack of a root object
+class: codeonly
+.crap[
+```java
+  class Ticket {
+      private LocalDate refundedDate;
+      private LocalDate refundedUntilDate;
+```
+]
+
+--
+
+.nice[
+```java
+  class Ticket {
+      private LocalDate refundedOn;
+      private LocalDate refundableTill;
+```
+]
+
+--
+
+.crap[
+```java
+  class Ticket {
+      private LocalTime bookingTime;
+```
+]
+
+--
+
+.nice[
+```java
+  class Ticket {
+      private LocalTime bookedAt;
+```
+]
+
+--
+
+.crap[
+```java
+  class BorrowedAndroidDevice {
+      private LocalDate promisedBackDate;
+```
+]
+
+--
+
+.nice[
+```java
+  class BorrowedAndroidDevice {
+      private LocalDate promisedBackBy;
+```
+]
+
+--
+
+.nice[
+```java
+  class BorrowedAndroidDevice {
+      private LocalDate returnBy;
+```
+]
+
+--
+
+.crap[
+```java
+  class Widget {
+      private long lengthInPixels;
+```
+]
+
+--
+
+.nice[
+```java
+  class Widget {
+      private Pixels length;
+```
+]
+
+--
+
+.crap[
+```java
+  interface Movie {
+      void stream(OutputStream outputStream);
+```
+]
+
+--
+
+.nice[
+```java
+  interface Movie {
+      void stream(OutputStream into);
+```
+]
+
+---
+class: center, middle
+## Composite names usually indicate a missing root object
+
+---
+class: codeonly
 ```java
 class AwsS3Bucket {
 
@@ -517,6 +826,7 @@ class AwsCredentials {
 ```
 
 ---
+class: codeonly
 ```java
 class AwsS3Bucket {
 
@@ -550,6 +860,7 @@ class AwsAccount {
 ```
 
 ---
+class: codeonly
 ```java
 class AwsS3Bucket {
 
@@ -569,47 +880,239 @@ class AwsS3Bucket {
 ```
 
 ---
-### Consider searchability
+class: codeonly
+.crap[
+```java
+interface SpotifyApp  {
+    void playMusic();
+    void stopMusic();
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface Music  {
+    void stop();
+    void play();
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface SpotifyApp  {
+    Music music();
+}
+```
+]
+
+--
+
+class: codeonly
+.crap[
+```java
+interface HipChat  {
+    void sendMessage(String channel, String mesage);
+}
+```
+]
+
+--
+
+class: codeonly
+.nice[
+```java
+interface Channel  {
+    void send(String message);
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface HipChat  {
+    void channel(String name);
+}
+```
+]
+
+---
+class: center, middle
+## Avoid dumb suffixes when possible
+### (but always stay consistent)
+
+---
+class: codeonly
+.crap[
+```java
+class CancelTransactionCommand { }
+class ApplyForLoanCommand { }
+class AskQuestionCommand { }
+class ReportSpammerCommand { }
+```
+]
+
+--
+
+.nice[
 ```java
 class CancelTransaction { }
-
-class CancelTransactionCommand { }
-
-class CancelTransactionCommandHandler { }
-
-class CancelTransactionHandler { }
+class ApplyForLoan { }
+class AskQuestion { }
+class ReportSpammer { }
 ```
+]
 
 --
 
+.crap[
 ```java
-class NotifyOnApplicationCanceled
-  implements DomainEventHandler<LoanApplicationCanceled> {
-}
-
-class NotifyOnLoanApplicationCanceled
-  implements DomainEventHandler<LoanApplicationCanceled> {
-}
-```
-
---
-
-### Avoid dumb suffixing
-```java
-class RegistrationFailure extends BusinessException { }
-
-// vs.
-
 class RegistrationFailureException extends BusinessException { }
 ```
+]
 
 --
+
+.nice[
+```java
+class RegistrationFailure extends BusinessException { }
+```
+]
+
+--
+
+.crap[
+```java
+class ExecutionTimeoutException extends IllegalStateException { }
+```
+]
+
+--
+
+.nice[
+```java
+class ExecutionTimeout extends IllegalStateException { }
+```
+]
+
+--
+
+.nice[
+```java
+class ExecutionTookTooLong extends IllegalStateException { }
+```
+]
+
+--
+
+.crap[
+```java
+class OverlappingFileLockException extends IllegalStateException { }
+```
+]
+
+--
+
+.nice[
+```java
+class FileLockAlreadyTaken extends IllegalStateException { }
+```
+]
+
+--
+
+.crap[
+```java
+class IsNewCustomerSpecification implements Specification { }
+```
+]
+
+--
+
+.nice[
+```java
+class IsNewCustomer implements Specification { }
+```
+]
+
+---
+class: codeonly
+.crap[
+```java
+//
+// A BeanFactoryPostProcessor used to register and inject
+// @MockBeans with the ApplicationContext...
+// ...
+// @author Phillip Webb
+// @since 1.4.0
+//
+public class MockitoPostProcessor extends ... implements ..., BeanFactoryPostProcessor {}
+```
+]
+
+--
+
+.nice[
+```java
+public class MockBeanInjector extends ... implements ..., BeanFactoryPostProcessor {}
+```
+]
+
+--
+
+```java
+
+
+
+interface PaymentExporter {
+	void export(Output into);
+}
+```
+
+--
+
+.crap[
+```java
+@NotThatEasy
+class Swedbank implements PaymentExporter {
+	public void export(Output into) {}
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface PaymentForExport {
+	void export(Output into);
+}
+```
+]
+
+--
+
+.nice[
+```java
+class SwedbankPayments implements PaymentForExport {
+	public void export(Output into) {}
+}
+```
+]
 
 ---
 class: center, middle
 # Prefer creating objects that represent **what they are**, rather than what they do
 
 ---
+class: codeonly
 .crap[
 ```java
 class File { }
@@ -668,8 +1171,29 @@ interface Condition {
 ```
 ]
 
----
+--
 
+.crap[
+```java
+interface PaymentExporter {
+    void export(Output into);
+}
+```
+]
+
+--
+
+.crap[
+```java
+interface PaymentsForExport {
+    void export(Output into);
+}
+```
+]
+
+
+---
+class: codeonly
 .crap[
 ```java
 interface MoneyFormatter {
@@ -684,12 +1208,23 @@ interface MoneyFormatter {
 interface PrettyMoney {
 
   String asText();
+```
+]
 
+--
+
+.nice[
+```java
   class Humane implements PrettyMoney {
     @Override
     public String asText() { ... }
   }
+```
+]
+--
 
+.nice[
+```java
   class ISO_1234 implements PrettyMoney {
     @Override
     public String asText() { ... }
@@ -714,6 +1249,7 @@ public static void main(String[] args) {
 - why not toString()
 
 ---
+class: codeonly
 .crap[
 ```java
 class FuckupProbabilityCalculator {
@@ -723,62 +1259,122 @@ class FuckupProbabilityCalculator {
 
 --
 
+![](fuckupdecimal.png)
+
+---
+class: codeonly
+
 .nice[
-```java
-class FuckupProbability implements DecimalNumber {
-    BigDecimal decimal();
-}
-```]
-???
-why not bigdecimal?
-
---
-
 ```java
 interface DecimalNumber {
 
     BigDecimal decimal();
+```
+]
 
+--
+
+.nice[
+```java
     default DecimalNumber dividedBy(DecimalNumber divisor) {
-        BigDecimal roundedDivision = decimal().divide(divisor.decimal(), RoundingMode.HALF_DOWN);
+        BigDecimal roundedDivision = decimal().divide(
+            divisor.decimal(), RoundingMode.ROUND_UNNECESSARY);
         return new Const(roundedDivision);
     }
 
+    ...
+
 }```
+]
+
+--
+
+.nice[
 ```java
 class Const implements DecimalNumber {
 
     private final BigDecimal origin;
+```
+]
 
-    public Const(int origin) { this(BigDecimal.valueOf(origin, 2)); }
+--
 
-    public Const(BigDecimal origin) { this.origin = origin; }
+.nice[
+```java
+    public Const(int origin) {
+      this(new BigDecimal(origin));
+    }
+```
+]
+
+--
+
+.nice[
+```java
+    public Const(BigDecimal origin) {
+      this.origin = origin.setScale(2, BigDecimal.ROUND_UNNECESSARY);
+    }
+```
+]
+
+--
+
+.nice[
+```java
+    @Override
+    public BigDecimal decimal() {
+      return origin;
+    }
+}
+```
+]
+
+---
+class: codeonly
+
+.nice[
+```java
+class FuckupProbability implements DecimalNumber {
+
+    private final SecureRandom random = new SecureRandom();
 
     @Override
-    public BigDecimal decimal() { return origin; }
+    public BigDecimal decimal() {
+      return new Const(random.nextInt());
+    }
 }
-```
----
-```java
-public static void main(String[] args) {
-    DecimalNumber minimal = new FuckupProbability(...);
-    DecimalNumber maximal = new FuckupProbability(...);
-    DecimalNumber average = minimal.plus(maximal).dividedBy(new Const(2));
-}
-```
+```]
 
 --
 
+.nice[
 ```java
-public static void main(String[] args) {
-    DecimalNumber minimal = new FuckupProbability(...);
-    DecimalNumber maximal = new FuckupProbability(...);
-    DecimalNumber average = new Average(minimal, maximal)
-}
+void wunderDemo() {
+    DecimalNumber one = new FuckupProbability();
+    DecimalNumber another = new FuckupProbability();
 ```
+]
 
 --
 
+.nice[
+```java
+    DecimalNumber average = one.plus(another).dividedBy(new Const(2));
+```
+]
+
+--
+
+.nice[
+```java
+    DecimalNumber average = new Average(one, another);
+}
+```
+]
+
+--
+
+.nice[
 ```java
 class Average implements DecimalNumber {
 
@@ -798,36 +1394,40 @@ class Average implements DecimalNumber {
 
 }
 ```
+]
+
 ---
+class: codeonly
 .crap[
 ```java
+@Goodbye
 public final class BigDecimalUtils {
 
-	public static final int AMOUNT_SCALE = 2;
+    public static final int AMOUNT_SCALE = 2;
 
-	private BigDecimalUtils() {
-	}
+    private BigDecimalUtils() {
+    }
 
-	public static BigDecimal amount(int value) {
-		return amount(new BigDecimal(value));
-	}
+    public static BigDecimal amount(int value) {
+      return amount(new BigDecimal(value));
+    }
 
-  public static BigDecimal amount(BigDecimal amount) {
-		return amount.setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
-	}
+    public static BigDecimal amount(BigDecimal amount) {
+      return amount.setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
+    }
 
-  public static boolean isEqual(BigDecimal value1, BigDecimal value2) {
-		boolean isEqual = value1.compareTo(value2) == 0;
-		return isEqual;
-	}
+    public static boolean isEqual(BigDecimal value1, BigDecimal value2) {
+      boolean isEqual = value1.compareTo(value2) == 0;
+      return isEqual;
+    }
 
-  public static boolean isInRange(BigDecimal amount, BigDecimal amountFrom, BigDecimal amountTo) {
-    return isGe(amount, amountFrom) && isLe(amount, amountTo);
-  }
+    public static boolean isInRange(BigDecimal amount, BigDecimal amountFrom, BigDecimal amountTo) {
+      return isGe(amount, amountFrom) && isLe(amount, amountTo);
+    }
 
-  public static boolean isZero(BigDecimal value) {
-    return isEqual(BigDecimal.ZERO, value);
-  }
+    public static boolean isZero(BigDecimal value) {
+      return isEqual(BigDecimal.ZERO, value);
+    }
 
   ...
 
@@ -838,85 +1438,135 @@ public final class BigDecimalUtils {
 class: center, middle
 # Methods are either **commands** or **queries**.
 ### Use commands (verbs) to tell an object what to do.
-### With queries (nouns) you ask object a question.
+### With queries (nouns) you ask object to give something.
 — *[Command/Query Separation](http://martinfowler.com/bliki/CommandQuerySeparation.html)*
----
 
+---
+class: codeonly
+.crap[
 ```java
 interface Iterator<T> {
-  T next(); // give next or return next? both! :-)
+
+  @NounWithASideAffect
+  @ViolatesCqs
+  T next();
 }
 ```
+]
 
 --
 
+.nice[
 ```java
 interface Iterator<T> {
+
+  @VerbThatReturnsNothing
   void advance();
+
+  @NounThatReturnsStuff
   T current();
 }
 ```
+]
 
 --
 
+.crap[
 ```java
+@VerbThatReturnsStuff
 InputStream load(URL url);
 ```
+]
 
 --
 
+.nice[
 ```java
+@NounThatReturnsStuff
 InputStream stream(URL url);
 ```
+]
 
 --
 
+.crap[
 ```java
+@VerbThatReturnsStuff
 String read(File file);
 ```
+]
 
 --
 
+.nice[
 ```java
+@NounThatReturnsStuff
 String content(File file);
 ```
+]
 
 ---
+class: codeonly
+
+.crap[
 ```java
-class Document {
-  int write(InputStream stream); // returns number of bytes written :(
+interface Document {
+
+  BytesWritten write(InputStream to);
 }
 ```
+]
+
+--
+
+.nice[
+```java
+interface Document {
+
+   OutputPipe output();
+}
+```
+]
 
 --
 
 ```java
-class Document {
-   OutputPipe output();
-}
+interface OutputPipe {}
 
-class OutputPipe {
+     void write(InputStream to);
 
-     void write(InputStream stream);
+     BytesWritten written();
 
-     int bytes();
-
-     long time();
+     Duration timeTaken();
 }
 ```
 
 ---
-# Avoid getters
+class: center, middle
+# Never use getters in your OO code.
+
+---
+
 ## Getters are verbs
 
 --
 
 ## Get **may** have a side effect
+
+--
+
 ### - get married
+
+--
+
 ### - get money from the ATM
+
+--
+
 ### - get from A to B...
 
 ---
+class: codeonly
 ```java
 class Client {
   String fullName();
@@ -932,51 +1582,23 @@ interface Iterator<T> {
 }
 ```
 
---
+---
+class: center, middle
+## Blindly removing get\* prefix will remove noise, but won't make your code more object-oriented.
+### **Tell, don't ask** as much as you can.
 
-### Sometimes booleans are **adjectives**
-```java
-class Customer {
-  boolean isSatisfiedBy(Specification); // satisfiedBy -> confusing
-}
-```
-
---
-
-```java
-enum Severity {
-  boolean isMajor(); // major() -> confusing
-}
-```
-
---
-
-```java
-class ProductCatalog {
-  boolean contains(Product);
-}
-```
-
---
-
-```java
-interface Input {
-  boolean isValid(); // validate() -> verb! :(((
-}
-```
 
 ---
-# Avoid setters in objects
-## ...and don't confuse objects with **data structures**
-???
-- Pure OO design require encapsulation. Frameworks as for data. Conflict.
+class: center, middle
+# Never use setters in your OO code.
 
---
-
+---
+class: codeonly
 .crap[
 ```java
-Client.setFirstName(firstName);
-Client.setLastName(lastName);
+Borrower borrower = new Borrower();
+borrower.setFirstName(firstName);
+borrower.setLastName(lastName);
 ```
 ]
 
@@ -984,7 +1606,7 @@ Client.setLastName(lastName);
 
 .nice[
 ```java
-Client.giveName(String firstName, String lastName);
+borrower.giveName(String firstName, String lastName);
 ```
 ]
 ???
@@ -994,7 +1616,7 @@ grant permissions vs. set permissions
 
 .crap[
 ```java
-void setPreferredAgreementType(AgreementType preferredAgreementType) { }
+borrower.setAcceptedAgreementType(AgreementType acceptedAgreementType);
 ```
 ]
 
@@ -1002,7 +1624,7 @@ void setPreferredAgreementType(AgreementType preferredAgreementType) { }
 
 .nice[
 ```java
-void preferAgreement(AgreementType preferredAgreementType) { }
+borrower.accept(Agreement agreement);
 ```
 ]
 
@@ -1010,7 +1632,7 @@ void preferAgreement(AgreementType preferredAgreementType) { }
 
 .crap[
 ```java
-void setAgreementSigned(boolean agreementSigned) {}
+agreement.setSigned(boolean agreementSigned);
 ```
 ]
 
@@ -1018,7 +1640,7 @@ void setAgreementSigned(boolean agreementSigned) {}
 
 .nice[
 ```java
-void signAgreement() {} // agreement().sign() would be way better
+agreement.sign();
 ```
 ]
 
@@ -1026,14 +1648,95 @@ void signAgreement() {} // agreement().sign() would be way better
 
 .nice[
 ```java
-void unsignAgreement() {}
+agreement.unsign();
+```
+]
+
+--
+
+.crap[
+```java
+Bank bank = new Bank();
+bank.setCode(...);
+bank.setName(...);
+bank.setBic(...);
+```
+]
+
+--
+
+.nice[
+```java
+@NewBankMustBeCreatedIfEitherCodeOrBicChanges
+Bank bank = new Bank(code, name, bic);
+bank.rename(...);
+```
+]
+
+--
+
+.nice[
+```java
+@IfYouReallyNeedToChangeBankIdentity
+Bank bank = ...
+Bank anotherBank = new Bank(code, name, bic);
+bank.become(anotherBank);
 ```
 ]
 
 ---
 # Data structures
-## Do not have behaviour
-## **Can** have getters and setters (if needed)
+
+--
+
+## - DTOs, Java beans...
+
+--
+
+## - do not have behaviour
+
+--
+
+## - **can** have getters and setters (but should they?)
+
+--
+
+## - **must not** be confused with DDD value objects
+
+---
+class: codeonly
+```java
+class UserRepresentation {
+
+    private String firstName;
+    private String lastName;
+    private Optional<String> middleName = Optional.empty();
+
+    public UserRepresentation(String firstName, String lastName) {
+        ...
+    }
+
+    public UserRepresentation withMiddleName(String middleName) {
+        this.middleName = Optional.of(middleName);
+        return this;
+    }
+
+    ... getters go here ...
+
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        return EqualsBuilder.reflectionEquals(this, that);
+    }
+}
+```
+
+---
+class: codeonly
 ```java
 @Immutable
 interface UserRepresentation {
@@ -1041,6 +1744,29 @@ interface UserRepresentation {
   String firstName();
   String lastName();
   Optional<String> middleName();
+  Collection<String> nicknames;
+
+}
+```
+
+--
+
+```java
+UserRepresentation carlosNorris = ImmutableUserRepresentation
+                                    .builder()
+                                    .firstName("Carlos")
+                                    .lastName("Norris")
+                                    .addNickname("Chuck")
+                                    .build();
+}
+```
+
+--
+
+```java
+UserRepresentation rayNorris = ImmutableUserRepresentation
+                                  .copyOf(chuck)
+                                  .withFirstName("Ray");
 }
 ```
 
@@ -1049,49 +1775,161 @@ background-image:url(immutables.png)
 background-size: 100%
 
 ---
-# Package naming
-## Name of the company has nothing to do with code
+class: center, middle
+## Be careful with booleans
+### (boolean are not nouns)
+
+---
+class: codeonly
+.crap[
 ```java
+class Customer {
+  @Confusing
+  boolean satisfiedBy(Specification);
+}
+```
+]
+
+--
+
+.nice[
+```java
+class Customer {
+  @MuchBetter
+  boolean isSatisfiedBy(Specification);
+}
+```
+]
+
+--
+
+.crap[
+```java
+enum Severity {
+  boolean major();
+}
+```
+]
+
+--
+
+.nice[
+```java
+enum Severity {
+  boolean isMajor();
+}
+```
+]
+
+--
+
+.nice[
+```java
+class ProductCatalog {
+  boolean contains(Product);
+}
+```
+]
+
+--
+
+.crap[
+```java
+interface Input {
+
+  @Bullshitake
+  boolean validate();
+}
+```
+]
+
+
+--
+
+.crap[
+```java
+interface Input {
+
+  @MuchBetter
+  boolean isValid();
+}
+```
+]
+
+---
+class: center, middle
+# Package naming
+
+---
+class: codeonly
+.crap[
+```java
+@NameOfTheCompanyHasNothingToDoWithCode
 package org.apache.spark;
 ```
+]
 
+--
+
+.nice[
 ```java
 package spark;
 ```
+]
 
-## Plural or singular?
+--
+
 ```java
-package shipyard.maps; // contains different maps and nothing else
-```
-```java
-package shipyard.map; // everything related to maps
+@Plural
+package tomtom.maps;
+
+@Singular
+package tomtom.map;
 ```
 
 --
 
 ```java
-package shipyard.navigation;      // everything related to navigation
-package shipyard.navigation.maps;
+package tomtom.navigation;
+package tomtom.navigation.maps;
 ```
 
 ---
-class: center, middle, invert
+class: center, middle, example
 # Tony Hoare's billion dollar mistake
 
 ---
-# In computing, a null pointer has a value reserved for indicating that the pointer does not refer to a valid object.
-## - Do not pass nulls
-## - Do not return nulls
+class: center, middle
+## In computing, a null pointer has a value reserved for indicating that the pointer does not refer to a valid object. **Never pass null**. **Never return null**.
+
 ---
+class: codeonly
 ```groovy
 compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 ```
 
-### package-info.java
+--
+
+```java
+@IsNotInheritedBySubpackages
+@ParametersAreNonnullByDefault
+package root;
+```
+
+--
+
 ```java
 @ParametersAreNonnullByDefault
-package wombatizer;
+package root.subpackage;
 ```
+
+--
+
+class: img100
+![](nevernull.png)
+
+
+--
 
 ```java
 @Override
@@ -1101,26 +1939,102 @@ public boolean equals(@Nullable Object obj) { ... }
 - otherwise I will have to null-check all arguments, to be defensive.
 
 ---
-### may not contain a phone number that matches a given regex
+class: img100, codeonly
+![](brokennullity.png)
+
+--
+
 ```java
+@Nonnull
+@TypeQualifierDefault({ElementType.METHOD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface NullsForbidden {
+}
+```
+
+--
+
+```java
+@NullsForbidden
+package wombat;
+```
+
+---
+class: img100, codeonly
+![](nullsworkagain.png)
+
+---
+class: codeonly
+.crap[
+```java
+@ReturnsNullIfNumberIsNotFound
 interface PhoneBook {
   PhoneNumber phoneNumber(String regex);
 }
 ```
+]
+
 --
+
+.nice[
 ```java
 interface PhoneBook {
   Optional<PhoneNumber> phoneNumber(String regex);
 }
 ```
+]
+
+--
+
+```java
+void ifPresent() {
+  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(...);
+  phoneNumber.ifPresent(paymentReminder::send);
+}
+```
+
+--
+
+```java
+void orElse() {
+  PhoneNumber phoneNumber = phoneBook.phoneNumber(...)
+      .orElse(PhoneNumber.USA_PRESIDENT);
+}
+```
+
+--
+
+```java
+void orElseThrow() {
+  PhoneNumber phoneNumber = phoneBook.phoneNumber(...)
+      .orElseThrow(() -> new NoPhoneNumberFound(regex)
+}
+```
+
+--
+
+```java
+void optionalIsAMonad() {
+  phoneBook.phoneNumber(...)
+      .flatMap(no -> facebookProfile.byPhoneNumber(no))
+      .flatMap(FacebookProfile::picture)
+      .ifPresent(ProfilePicture::download);
+}
+```
+
 ---
-### regex is optional
+class: codeonly
+.crap[
 ```java
+@RegexIsOptional
 interface PhoneBook {
-  Optional<PhoneNumber> phoneNumber(String regex);
+  Collection<PhoneNumber> phoneNumbers(String regex);
 }
 ```
+]
+
 --
+
 ```java
 interface Mask {
 
@@ -1129,7 +2043,9 @@ interface Mask {
   boolean matches(PhoneNumber phoneNumber);
 }
 ```
+
 --
+
 ```java
 class Regex implements Mask {
 
@@ -1141,15 +2057,9 @@ class Regex implements Mask {
   }
 }
 ```
---
-
-```java
-interface PhoneBook {
-  Optional<PhoneNumber> phoneNumber(Mask mask);
-}```
 
 --
-.corner[
+
 ```java
 class PhoneNumber {
     boolean matches() {
@@ -1157,61 +2067,29 @@ class PhoneNumber {
     }
 }
 ```
-]
 
 --
-.corner[
-```java
-Pattern.compile(":")
-  .splitAsStream("foobar:foo:bar")
-  .filter(s -> s.contains("bar"))
-  .sorted()
-  .collect(Collectors.joining(":"));
-```
-]
 
+```java
+interface PhoneBook {
+  Optional<PhoneNumber> phoneNumber(Mask mask);
+}```
 
 ---
-```java
-void ifPresent() {
-  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...));
-  phoneNumber.ifPresent(paymentReminder::send);
-}
-```
---
-```java
-void orElse() {
-  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...))
-      .orElse(PhoneNumber.USA_PRESIDENT);
-}
-```
---
-```java
-void orElseThrow() {
-  Optional<PhoneNumber> phoneNumber = phoneBook.phoneNumber(new Regex(...))
-      .orElseThrow(() -> new MissingPhoneNumberException(phoneNumber)
-}
-```
---
-```java
-void optionalIsAMonad() {
-  phoneBook.phoneNumber(new Regex(...))
-      .flatMap(no -> facebookProfile.byPhoneNumber(no))
-      .flatMap(FacebookProfile::beloved)
-      .ifPresent(Beloved::hijack);
-}
-```
-???
-You can build pipes w/o worrying about null checks.
+class: codeonly
 
----
+.crap[
 ```java
 Outer outer = new Outer();
 if (outer != null && outer.nested != null && outer.nested.inner != null) {
     System.out.println(outer.nested.inner.foo);
 }
 ```
+]
+
 --
+
+.nice[
 ```java
 Optional.of(new Outer())
     .flatMap(o -> Optional.ofNullable(o.nested))
@@ -1219,9 +2097,58 @@ Optional.of(new Outer())
     .flatMap(i -> Optional.ofNullable(i.foo))
     .ifPresent(System.out::println);
 ```
+]
+
+--
+
+.nice[
+```java
+Optional.of(new Outer())
+    .flatMap(Outer::nested)
+    .flatMap(Nested::inner)
+    .flatMap(Inner::foo)
+    .ifPresent(System.out::println);
+```
+]
 
 ---
-class: center, middle, invert
+class: codeonly
+
+.crap[
+```java
+class Entrepreneur {
+  private String fullName;
+  private Optional<Money> money;
+
+  Entrepreneur(String fullName, Optional<Money> money) {
+      this.fullName = fullName;
+      this.money = money;
+  }
+}
+```
+]
+
+--
+
+.nice[
+```java
+class Entrepreneur {
+  private String fullName;
+  private Optional<Money> money = Optional.empty();
+
+  Entrepreneur(String fullName) {
+      this.fullName = fullName;
+  }
+
+  void earn(Money money)
+    this.money = Optional.of(money);
+  }
+}
+```
+]
+
+---
+class: center, middle, example
 # General design principles
 
 ---
@@ -1248,6 +2175,7 @@ class: center, middle
 - KISS (keep it simple and straightforward)
 
 ---
+class: center, middle
 ## It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts.
 — *Sherlock Holmes*
 
@@ -1267,274 +2195,12 @@ class: center, middle
 ### (abstraction - trimming info on a subject to the absolute context relevant minimum)
 
 ---
-```java
-Map<Long, Map<Long, Long>> portfoliosByTraderId;
-if (portfolioIdsByTraderId.get(trader.getId())
- .containsKey(portfolio.getId())) {...}
-```
+class: codeonly
 
---
-
-```java
-if (trader.canView(portfolio)) {...}
-```
-
----
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-* def check = applicationCheckFactory.make(when, application, countryCode);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  def checkResult = check.run();
-  persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-  return checkResult;
-}
-```
-
---
-
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-* def check = makeCheck(application, when);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  def checkResult = check.run();
-  persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-  return checkResult;
-}
-```
-
----
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-* if (log.isDebugEnabled()) {
-*   log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-* }
-  def checkResult = check.run();
-  persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-  return checkResult;
-}
-```
-
---
-
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-* log(check); // logIfNeeded if conditional needs to be communicated
-  def checkResult = check.run();
-  persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-}
-```
----
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-* persistResults(checkResult, application);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-}
-```
-
---
-
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-* persist(checkResult);
-  if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-}
-```
-
----
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-* if (runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
-  }
-}
-```
-
---
-
-```groovy
-@Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-* if (shouldRunScorecard(application)) {
-    runScorecard(application, checkResult);
-  }
-}
-```
-
----
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-*  return runScorecard && LoanAgreementType.MAIN.equals(application.agreementType());
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-*  return scoringEnabled && application.agreementType().equals(MAIN);
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-*  return scoringEnabled && application.isAgreementOfTypeMain()); // WTF is Type?
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-*  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF is Type?
-}
-```
-]
-
---
-
-.nice[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-   Agreement agreement = application.agreement();
-*  return scoringEnabled && agreement.isMain();
-}
-```
-]
-
---
-
-.nice[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-   Agreement agreement = application.agreement();
-   boolean agreementIsApplicableForScoring =
-        agreement.isSatisfiedBy(new IsApplicableForScoring());
-*  return scoringEnabled && agreementIsApplicableForScoring;
-}
-```
-]
-
----
-```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-* // smells like a missing application scoring concept
-* if (shouldRunScorecard(application)) {
-*    runScorecard(application, checkResult);
-* }
-}
-```
-
---
-
-```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-* def scoring = scoring(application);
-* if (scoring.isNecessary()) { // NullObject can remove if, but should we?
-*    scoring.score();
-* }
-}
-```
----
-```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-  def scoring = scoring(application);
-* if (scoring.isNecessary()) {
-    scoring.score();
-  }
-}
-```
-
---
-
-```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
-  log(check);
-  def checkResult = check.run();
-  persist(checkResult);
-}
-```
-
---
-
-```groovy
-public def scoreApplicationIfNecessary(LoanApplication application) {
-  def scoring = scoring(application);
-  if (scoring.isNecessary()) {
-    scoring.score();
-  }
-}
-```
-
----
 .crap[
 ```java
-public interface EShopService {
-    Map<String, String> prepareNotificationParams(EShopSession session);
+if (productsOwnedByPo.get(po.id()).containsKey(product.id())) {
+  ...
 }
 ```
 ]
@@ -1543,39 +2209,20 @@ public interface EShopService {
 
 .nice[
 ```java
-public interface EShopNotificationParams {
-    NotifationParams prepare(EShopSession session);
+if (productOwner.owns(product)) {
+  ...
 }
 ```
 ]
 
 --
 
-#### ----
 .crap[
 ```java
-MultivaluedMap<String, String> formParams = new Form();
-for (String key : params.keySet()) {
-    formParams.add(key, params.get(key));
-}
-```
-]
 
---
 
-.nice[
-```java
-Form form = new Form(new Params(params));
-```
-]
 
---
-
-#### ----
-
-.crap[
-```java
-Map<String, Boolean> checkboxes = new HashMap<>();
+Collection<Boolean> checkboxes = new ArrayList<>();
 ```
 ]
 
@@ -1587,14 +2234,96 @@ Collection<Checkbox> checkboxes = ...
 ```
 ]
 
----
+--
+
 .crap[
 ```java
-interface EquifaxFacade {
+
+
+
+interface EShop {
+    Map<String, String> resolveAffiliates(EShopSession session);
+}
+```
+]
+
+--
+
+.crap[
+```java
+interface EShop {
+    Affiliates affiliates(EShopSession session);
+}
+```
+]
+
+--
+
+.crap[
+```java
+@AimForThis
+interface EShopSession {
+    Affiliates affiliates();
+}
+```
+]
+
+---
+class: codeonly
+.crap[
+```java
+MultivaluedMap<String, String> formParams = new Form();
+for (String key : params.keySet()) {
+    formParams.add(key, params.get(key));
+}
+```
+]
+
+--
+
+.crap[
+```java
+Form form = new Form();
+for (String key : params.keySet()) {
+    form.add(key, params.get(key));
+}
+```
+]
+
+--
+
+.nice[
+```java
+Form form = new Form(new Parameters(params));
+```
+]
+
+--
+
+.nice[
+```java
+Form form = new Form();
+form.parameterize(new Parameters(params));
+```
+]
+
+--
+
+.nice[
+```java
+Form form = new Form();
+form.parameterize(Parameters.from(httpRequest));
+```
+]
+
+---
+class: codeonly
+.crap[
+```java
+class EquifaxFacade {
     public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
       // we always get 4 questions from Equifax
-      return MapUtils.isNotEmpty(questionToAnswerMap)
-        && questionToAnswerMap.size() == 4;
+      return MapUtils.isNotEmpty(questionToAnswerMap) && questionToAnswerMap.size() == 4;
     }
 }
 ```
@@ -1613,15 +2342,54 @@ class Answer {
 
 --
 
+.crap[
+```java
+class EquifaxFacade {
+    public boolean validateAnswers(Collection<Answer> answers) {
+      // we always get 4 questions from Equifax
+      return answers.size() == 4;
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+class EquifaxFacade {
+    private static final int MANDATORY_NUMBER_OF_QUESTIONS = 4;
+
+    public boolean validate(Collection<Answer> answers) {
+      return answers.size() == MANDATORY_NUMBER_OF_QUESTIONS;
+    }
+}
+```
+]
+
+---
+class: codeonly
 .nice[
 ```java
 class UnvalidatedAnswers {
 
-    private static final int ALWAYS_FIXED_NUMBER_OF_QUESTIONS = 4;
+    private static final int MANDATORY_NUMBER_OF_QUESTIONS = 4;
     private final Collection<Answer> answers;
 
     boolean areValid() {
-        return answers.size() == ALWAYS_FIXED_NUMBER_OF_QUESTIONS;
+        return answers.size() == MANDATORY_NUMBER_OF_QUESTIONS;
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+class EquifaxFacade {
+    public boolean validate(UnvalidatedAnswers answers) {
+      return answers.areValid();
     }
 }
 ```
@@ -1631,10 +2399,11 @@ class UnvalidatedAnswers {
 
 .nice[
 ```java
-  UnvalidatedAnswers unvalidatedAnswers = new UnvalidatedAnswers(answers);
-  if (!unvalidatedAnswers.areValid()) {
+@FacadeBecameObsolete
+UnvalidatedAnswers answers = new UnvalidatedAnswers(...);
+if (answers.areValid()) {
     ....
-  }
+}
 ```
 ]
 
@@ -1644,15 +2413,291 @@ class: center, middle
 ???
 - with lambdas, you can write short expressions easily. Often, you must reify them.
 
----
-class: center, middle
-# The Stepdown Rule
-#### **The code should read like a top-down narrative. Start with high-level, abstract paragraphs. Then dive into details. — Clean Code**
-
 
 ---
 class: center, middle
+# Let's come back to keeping code at the same level of abstraction...
+
+---
+class: codeonly
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = this.applicationCheckFactory.make(when, application, this.countryCode);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+--
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+* def check = makeCheck(application, when);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+---
+class: codeonly
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  if (log.isDebugEnabled()) {
+    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
+  }
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+  return checkResult;
+}
+```
+
+--
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+* log(check); // logIfNeeded if conditional needs to be communicated
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+---
+class: codeonly
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persistResults(checkResult, application);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+
+--
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+* persistResults(checkResult);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+
+--
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+* persist(checkResult);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+
+---
+class: codeonly
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+
+--
+
+```groovy
+@Override
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+* if (shouldRunScorecard(application)) {
+    runScorecard(application, checkResult);
+  }
+}
+```
+
+---
+class: codeonly
+.crap[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+  return runScorecard && LoanAgreementType.MAIN.equals(application.agreementType());
+}
+```
+]
+
+--
+
+.crap[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+  return scoringEnabled && LoanAgreementType.MAIN.equals(application.agreementType());
+}
+```
+]
+
+--
+
+.crap[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+  return scoringEnabled && application.agreementType().equals(MAIN);
+}
+```
+]
+
+--
+
+.crap[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+  return scoringEnabled && application.isAgreementOfTypeMain()); // WTF is Type?
+}
+```
+]
+
+--
+
+.crap[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF is Type?
+}
+```
+]
+
+--
+
+.nice[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+   Agreement agreement = application.agreement();
+   return scoringEnabled && agreement.isMain();
+}
+```
+]
+
+--
+
+.nice[
+```groovy
+private boolean shouldRunScorecard(LoanApplication application) {
+   Agreement agreement = application.agreement();
+   boolean agreementIsApplicableForScoring = agreement.isMain();
+   return scoringEnabled && agreementIsApplicableForScoring;
+}
+```
+]
+
+---
+class: codeonly
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+  if (shouldRunScorecard(application)) {
+      runScorecard(application, checkResult);
+  }
+}
+```
+
+--
+
+```groovy
+public def checkApplication(LoanApplication application, Date when) {
+  def check = makeCheck(application, when);
+  log(check);
+  def checkResult = check.run();
+  persist(checkResult);
+}
+```
+
+--
+
+```groovy
+@MuchBetterButScoringDomainIsStillMissing
+public def scoreApplicationIfNecessary(LoanApplication application) {
+  if (shouldRunScorecard(application)) {
+      runScorecard(application, checkResult);
+  }
+}
+```
+
+--
+
+```groovy
+@AimForThisButTryToAvoidConditional
+public def scoreApplicationIfNecessary(LoanApplication application) {
+  Scoring scoring = new Scoring(application);
+  if (scoring.isNecessary()) {
+      Scorecard scorecard = scoring.scorecard();
+      scorecard.run();
+  }
+}
+```
+
+---
+class: center, middle
+## The code should read like a top-down narrative. Start with high-level, abstract paragraphs. Then dive into details.
+### — The Stepdown Rule
+
+
+---
+class: center, middle, example
 # Comments
+
+---
+class: center, middle
+# What I like of comments is deleting them
+— *Someone*
+
 
 ---
 class: center, middle
@@ -1666,43 +2711,175 @@ class: center, middle
 
 ---
 class: center, middle
-# What I like of comments is deleting them
-— *Someone*
-
----
-class: center, middle
-![](cat.jpg)
-
----
-background-image:url(yaml.png)
+background-image:url(cat.jpg)
 background-size: 100%
 
 ---
+class: codeonly
+.crap[
 ```java
-@Component
-class NoOpAuthenticationHandler implements AuthenticationHandler {
+YAMLFactory factory = new YAMLFactory();
+JsonParser parser = factory.createJsonParser(yamlString); // don't be fooled by method name...
+```
+]
 
-	@Override
-	public void delegate(ModelAndView model) {
-*		// do nothing
-	}
+--
 
+.nice[
+```java
+YAMLFactory yaml = new YAMLFactory();
+Parser parser = yaml.parser(yamlString);
+```
+]
+
+--
+
+.crap[
+```java
+@RequestMapping(method = { RequestMethod.GET, RequestMethod.POST })
+String login() {
+  // RequestMethod.POST protects from 405 "Method not supported" for clients
+  // logging in before JS is loaded
+  visitor.login();
+  return "redirect:/profile";
+}
+```
+]
+
+--
+
+.crap[
+```java
+@RequestMapping(method = { RequestMethod.GET, RequestMethod.POST })
+String login() {
+  visitor.login();
+  return "redirect:/profile";
+}
+```
+]
+
+--
+
+```java
+class LoginEndpointSpec extends Specification {
+
+    @SeeTrello("https://trello.com/b/0V4Fn8Gm/login-problem-ie7")
+    @AvoidAnnotationByWritingAGoodCommitMessage
+    @LearnHowToWriteAGoodCommitMessageHere("http://chris.beams.io/posts/git-commit/")
+    def "supports login via http post"() {
+        ...
+    }
+
+    def "supports login via http get"() {
+      ...
+    }
+}
+```
+
+---
+
+class: codeonly
+```java
+void teenagerParty() {
+```
+
+--
+
+```java
+  // inviting friends
+  .. code
+  .. code
+  .. code
+```
+
+--
+
+```java
+  // finding a friend over 18
+  .. code
+  .. code
+```
+
+--
+
+```java
+  // buying booz
+  .. code
+  .. code
 }
 ```
 
 --
 
 ```java
-@RequestMapping(value = "", method = { RequestMethod.GET, RequestMethod.POST })
-public String index() {
-* // RequestMethod.POST protects from 405 "Method not supported" for clients
-* // logging in before JS is loaded
-  return loginService.isLoggedIn() ? "redirect:/profile" : "index";
+  // buying parents a ticket to cinema
+  .. code
+  .. code
+  .. code
+```
+
+--
+
+```java
+  // having a party
+  .. code
+  .. code
+```
+
+--
+
+```java
+  // suffering from hangover
+  .. code
+  .. code
+  .. code
 }
 ```
-![](butwhy.png)
 
 ---
+class: codeonly
+.nice[
+```java
+void teenagerParty() {
+  inviteFriends();
+  findAdultFriend();
+  buyALotOfBuzz();
+  buyParentsATicketToCinema();
+  enjoyTheParty();
+  sufferFromHangover();
+}
+```
+]
+
+--
+
+class: codeonly
+.crap[
+```java
+class Noop implements ModelAndViewDelegate {
+    @Override
+    public void delegate(ModelAndView model) {
+         // do nothing
+    }
+}
+```
+]
+
+--
+
+class: codeonly
+.crap[
+```java
+/**
+ *  @author Tom Miller
+ */
+class ItsACollectiveCodeOwnershipDude {
+}
+```
+]
+
+---
+class: codeonly
 .crap[
 ```java
 class Jetty {
@@ -1718,24 +2895,46 @@ class Jetty {
 
 --
 
+.nice[
 ```java
 class Jetty {
 
     private final int DEFAULT_PORT = 8082;
+```
+]
 
+--
+
+.nice[
+```java
     public void run(int port) {
+```
+]
 
+--
+
+.nice[
+```java
     public void run() {
       run(DEFAULT_PORT);
     }
+```
+]
 
+--
+
+.nice[
+```java
     public int port() {
       return port;
     }
 }
 ```
+]
 
 ---
+class: codeonly
+.nice[
 ```java
 interface Port {
 
@@ -1744,9 +2943,11 @@ interface Port {
   int number();
 }
 ```
+]
 
 --
 
+.nice[
 ```java
 class Jetty {
 
@@ -1757,9 +2958,11 @@ class Jetty {
   }
 }
 ```
+]
 
 --
 
+.nice[
 ```java
 class WebApplication {
   void start() {
@@ -1768,16 +2971,18 @@ class WebApplication {
   }
 }
 ```
+]
 
 
 
 ---
+class: codeonly
 .crap[
 ```java
 @Transactional
 public Client getClient() {
   Client client = repository.getRequired(Client.class, clientId);
-* // lazy init
+  // lazy init
   client.getEntityUuid();
   return client;
 }
@@ -1799,7 +3004,7 @@ public Client getClient() {
 ```java
 class Screenshot {
   void take() {
-*   // Base64 encoding is required by SauceLabs
+    // Base64 encoding is required by SauceLabs
     String base64Screenshot = webDriver.getScreenshotAs(OutputType.BASE64);
   }
 }
@@ -1808,18 +3013,20 @@ class Screenshot {
 --
 
 ```java
-class SauceScreenshot {
-  private static final OutputType SAUCELABS_ENCODING = OutputType.BASE64;
+class Screenshot {
+  private static final OutputType SAUCE_ENCODING = OutputType.BASE64;
 
   void take() {
-    String screenshot = webDriver.getScreenshotAs(SAUCELABS_ENCODING);
+    String screenshot = webDriver.getScreenshotAs(SAUCE_ENCODING);
   }
 }
 ```
 
 ---
+class: codeonly
+.crap[
 ```java
-// "--web-security=false"     -> allows XHR,
+// "--web-security=false"     -> allows cross-origin XHR
 // "--ssl-protocols=any"      -> enable support for all SSL protocol versions
 // "--ignore-ssl-errors=true" -> ignores SSL errors
 String[] args = new String[] {
@@ -1831,8 +3038,11 @@ DesiredCapabilities capabilities = new DesiredCapabilities();
 capabilities.setCapability(PHANTOMJS_CLI_ARGS, args);
 WebDriver driver = new PhantomJSDriver(capabilities);
 ```
+]
 
 --
+
+.nice[
 ```java
 String allowCrossOriginXhr = "--web-security=false";
 String supportAllSslProtocolVersions = "--ssl-protocols=any";
@@ -1848,35 +3058,51 @@ DesiredCapabilities capabilities = new DesiredCapabilities();
 capabilities.setCapability(PHANTOMJS_CLI_ARGS, args);
 WebDriver driver = new PhantomJSDriver(capabilities);
 ```
+]
 
 ---
-
+class: codeonly
 ```java
 class PhantomJSCapabilities {
 
     private final Collection<String> args = new HashSet<>();
+```
 
+--
+
+```java
     public PhantomJSCapabilities allowCrossOriginXhr() {
       args.add("--web-security=false");
       return this;
     }
+```
 
+--
+
+```java
     public PhantomJSCapabilities supportAllSslProtocolVersions() {
       args.add("--ssl-protocol=any");
       return this;
     }
+```
 
+--
+
+```java
     public PhantomJSCapabilities ignoreSslErrors() {
       args.add("--ignore-ssl-errors=true");
       return this;
     }
+```
 
+--
+
+```java
     public DesiredCapabilities desired() {
       DesiredCapabilities capabilities = new DesiredCapabilities();
       capabilities.setCapability(PHANTOMJS_CLI_ARGS, args.toArray(String[]::new));
       return capabilities;
     }
-
 }
 ```
 
@@ -1892,7 +3118,10 @@ WebDriver driver = new PhantomJSDriver(
 ```
 
 ---
+class: codeonly
 ```java
+@WhenAuthorCannotExpressHimselfInComments
+@ThisIsCrappyCode(level = 10)
 private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 * // find all img tag src's
   String body = emailMessage.getBody();
@@ -1914,6 +3143,8 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 }
 ```
 
+--
+
 ```java
 private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 * List<String> imageLinks = collectImageLinks(emailMessage);
@@ -1929,6 +3160,7 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 ```
 
 ---
+class: codeonly, large
 ```java
 //
 // Dear maintainer:
@@ -1944,26 +3176,26 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 
 
 ---
-### Express intent with code (meta-annotation is code)
+### - Express intent with code (meta-annotation is code)
 
 --
 
-### No FIXMEs
+### - No FIXMEs
 
 --
 
-### No TODOs
+### - No TODOs
 
 --
 
-### No commented out code
+### - No commented out code
 
 --
 
-### JavaDocs are made for public APIs. Within a team, express use-cases with tests.
+### - JavaDocs are made for public APIs. Internally, show usage with tests
 
 ---
-### JSR-305
+class: codeonly
 ```java
 @Nonnegative
 ```
@@ -1996,8 +3228,7 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 @Immutable
 ```
 
----
-### Guava
+--
 ```java
 @VisibleForTesting
 ```
@@ -2006,7 +3237,6 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 @Beta
 ```
 --
-### Custom
 ```java
 @Seconds
 ```
@@ -2022,60 +3252,56 @@ private void processMsgImages(File parentDir, EmailMessage emailMessage) {
 ```java
 @Spike("http://trello.com/b/0V4Fn8Gm/integration-poc")
 ```
+
 ---
+class: center, middle
 # Is Guava still a thing?
 
---
-
-### Ranges
-.corner.long[
+---
+class: codeonly
 ```java
 Range.closed(1, 3).contains(2);
 
 Range.lessThan(5).contains(5);
 ```
-]
 
 --
 
-### Multimaps
-.corner.long[
 ```java
-Multimap<String, String> gadgets = ...
+Multimap<String, String> gadgets = HashMutimap.create();
 
 gadgets.put("iPhone", "5S");
 gadgets.put("iPhone", "6S");
 gadgets.put("LG", "Nexus");
 ```
-]
 
 --
 
-### Immutable Collections
-.corner.long[
 ```java
-Collection<User> users() {
-  return ImmutableList.copyOf(users);
+List<Iphone> iphones() {
+  return ImmutableList.copyOf(iphones);
 }
 ```
-]
 
 --
 
-### Ordering
-.corner.long[
 ```java
-Ordering<Person> ordering = Ordering
+Ordering<Money> ordering = Ordering
   .natural()
   .nullsFirst()
-  .onResultOf(Person::middleName);
+  .onResultOf(Money::amount);
+
+Collection<Money> lotsOfMoney = ...
+
+ordering.isOrdered(lotsOfMoney)
+
+ordering.leastOf(lotsOfMoney, new Money(10.00));
+
+ordering.reverse();
 ```
-]
 
---
-
-### ComparisonChain
-.corner.long[
+---
+class: codeonly
 ```java
 public int compareTo(Foo that) {
   return ComparisonChain.start()
@@ -2084,28 +3310,44 @@ public int compareTo(Foo that) {
     .compare(this.c, that.c, Ordering.natural())
     .result();
 ```
-]
+
 
 --
 
-### CaseFormat
-.corner.long[
 ```java
-CaseFormat.UPPER_UNDERSCORE
-  .to(CaseFormat.LOWER_CAMEL, "CONSTANT_NAME"));
+CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, "CONSTANT_NAME"));
 ```
-]
+
 --
 
-### Hashing - BloomFilter - EventBus - EqualsTester
+```java
+new EqualsTester()
+    .addEqualityGroup("hello", "h" + "ello")
+    .addEqualityGroup("world", "wor" + "ld")
+    .addEqualityGroup(2, 1 + 1)
+    .testEquals();
+```
+
+--
+
+```java
+int maxNumberOfInsertions = 10000;
+int falsePositiveProbability = 3;
+
+BloomFilter<String> ipAddresses = BloomFilter.create(stringFunnel(Charsets.UTF_8),
+                                                     maxNumberOfInsertions,
+                                                     falsePositiveProbability);
+
+boolean mightContain = ipAddresses.mightContain("121.21.13.111");
+boolean neverContain = !mightContain;
+```
 ???
 Briefly, Bloom filters are a probabilistic DS, definitely NOT containing, but if yes - MAYBE
 
 
 ---
-class: middle, center, invert
+class: middle, center, example
 # SOLID
-#### [SOLID principles](https://vimeo.com/60193259) — *Eduards Sizovs*
 
 ---
 class: middle, center
@@ -2144,8 +3386,9 @@ Marco Cecconi - Dev at StackOverflow
 TH - Quicksort
 
 ---
-### Can you spot 2 interwoven concepts?
+class: codeonly
 ```java
+@TwoInterwoveConceptsAreHidingInside
 class FtpClient {
 
   void transferFile(String filename, InputStream input)
@@ -2160,9 +3403,10 @@ class FtpClient {
 ```
 
 --
-### Does 1 thing well - processing
 
 ```java
+@GenericNamingLeadsToObesity
+@HardToArgueThatTradeIsDoingMoreThanOneThing
 class Trade {
   void process() {
     // 1000 LOC
@@ -2171,12 +3415,43 @@ class Trade {
 ```
 
 --
-### Generic naming leads to obesity - Helpers, Utils, Managers, Services...
+
+```java
+class *Helper
+```
+
+--
+
+```java
+class *Utils
+```
+
+--
+
+```java
+class *Manager
+```
+
+--
+
+```java
+class *Service
+```
+
+--
+
+```java
+class *Controller
+```
 
 ---
-### Fighting feature bloat
+class: center, middle
+## Fighting feature bloat
+
+---
+class: codeonly
 ```java
-public class Tweet implements AggregateRoot<Tweet> {
+public class Tweet {
 
     private LocalDate postedAt = LocalDate.now();
 
@@ -2204,6 +3479,7 @@ public class Tweet implements AggregateRoot<Tweet> {
 ```
 
 ---
+class: codeonly
 ```java
 public class Tweet {
 
@@ -2241,28 +3517,40 @@ public class Tweet {
 ```
 
 ---
-### Total likes during Black Friday?
+class: center, middle
+## Total likes during Black Friday?
+
+---
+class: codeonly
+```java
+class BlackFriday {
+```
 
 --
 
 ```java
-class BlackFriday {
-
     public boolean fallsOn(LocalDate date) {
-        return blackFridayAt().isEqual(date);
+        return blackFriday().isEqual(date);
     }
+```
 
-    private LocalDate blackFridayAt() {
-        return thanksGivingAt().plusDays(1);
+--
+
+```java
+    private LocalDate blackFriday() {
+        return thanksGivingDay().plusDays(1);
     }
+```
 
-    private LocalDate thanksGivingAt() {
+--
+
+```java
+    private LocalDate thanksGivingDay() {
         return Year.now()
                 .atMonth(Month.NOVEMBER)
                 .atDay(1)
                 .with(TemporalAdjusters.lastInMonth(DayOfWeek.THURSDAY));
     }
-
 }
 ```
 
@@ -2271,17 +3559,67 @@ class BlackFriday {
 .crap[
 ```java
 class Likes {
-*   public long totalDuring(BlackFriday blackFriday) {
+    ...
+    public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
             .filter(like -> blackFriday.fallsOn(like.when()))
             .count();
     }
+    ...
 }
 ```
 ]
 
 ---
+class: codeonly
+```java
+class BlackFriday implements SpecialDay {
+```
+
+```java
+    public boolean fallsOn(LocalDate date) {
+        return blackFriday().isEqual(date);
+    }
+```
+
+```java
+    private LocalDate blackFriday() {
+        return thanksGivingDay().plusDays(1);
+    }
+```
+
+```java
+    private LocalDate thanksGivingDay() {
+        return Year.now()
+                .atMonth(Month.NOVEMBER)
+                .atDay(1)
+                .with(TemporalAdjusters.lastInMonth(DayOfWeek.THURSDAY));
+    }
+}
+```
+
+.crap[
+```java
+class Likes {
+    ...
+    public long totalDuring(SpecialDay specialDay) {
+        return likes
+            .stream()
+            .filter(like -> specialDay.fallsOn(like.when()))
+            .count();
+    }
+    ...
+}
+```
+]
+
+---
+class: center, middle
+## But different clients has different query requirements...
+
+---
+class: codeonly
 ```java
 public interface Entity<T> {
     default <R> R collect(Function<T, R> fn) {
@@ -2301,7 +3639,7 @@ class Likes implements Entity<Likes> {
 --
 
 ```java
-class TotalLikesDuringBlackFriday implements Function<Tweet.Likes, Long> {
+class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
 
     private final BlackFriday blackFriday = new BlackFriday();
 
@@ -2322,7 +3660,7 @@ class TotalLikesDuringBlackFriday implements Function<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.collect(new TotalLikesDuringBlackFriday());
+long total = likes.collect(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
@@ -2330,14 +3668,15 @@ long total = likes.collect(new TotalLikesDuringBlackFriday());
 
 
 ---
+class: codeonly
 ```java
 public interface Entity<T> {
     default <R> R collect(Function<T, R> fn) {
         return fn.apply((T) this);
     }
-*   default boolean isSatisfiedBy(Predicate<T> predicate) {
-*       return predicate.test((T) this);
-*   }
+    default boolean isSatisfiedBy(Predicate<T> predicate) {
+        return predicate.test((T) this);
+    }
 }
 ```
 
@@ -2352,7 +3691,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
                     .likes()
                     .all()
                     .stream()
-                    .filter(like -> like.isPutAt(postedAt))
+                    .filter(like -> like.isPutWhen(tweet.posted()))
                     .count();
             return likesOnAPostingDay >= 10000000;
         }
@@ -2362,7 +3701,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean yeahBabyYeah = tweet.isSatisfiedBy(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.isSatisfiedBy(new GotMillionLikesOnAPostingDay());
 ```
 
 ---
@@ -2370,6 +3709,8 @@ class: middle, center
 # Open-Closed Principle
 
 ---
+class: codeonly
+.crap[
 ```java
 class NotificationService {
 
@@ -2377,8 +3718,7 @@ class NotificationService {
 
   private final EmailNotifier viaEmail;
 
-  @Autowired
-  public NotificationService(SmsNotifier viaSms, EmailNotifier viaEmail) {
+  NotificationService(SmsNotifier viaSms, EmailNotifier viaEmail) {
     this.viaSms = viaSms;
     this.viaEmail = emaviaEmailil
   }
@@ -2387,7 +3727,6 @@ class NotificationService {
       if (notification.isNotTooLongForSms()) {
         viaSms.send(notification);
       }
-
       viaEmail.send(notification);
   }
 }
@@ -2400,27 +3739,27 @@ class EmailNotifier {
     void send(Notification notification);
 }
 ```
+]
 
 ---
+class: codeonly
 ```java
 class EveryNotificationChannel {
 
-  private final SmsNotificationChannel viaSms;
+  private final SmsNotificationChannel smsChannel;
 
-  private final EmailNotificationChannel viaEmail;
+  private final EmailNotificationChannel emailChannel;
 
-  @Autowired
-  public EveryNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
-    this.viaSms = viaSms;
-    this.viaEmail = emaviaEmailil
+  public EveryNotificationChannel(SmsNotificationChannel sms, EmailNotificationChannel email) {
+    this.smsChannel = sms;
+    this.emailChannel = email;
   }
 
   void send(Notification notification) {
       if (notification.isNotTooLongForSms()) {
-        viaSms.send(notification);
+        smsChannel.send(notification);
       }
-
-      viaEmail.send(notification);
+      emailChannel.send(notification);
   }
 }
 
@@ -2436,25 +3775,24 @@ class EmailNotificationChannel {
 omni - every from latin.
 
 ---
+class: codeonly
 ```java
 class EveryNotificationChannel {
 
-  private final SmsNotificationChannel viaSms;
+  private final SmsNotificationChannel smsChannel;
 
-  private final EmailNotificationChannel viaEmail;
+  private final EmailNotificationChannel emailChannel;
 
-  @Autowired
-  public EveryNotificationChannel(SmsNotificationChannel viaSms, EmailNotificationChannel viaEmail) {
-    this.viaSms = viaSms;
-    this.viaEmail = emaviaEmailil
+  public EveryNotificationChannel(SmsNotificationChannel sms, EmailNotificationChannel email) {
+    this.smsChannel = sms;
+    this.emailChannel = email;
   }
 
   void send(Notification notification) {
       if (notification.isNotTooLongForSms()) {
-        viaSms.send(notification);
+        smsChannel.send(notification);
       }
-
-      viaEmail.send(notification);
+      emailChannel.send(notification);
   }
 }
 
@@ -2472,23 +3810,21 @@ interface NotificationChannel {
 ```
 
 ---
-
+class: codeonly
 ```java
 class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
-  @Autowired
   public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
 
   void send(Notification notification) {
-     if (notification.isNotTooLongForSms()) {
-       viaSms.send(notification);
-     }
-
-      viaEmail.send(notification);
+*     if (notification.isNotTooLongForSms()) {
+        smsChannel.send(notification);
+      }
+      emailChannel.send(notification);
   }
 }
 
@@ -2498,23 +3834,21 @@ interface NotificationChannel {
 ```
 
 ---
-
+class: codeonly
 ```java
 class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
-  @Autowired
   public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
 
   void send(Notification notification) {
-     if (notification.isNotTooLongForSms()) {
-       viaSms.send(notification);
-     }
-
-      viaEmail.send(notification);
+      if (notification.isNotTooLongForSms()) {
+        smsChannel.send(notification);
+      }
+      emailChannel.send(notification);
   }
 }
 
@@ -2526,24 +3860,36 @@ interface NotificationChannel {
 
 --
 ```java
-class SmsNotificationChannel implements NotificationChannel {
-    boolean accepts(Notification notification) {
-        return notification.isSatisifiesBy(new FitsIntoSms());
-    }
-}
-
 class EmailNotificationChannel implements NotificationChannel {
     boolean accepts(Notification notification) { return ALWAYS; }
 }
 ```
 
+--
+```java
+class SmsNotificationChannel implements NotificationChannel {
+    boolean accepts(Notification notification) {
+        return notification.isSatisifiesBy(new FitsIntoSms());
+    }
+}
+```
+
+--
+```java
+class FitsIntoSms implements Predicate<Notification> {
+    public boolean test(Notification notification) {
+      return notification.isNotTooLongForSms();
+    }
+}
+```
+
 ---
+class: codeonly
 ```java
 class EveryNotificationChannel {
 
   private final Collection<NotificationChannel> notificationChannels;
 
-  @Autowired
   public EveryNotificationChannel(Collection<NotificationChannel> notificationChannels) {
     this.notificationChannels = notificationChannels;
   }
@@ -2577,12 +3923,13 @@ background-size: 100%
 java.sql.Date extends java.util.Date
 
 ---
+class: codeonly
 .crap[
 ```java
 class MapWithMandatoryValues implements Map<String, String> {
     @Override
     String get(Object key) {
-        def value = map.get(key)
+        def value = super.get(key)
         if (!value) {
             throw new MissingParameter(key as String)
         }
@@ -2614,7 +3961,7 @@ class SilentTradeOrder extends Trade {
 ]
 
 ---
-
+class: codeonly
 ```java
 class Amount {
     private final BigDecimal origin;
@@ -2639,7 +3986,7 @@ class AmountSpec extends Specification {
 }
 ```
 
----
+--
 
 .crap[
 ```java
@@ -2650,18 +3997,16 @@ class Amount {
       this.origin = origin;
     }
     Amount() {
-
     }
-
 }
 ```
 ]
 
 --
+
 .crap[
 ```java
 class SignedAmount extends Amount {
-
     public SignedAmount(BigDecimal origin) {
       super();
       this.origin = origin;
@@ -2672,13 +4017,13 @@ class SignedAmount extends Amount {
 
 
 ---
-### Subclassing is evil because a subclass that breaks invariants may look completely logical in isolation.
+### - Subclassing is evil because a subclass that breaks invariants may look completely logical in isolation.
 
 --
-### **Normalized hierarchy** is a hieararchy in which no class has more than one implementation of a method.
+### - **Normalized hierarchy** is a hieararchy in which no class has more than one implementation of a method.
 
 --
-### Prefer composition over inheritance and, if not possible, stick to **NF**.
+### - Prefer composition over inheritance and, if not possible, stick to **NF**.
 ???
 never reuse behaviour via inheritance.
 
@@ -2707,9 +4052,10 @@ efferent - out
 
 --
 
-### Make subclasses suffer from the same deseases
+### Make implementers suffer from the same deseases
 
 ---
+class: codeonly
 .crap[
 ```java
 package shwitter.config;
@@ -2755,15 +4101,24 @@ interface IncomeConstraints {
 
 --
 
-### Consider complexity of an implementor / test?
-???
-test double, decorator
+```java
+@ConsiderComplexityOfAnImplementer
+```
 
 --
 
-### Impact of moving an interface?
+```java
+@ConsiderComplexityOfATest
+```
+
+--
+
+```java
+@ConsiderImpactOfMovingAnInterface
+```
 
 ---
+class: codeonly
 ```java
 interface BacklogItem {
     Complexity complexity();
@@ -2773,14 +4128,12 @@ interface BacklogItem {
 
 --
 
-### Murphy's Law hits the fan
-
---
-
 .crap[
 ```java
-class Forecast {
+@MurphysLawHitTheFan
+class EstimateForecast {
     private final BacklogItem backlogItem
+
     Duration duration() {
       Duration duration = forecast(backlogItem.complexity());
 *     backlogItem.estimate(duration);
@@ -2793,7 +4146,7 @@ class Forecast {
 --
 
 ```java
-interface Forecastable {
+interface Complex {
   Complexity complexity();
 }
 ```
@@ -2801,43 +4154,22 @@ interface Forecastable {
 --
 
 ```java
-interface BacklogItem extends Forecastable {
+interface BacklogItem extends Complex {
     void estimate(Duration duration);
 }
 ```
 
----
-```java
-interface BacklogItem {
-    Complexity complexity();
-    void estimate(Duration duration);
-}
-```
+--
 
-### Murphy's Law hits the fan
-
-.nice[
 ```java
-class Forecast {
-    private final Forecastable forecastable;
+class EstimateForecast {
+    private final Complex complex;
+
     Duration duration() {
-      Duration duration = forecast(forecastable.complexity());
-*     backlogItem.estimate(duration); // compile error
+      Duration duration = forecast(complex.complexity());
+*     complex.estimate(duration); // compile error
       return duration;
     }
-}
-```
-]
-
-```java
-interface Forecastable {
-  Complexity complexity();
-}
-```
-
-```java
-interface BacklogItem extends Forecastable {
-    void estimate(Duration duration);
 }
 ```
 
@@ -2853,178 +4185,222 @@ class: center, middle
 the goal is to increase reuse of a high-level modules.
 
 ---
+class: codeonly
+
 ```java
-package infra.pdf;
+*package app.invoicing;
+```
 
-interface Canvas {
-  OutputStream stream();
+--
+
+```java
+class Invoice {
+    InputStream input();
 }
+```
 
-class ITextPdfDocument {
+```java
+
+*package infra.pdf;
+```
+
+--
+```java
+interface Canvas {
+    OutputStream output();
+}
+```
+
+--
+```java
+class ITextDocument {
 
     private final Invoice invoice;
 
     public void render(Canvas canvas) {
         IText itext = new IText(configuration);
         itext.enableBuffering();
-        itext.render(invoice.stream(), canvas.stream());
+        itext.render(invoice.input(), canvas.output());
     }
 }
 ```
 
+---
+class: codeonly
 ```java
-package app.invoicing;
+*package app.invoicing;
+```
 
+
+```java
 class Invoice {
-    InputStream stream();
+    InputStream input();
 }
 ```
 
+```java
+@NotReusableBecauseItDependsOnInvoicing
+@CannotBeExtractedInASeparateModule
+*package infra.pdf;
+```
+
+```java
+interface Canvas {
+    OutputStream output();
+}
+```
+
+```java
+class ITextDocument {
+
+    private final Invoice invoice;
+
+    public void render(Canvas canvas) {
+        IText itext = new IText(configuration);
+        itext.enableBuffering();
+        itext.render(invoice.input(), canvas.output());
+    }
+}
+```
+
+---
+class: codeonly
+```java
+*package app.invoicing;
+
+class Invoice implements PdfSource {
+    InputStream input();
+}
+
+interface PdfSource {
+    InputStream input();
+}
+```
 
 --
-### **[infra.pdf]** is not reusable, because it depends on **[app.invoicing]**.
 
----
 ```java
-package infra.pdf;
+@DecouplingByAbstraction
+@StillCannotBeExtractedInASeparateModule
+*package infra.pdf;
 
-interface Canvas {
-  OutputStream stream();
-}
-
-class ITextPdfDocument {
+class ITextDocument {
 
     private final PdfSource source;
 
     public void render(Canvas canvas) {
         IText itext = new IText(configuration);
         itext.enableBuffering();
-        itext.render(source.stream(), canvas.stream());
+        itext.render(source.input(), canvas.output());
     }
 }
 ```
 
-.l50[
+---
+class: codeonly
 ```java
-package app.invoicing;
+*package app.invoicing;
 
 class Invoice implements PdfSource {
-    InputStream stream();
+    InputStream input();
 }
 ```
-]
-.r50[
+
+
 ```java
-package app.invoicing;
+@DependencyInverted
+@CanBeExtractedInASeparateModule
+@UsageDirectionIsOpposedToDependencyDirection
+*package infra.pdf;
 
-interface PdfSource {
-    InputStream stream();
-}
-```
-]
-
-### **[infra.pdf]** is still not reusable, but coupling decreased.
-
----
-```java
-package infra.pdf;
-
-interface Canvas {
-  OutputStream stream();
-}
-
-class ITextPdfDocument {
+class ITextDocument {
 
     private final PdfSource source;
 
     public void render(Canvas canvas) {
         IText itext = new IText(configuration);
         itext.enableBuffering();
-        itext.render(source.stream(), canvas.stream());
+        itext.render(source.input(), canvas.output());
     }
-}
-```
-
-.l50[
-```java
-package app.invoicing;
-
-class Invoice implements PdfSource {
-    InputStream stream();
-}
-```
-]
-.r50[
-```java
-package infra.pdf;
-
-interface PdfSource {
-    InputStream stream();
-}
-```
-]
-
-### **[infra.pdf]** is now reusable, because of inverted dependency.
-
-### Usage direction can be opposite to dependency direction.
-
----
-### How to let **[app.invoicing]** plug any PDF implementation?
-
-```java
-package infra.pdf;
-
-interface Canvas {
-  OutputStream stream();
 }
 
 interface PdfSource {
-    InputStream stream();
-}
-
-class ITextPdfDocument {
-
-    private final PdfSource source;
-
-    public void render(Canvas canvas) {
-        IText itext = new IText(configuration);
-        itext.enableBuffering();
-        itext.render(source.stream(), canvas.stream());
-    }
-}
-```
-
-```java
-package app.invoicing;
-
-class Invoice implements PdfSource {
-    InputStream stream();
+    InputStream input();
 }
 ```
 
 ---
-### How to let **[app.invoicing]** plug any PDF implementation?
+class: codeonly
+```java
+*package app.invoicing;
+
+@RestController
+class InvoiceEndpoint {
+
+  private final Invoices invoices;
+
+  @GetMapping(value = "/invoices/{id}", produces = "application/pdf")
+  void download(String id, HttpServletResponse response) {
+    Invoice invoice = invoices.by(id);
+```
+
+--
 
 ```java
-package infra.pdf.api;
+    ITextDocument document = new ITextDocument(invoice);
+```
+
+--
+
+```java
+    Canvas canvas = new HttpOutCanvas(response);
+```
+
+--
+
+```java
+    document.render(canvas);
+  }
+}
+```
+
+---
+class: center, middle
+## Now let's make invoicing domain independent of iText and let plug any PDF rendering mechanism...
+
+---
+class: codeonly
+
+```java
+*package infra.pdf.api;
 
 interface Canvas {
-  OutputStream stream();
+  OutputStream output();
 }
 
 interface PdfSource {
-    InputStream stream();
+    InputStream input();
 }
+```
 
+--
+
+```java
 interface PdfDocument {
+  interface Factory {
+    PdfDocument create(PdfSource source);
+  }
+
   void render(Canvas canvas);
 }
 ```
 
-```java
-package infra.pdf.impl.itext;
+--
 
-class ITextPdfDocument implements PdfDocument {
+```java
+*package infra.pdf.impl.itext;
+
+class ITextDocument implements PdfDocument {
     private final PdfSource source;
 
     public void render(Canvas canvas) {
@@ -3032,12 +4408,24 @@ class ITextPdfDocument implements PdfDocument {
     }
 }
 ```
+--
 
 ```java
-package infra.pdf.impl.pdfbox;
+@Singleton
+class ITextDocumentFactory implements PdfDocument.Factory {
+
+    public PdfDocument create(PdfSource source) {
+        return new ITextDocument(source);
+    }
+}
+```
+
+---
+class: codeonly
+```java
+*package infra.pdf.impl.pdfbox;
 
 class BoxPdfDocument implements PdfDocument {
-
     private final PdfSource source;
 
     public void render(Canvas canvas) {
@@ -3046,78 +4434,51 @@ class BoxPdfDocument implements PdfDocument {
 }
 ```
 
----
-### But **[app.invoicing]** is instatiating concrete PdfDocument instance...
-.crap[
-```java
-package app.invoicing;
-
-@RestController
-class InvoiceEndpoint {
-
-  @GetMapping("/invoices/latest")
-  void download(HttpServletResponse response) {
-    Invoice invoice = invoices.latest();
-*   PdfDocument document = new ITextPdfDocument(invoice); // or BoxPdfDocument
-    Canvas canvas = new HttpOutCanvas(response);
-    document.render(canvas);
-  }
-}
-```
-]
-
 --
 
 ```java
-package infra.pdf.api;
-
-interface PdfDocumentFactory  {
-    PdfDocument create(PdfSource source);
-}
-```
-
---
-
-```java
-package infra.pdf.impl.itext;
-
 @Singleton
-class ITextPdfDocumentFactory implements PdfDocumentFactory {
-
-    public PdfDocument create(PdfSource source) {
-        return new ITextPdfDocument(source);
-    }
+class BoxPdfDocumentFactory implements PdfDocument.Factory {
+    ....
 }
 ```
 
----
-### Voila!
-.nice[
+--
+
+class: codeonly
 ```java
-package app.invoicing;
+*package app.invoicing;
 
 @RestController
 class InvoiceEndpoint {
 
-  private final PdfDocumentFactory pdfDocumentFactory;
+  private final Invoices invoices;
 
-  @Autowired
-  InvoiceEndpoint(PdfDocumentFactory pdfDocumentFactory) {
-    this.pdfDocumentFactory = pdfDocumentFactory;
-  }
+  private final PdfDocument.Factory pdfDocumentFactory;
 
+  @GetMapping(value = "/invoices/{id}", produces = "application/pdf")
+  void download(String id, HttpServletResponse response) {
+    Invoice invoice = invoices.by(id);
+```
 
-  @GetMapping("/invoices/latest")
-  void download(HttpServletResponse response) {
-    Invoice invoice = invoices.latest();
-*   PdfDocument document = pdfDocumentFactory.document(invoice);
+--
 
+```java
+    PdfDocument document = pdfDocumentFactory.create(invoice);
+```
+
+--
+
+```java
     Canvas canvas = new HttpOutCanvas(response);
+```
+
+--
+
+```java
     document.render(canvas);
   }
 }
-```
-]
 
 ---
 ### Consider **weight**
@@ -3140,11 +4501,46 @@ class ITextPdfDocumentFactory implements PdfDocumentFactory {
 ```
 
 ---
+class: center, middle
+## A bit more modularty...
+
+---
+class: center, middle
+## Consider **weight**
+
+---
+
+### - **@javax.inject.Singleton** vs. **@org.springframework...Component**
+
+--
+
+### - **@javax.inject.Inject** vs. **@org.springframework...Autowired**
+
+--
+
+### - library that depends on **slf4j-api** vs. **Logback**
+
+--
+
+### - library that depends on **Guava** vs. just **JDK 8**
+
+--
+
+### - library that depends on **Scala** vs. just **JDK 8**
+
+--
+
+### - transitive dependencies also add to weight
+---
 background-image:url(repackage.png)
 background-size: 100%
 
 ---
-### Consider **granularity**
+class: center, middle
+## Consider **granularity**
+
+---
+class: codeonly
 ```groovy
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
@@ -3172,6 +4568,9 @@ background-size: 100%
 # More on modularity
 ![](kirk.jpg)
 
+---
+class: center, middle
+## Logical design requires the same amount of attention as the physical one.
 
 ---
 class: nopadding
@@ -3269,24 +4668,8 @@ class: center, middle
 ### [Architecting well-structured Java applications](https://www.youtube.com/watch?v=99VFdX1WS7o) — *Eduards Sizovs*
 
 ---
-class:libs
-background-image:url(layering_veripacks.png)
-
----
-# VeriPacks Demo:
-### 1.  **[application]** cannot be accessed by **[domain]** and **[infra]**
-
---
-
-### 2. **[domain]** is accessible only by [**application**], never **[infra]**
-
---
-
-### 3. **[infra.emailing]** **publishes** EmailProvider and Email interfaces. SmtpEmailProvider is only accessible by subpackages.
-
---
-
-### 4. **[org.hibernate]** can only be used by **[infra.hibernate]**
+class: center, middle
+## VeriPacks demo
 
 
     </textarea>

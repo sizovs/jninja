@@ -22,7 +22,11 @@
       .codeonly { padding: 1em; background-color: #2b303b }
       .codeonly pre { margin: 0 }
 
-      .remark-code-line-highlighted { background-color: #5e626e;}
+      .remark-code-line-highlighted { background-color: #2d9967; color: white}
+      .remark-code-line-highlighted * { color: white !important; }
+
+      .remark-slide-scaler { -webkit-box-shadow: 0 !important; box-shadow: none !important; }
+      .remark-slide-container {background-color: #2b303b}
       /* new end */
       .fade {color: #E0E0E0}
       .spanny { padding: 10px; color: white; background-color: #0b1c2e }
@@ -55,7 +59,7 @@ class: center, middle
 
 ---
 class: center, middle, example
-# Application a-ka Service layer
+# Application aka Service layer
 
 ---
 ## - defines a use case, what the system does
@@ -154,6 +158,16 @@ interface Now {
 ]
 ???
 a funnel finds and executes appropriate impl for a command using generics
+
+--
+.nice[
+```java
+@Remote(Protocol.PROTOBUFS)
+interface Now {
+    <C extends Command<R>, R extends Command.R> R execute(C command);
+}
+```
+]
 
 --
 
@@ -404,8 +418,9 @@ class Reactions {
     @Autowired
     public Reactions(ListableBeanFactory beanFactory) {
         this.cachedReactions = Caffeine.newBuilder()
-            .build(reactionType -> reactions(beanFactory).stream()
-                .filter(reaction -> reaction.commandType().isSupertypeOf(reactionType))
+            .build(commandType -> reactions(beanFactory)
+                .stream()
+                .filter(reaction -> reaction.commandType().isSupertypeOf(commandType))
                 .findFirst()
                 .orElseThrow(() -> new NoReactionFound(commandType)));
     }
@@ -414,7 +429,7 @@ class Reactions {
         return beanFactory.getBeansOfType(Reaction.class).values();
     }
 
-    <C extends Command<R>, R extends Command.R> Reaction<C, R> byCommand(C command) {
+    public <C extends Command<R>, R extends Command.R> Reaction<C, R> byCommand(C command) {
         return cachedReactions.get(command.type());
     }
 }
@@ -467,16 +482,16 @@ interface Command<T extends Command.R> {
         }
     }
 
-*   interface TxFlag {
-*
-*       TxFlag READ_ONLY = tx -> tx.setReadOnly(true);
-*
-*       void apply(TransactionTemplate tx);
-*   }
+    interface TxFlag {
 
-*   default Collection<TxFlag> txFlags() {
-*       return Collections.emptyList();
-*   }
+        TxFlag READ_ONLY = tx -> tx.setReadOnly(true);
+
+        void apply(TransactionTemplate tx);
+    }
+
+    default Collection<TxFlag> txFlags() {
+        return Collections.emptyList();
+    }
 }
 ```
 
@@ -508,8 +523,8 @@ class TransactionalNow implements Now {
 
         Reaction<C, R> reaction = reactions.byCommand(command);
 
-        TransactionTemplate tx = new TransactionTemplate(txManager);
-        command.txFlags().forEach(flag -> flag.apply(tx));
+*       TransactionTemplate tx = new TransactionTemplate(txManager);
+*       command.txFlags().forEach(flag -> flag.apply(tx));
 
         R response = tx.execute(txStatus -> reaction.react(command));
 
@@ -523,6 +538,7 @@ class: center, middle
 ## Logging?
 
 ---
+class: codeonly
 ```java
 @Component
 class TransactionalAndLoggingNow implements Now {
@@ -563,7 +579,7 @@ class CommandCorrelationId {
     private final AtomicLong counter = new AtomicLong();
 
     @Value("${unique.node.id}")
-    private String node;
+    private private String node;
 
 
     public void storeForLogging() {
@@ -642,7 +658,7 @@ class PipedNow implements Now {
 
 --
 ```java
-    class Correlable implements Now {
+    private class Correlable implements Now {
 
         private final Now origin;
 
@@ -668,7 +684,7 @@ class PipedNow implements Now {
 
     ...
 
-    class Loggable implements Now {
+    private class Loggable implements Now {
 
         private final Logger log = LoggerFactory.getLogger(Loggable.class);
 
@@ -692,7 +708,7 @@ class PipedNow implements Now {
 --
 
 ```java
-    class Transactional implements Now {
+    private class Transactional implements Now {
 
         private final Now origin;
 
@@ -713,7 +729,7 @@ class PipedNow implements Now {
 
     ...
 
-    class Reacting implements Now {
+    private class Reacting implements Now {
 
         @Override
         public <C extends Command<R>, R extends Command.R> R execute(C command) {
@@ -721,14 +737,35 @@ class PipedNow implements Now {
             return reaction.react(command);
         }
     }
-    
+
 }
 ```
 
 ---
-# Concurrency?
+# Commands are also great, because:
+
+--
+
+### - new info can be passed downstream w/o changing the interface
+
+--
+
+### - funnels can read command @Annotations
+
+--
+
+### - flexible composition at command, reaction and funnel side
+
+--
+
+### - favours composion over jdk/javassist/bytebuddy proxying
 
 ---
+class: center, middle
+## Concurrency at the application layer
+
+---
+class: codeonly
 ```java
 @Immutable
 @Enclosing
@@ -747,7 +784,7 @@ interface GetSocialAccounts extends Command<GetSocialAccounts.R> {
 ```java
 @Immutable
 interface SocialAccount {
-    SocialAccountType type();
+    SocialAccountType type(); // FB, TW, LN
     String username();
 }
 ```
@@ -755,24 +792,28 @@ interface SocialAccount {
 --
 
 ```java
-class GetSocialAccountsReaction implements Reaction<GetSocialAccounts, GetSocialAccounts.R> {
+class GetSocialAccountsReactionStub implements Reaction<GetSocialAccounts, GetSocialAccounts.R> {
 
-    public GetSocialAccounts.R handle(GetSocialAccounts $) {
+    public GetSocialAccounts.R react(GetSocialAccounts $) {
         SocialAccount facebook = ImmutableSocialAccount.builder()
           .type(SocialAccountType.FB)
-          .username("facebook@devchampions.com").build();
+          .username("facebook@devchampions.com")
+          .build();
 
         SocialAccount twitter = ImmutableSocialAccount.builder()
           .type(SocialAccountType.TW)
-          .username("twitter@devchampions.com").build();
+          .username("twitter@devchampions.com")
+          .build();
 
         return R.builder()
-          .addSocialAccounts(facebook, twitter).build();
+          .addSocialAccounts(facebook, twitter)
+          .build();
     }
 }
 ```
 
 ---
+class: codeonly
 ```java
 @Immutable
 @Enclosing
@@ -799,7 +840,7 @@ interface SocialConnection {
 --
 
 ```java
-class GetSocialConnectionsReaction implements Reaction<GetSocialConnections, GetSocialConnections.R> {
+class GetSocialConnectionsReactionStub implements Reaction<GetSocialConnections, ...> {
 
     @Override
     public GetSocialConnections.R react(GetSocialConnections $) {
@@ -811,20 +852,37 @@ class GetSocialConnectionsReaction implements Reaction<GetSocialConnections, Get
     }
 
     private ImmutableSocialConnection randomConnection() {
-        return ImmutableSocialConnection.builder().emailAddress(random()).build();
+        return ImmutableSocialConnection.builder()
+                .emailAddress(random())
+                .build();
     }
 }
 ```
 
 ---
-### collecting social connections concurrently
+class: center, middle
+## Fetching social connections concurrenty
+
+---
+
+class: codeonly
 ```java
 return ImmutableGetSocialAccounts
         .builder()
-        .networkerId("123")
+        .networkerId(WHATEVER_NETWORKER_ID)
         .build()
         .schedule(future)
+```
+
+--
+
+```java
         .thenApply(GetSocialAccounts.R::socialAccounts)
+```
+
+--
+
+```java
         .thenCompose(socialAccounts -> socialAccounts
             .stream()
             .map(account -> ImmutableGetSocialConnections
@@ -832,74 +890,103 @@ return ImmutableGetSocialAccounts
                 .socialAccount(account)
                 .build()
                 .schedule(future))
-                .collect(new FuturesCollector<>()))
-        .thenApply(allDone -> allDone
+```
+
+--
+
+```java
+            .collect(new FuturesCollector<>()))
+```
+
+--
+
+```java
+        .thenApply(onceAllDone -> onceAllDone
             .stream()
-            .map(GetSocialConnections.R::connections)
+            .map(GetSocialConnections.R::connections)  // a stream of many collections
+
+```
+
+--
+
+```java
             .flatMap(connections -> connections
                 .stream()
-                .map(SocialConnection::emailAddress)))
-        .thenApply(allEmails -> allEmails
+                .map(SocialConnection::emailAddress))) // a stream of collection elements
+
+```
+
+--
+
+```java
+        .thenApply(emailAddresses -> emailAddresses
             .distinct()
             .count())
-        .get();
+```
+
+--
+
+```java
+        .get();                                        // finally blocks
 ```
 
 ---
+class: codeonly
 ```java
 @Component
-class DefaultFuture implements Future {
+class PipedFuture implements Future {
 
     @Retention(RenentionPolicy.RUNTIME)
-    public @interface Executor {
+    public @interface Pool {
     }
 
-    private final Reactions reactions;
     private final ExecutorService executor;
 
-    @Autowired
-    public DefaultFuture(Reactions reactions, @Executor ExecutorService executor) {
-        this.reactions = reactions;
-        this.executor = executor;
+    public DefaultFuture(@Pool ExecutorService executor, ...) {
+        ...
     }
 
     @Override
     public <C extends Command<R>, R extends Command.R> CompletableFuture<R> schedule(C command) {
-        Reaction<C, R> reaction = reactions.byCommand(command);
-        return CompletableFuture.supplyAsync(() ->
-            reaction.react(command), executor);
+        Now pipe = new Correlable(
+                      new Loggable(
+                         new Transactional(
+                            new Reacting())));
+
+        return CompletableFuture.supplyAsync(() -> pipe.execute(command), executor);
     }
 }
 ```
 
+--
+
 ```java
 @Configuration
-class DefaultFutureConfiguration {
+class PipedFutureConfiguration {
 
     @Bean
-    @DefaultFuture.Executor
-    ExecutorService executorService() {
-        return Executors.newFixedThreadPool(100);
+    @PipedFuture.Pool
+    ExecutorService pool(@Value("${commands.future.pool_size}") long poolSize) {
+        return Executors.newFixedThreadPool(poolSize);
     }
 }
 ```
 
 ---
-
+class: codeonly
 ```java
-class FuturesCollector<T> implements Collector<CompletableFuture<T>, Collection<CompletableFuture<T>>, CompletableFuture<Collection<T>>> {
+class FuturesCollector<T> implements Collector<CompletableFuture<T>,
+                                     Collection<CompletableFuture<T>>,
+                                     CompletableFuture<Collection<T>>> {
 
-    @Override
     public Supplier<Collection<CompletableFuture<T>>> supplier() {
         return ArrayList::new;
     }
 
-    @Override
     public BiConsumer<Collection<CompletableFuture<T>>, CompletableFuture<T>> accumulator() {
         return Collection::add;
     }
 
-    @Override
     public BinaryOperator<Collection<CompletableFuture<T>>> combiner() {
         return (one, another) -> ImmutableList.<CompletableFuture<T>>builder()
                 .addAll(one)
@@ -907,15 +994,18 @@ class FuturesCollector<T> implements Collector<CompletableFuture<T>, Collection<
                 .build();
     }
 
-    @Override
-    public Function<Collection<CompletableFuture<T>>, CompletableFuture<Collection<T>>> finisher() {
-        return futures -> CompletableFuture.allOf(futures
-                .stream()
-                .toArray(CompletableFuture[]::new))
-                .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
+    public Function<...>, CompletableFuture<Collection<T>>> finisher() {
+        return futures ->
+                CompletableFuture.allOf(
+                    futures
+                        .stream()
+                        .toArray(CompletableFuture[]::new))
+                .thenApply(allOf -> allOf
+                    .stream()
+                    .map(CompletableFuture::join)
+                    .collect(toList()));
     }
 
-    @Override
     public Set<Characteristics> characteristics() {
         return Collections.singleton(Characteristics.CONCURRENT);
     }
@@ -923,22 +1013,22 @@ class FuturesCollector<T> implements Collector<CompletableFuture<T>, Collection<
 ```
 
 ---
+class: center, middle
+## Let's see whether our concurrent code is testable
 
+---
+class: codeonly
 ```java
-public class SocialNetwork {
+class SocialNetwork {
 
     private final Future future;
-
-    @Autowired
-    public SocialNetwork(Future future) {
-        this.future = future;
-    }
 
     public Networker networker(String networkerId) {
         return new Networker(networkerId);
     }
 
     class Networker {
+
         private final String id;
 
         public Networker(String id) {
@@ -949,116 +1039,257 @@ public class SocialNetwork {
             return id;
         }
 
-        public long distinctConnectionCount() throws ExecutionException, InterruptedException {
+        public long uniqueConnectionCount() {
             return ImmutableGetSocialAccounts
                     .builder()
                     .networkerId(id)
                     .build()
                     .schedule(future)
-                    .thenApply(GetSocialAccounts.R::socialAccounts)
-                    .thenCompose(socialAccounts -> socialAccounts.stream().map(account -> ImmutableGetSocialConnections
-                            .builder()
-                            .socialAccount(account)
-                            .build()
-                            .schedule(future)).collect(new FuturesCollector<>()))
-                    .thenApply(allDone -> allDone
-                            .stream()
-                            .map(GetSocialConnections.R::connections)
-                            .flatMap(connections -> connections.stream().map(SocialConnection::emailAddress)))
-                    .thenApply(allFullNames -> allFullNames.distinct().count())
-                    .get();
 
+                    .thenApply(GetSocialAccounts.R::socialAccounts)
+
+                    ...
+
+                    .get();
         }
     }
 }
 ```
 
 ---
+class: codeonly
+.crap[
 ```groovy
+class SocialNetworkSpec extends Specification {
+
+    Future future = Mock()
+
+    @Subject
+    SocialNetwork socialNetwork
+
+    def "calculates unique connection count"() {
+      given:
+      def socialNetwork = new SocialNetwork(future)
+
+      and:
+      def networker = socialNetwork.networker(NETWORKER_ID)
+```
+]
+
+--
+
+.crap[
+```groovy
+      and: "making sure networker has twitter and facebook accounts"
+      future.schedule(ImmutableGetSocialAccountsCommand
+              .builder()
+              .networkerId(NETWORKER_ID)
+              .build()) >>
+                  completedFuture(
+                      ImmutableGetSocialAccountsCommand.R
+                              .builder()
+                              .addSocialAccounts(ImmutableSocialAccount
+                                  .builder()
+                                  .username("twitter@account.test")
+                                  .type(TW)
+                                  .build())
+                              .addSocialAccounts(ImmutableSocialAccount
+                                  .builder()
+                                  .username("facebook@account.test")
+                                  .type(FB)
+                                  .build())
+                              .build())
+```
+]
+
+---
+class: codeonly
+.crap[
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      ...
+      and:
+      ...
+      and: "adding unique facebook connection"
+      future.schedule(ImmutableGetSocialConnectionsCommand
+              .builder()
+              .username("facebook@account.test")
+              .socialAccountType(FB)
+              .build()) >>
+                  completedFuture(
+                      ImmutableGetSocialConnectionsCommand.R
+                              .builder()
+                              .addConnections(
+                                  ImmutableSocialConnection
+                                          .builder()
+                                          .emailAddress("friend@facebook.com")
+                                          .build())
+                              .build())
+```
+]
+
+---
+class: codeonly
+.crap[
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      ...
+      and:
+      ...
+      and: "adding duplicate twitter connection"
+      future.schedule(ImmutableGetSocialConnectionsCommand
+              .builder()
+              .username("facebook@account.test")
+              .socialAccountType(FB)
+              .build()) >>
+                  completedFuture(
+                      ImmutableGetSocialConnectionsCommand.R
+                              .builder()
+                              .addConnections(
+                                  ImmutableSocialConnection
+                                          .builder()
+                                          .emailAddress("friend2@twitter.com")
+                                          .build(),
+                                  ImmutableSocialConnection
+                                          .builder()
+                                          .emailAddress("friend2@twitter.com")
+                                          .build())
+                              .build())
+```
+]
+
+---
+class: codeonly
+.crap[
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      ...
+      and: "adding unique facebook connection"
+      ...
+      and: "adding duplicate twitter connection"
+      ...
+      when:
+      def uniqueConnections = networker.uniqueConnectionCount();
+
+      then:
+      uniqueConnections == 2L
+    }
+}
+```
+]
+
+---
+class: center, middle
+## Refactoring to human readable specification
+
+---
+class: codeonly
+```groovy
+@Newify(SocialNetwork, SocialAccounts)
 class SocialNetworkSpec extends Specification {
 
     def future = Mock(Future)
 
+    def facebookAccount = SocialAccounts().someFacebook();
+    def twitterAccount = SocialAccounts().someTwitter();
+
     @Subject
-    SocialNetwork socialNetwork
-    SocialNetwork.Networker networker
+    def network = SocialNetwork(future);
 
-    SocialAccount facebookAccount
-    SocialAccount twitterAccount
+    def networker = network.networker("NETWORKER_ID")
 
-    def setup() {
-        socialNetwork = new SocialNetwork(future)
-        networker = socialNetwork.networker("whatever")
-        facebookAccount = socialAccount("whateverUsernameFB", FB)
-        twitterAccount = socialAccount("whateverUsernameTW", TW)
+    def "calculates unique collection count"() {
+        ...
     }
-
-    def "calculates number of unique emails 2"() {
-        given:
-        networkerOwns(facebookAccount, twitterAccount)
-
-        and:
-        networkerHasUniqueTwitterConnection()
-
-        and:
-        networkerHasDuplicateFacebookConnections()
-
-        when:
-        def distinctConnections = networker.distinctConnectionCount();
-
-        then:
-        distinctConnections == 2L
-    }
+    ...
+}
 ```
 
----
+--
+
 ```java
-def networkerOwns(SocialAccount... accounts) {
-    future.schedule(queryForSocialAccounts()) >>
-      returnsSocialAccounts(accounts)
-          .inFuture()
-}
+class SocialAccounts {
 
-def queryForSocialAccounts() {
-    ImmutableGetSocialAccounts
-            .builder()
-            .networkerId(networker.id())
-            .build()
-}
+    def someFacebook() {
+      ImmutableSocialAccount {                          // groovy + Immutables magic
+        username whatever()                             // groovy + Immutables magic
+        type FB                                         // groovy + Immutables magic
+      }
+    }
 
-def returnsSocialAccounts(SocialAccount... socialAccounts) {
-    ImmutableGetSocialAccounts.R
-            .builder()
-            .addSocialAccounts(socialAccounts)
-            .build()
-}
-
-def networkerHasUniqueTwitterConnection() {
-    future.schedule(queryForSocialConnections(twitterAccount) >>
-        returnsSocialConnectionsWithEmails("email@twitter.com")
-            .inFuture()
-}
-
-def queryForSocialConnections(SocialAccount account) {
-    ImmutableGetSocialConnections
-            .builder()
-            .socialAccount(account)
-            .build()
-}
-
-def returnsSocialConnectionsWithEmails(String... socialConnectionEmails) {
-    ImmutableGetSocialConnections.R
-            .builder()
-            .addAllConnections(socialConnectionEmails.collect { socialConnection(it) })
-            .build()
+    def someFacebook() {
+      ImmutableSocialAccount {                          // groovy + Immutables magic
+        username whatever()                             // groovy + Immutables magic
+        type TW                                         // groovy + Immutables magic
+      }
+    }
 }
 ```
 
 ---
+class: codeonly
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      networkerOwns(facebookAccount, twitterAccount);
+    }
+
+    ...
+```
+
+--
+
+```java
+    private networkerOwns(accounts) {
+        future.schedule(queryForSocialAccounts()) >> returnsSocialAccounts(accounts).inFuture()
+    }
+```
+
+--
+
+```java
+    private queryForSocialAccounts() {
+        ImmutableGetSocialAccountsCommand {
+            networkerId networker.id()
+        }
+    }
+```
+
+--
+
+```java
+    private returnsSocialAccounts(socialAccounts) {
+        ImmutableGetSocialAccounts.R {
+            addSocialAccounts(socialAccounts)
+        }
+    }
+```
+
+---
+class: codeonly
 ```java
 class CommandModule {
 
-    static <T extends Command.R> CompletableFuture<T> inFuture(final T self) {
+    static <T extends Command.R> CompletableFuture<T> inFuture(T self) {
         CompletableFuture.<T> completedFuture(self)
     }
 
@@ -1073,7 +1304,127 @@ extensionClasses=com.devchampions.jninja.modules.command.CommandModule
 ```
 
 ---
-### Avoiding callback hell with CompletableFutures
+class: codeonly
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      networkerOwns(facebookAccount, twitterAccount);
+
+      and:
+      networkerHasUniqueFacebookConnection()
+    }
+
+    ...
+```
+
+--
+
+```java
+    private networkerHasUniqueFacebookConnection(accounts) {
+      future.schedule(queryForSocialConnections(facebookAccount.username(), FB))
+          >> returnsSocialConnectionsWithEmails("u@ni.que").inFuture()
+    }
+```
+
+--
+
+```java
+    private queryForSocialConnections(username, socialAccountType) {
+        ImmutableGetSocialConnectionsCommand {
+            username username
+            socialAccountType socialAccountType
+        }
+    }
+```
+
+--
+
+```java
+    private returnsSocialConnectionsWithEmails(socialConnectionEmails) {
+        ImmutableGetSocialConnectionsCommand.R {
+            addAllConnections socialConnectionEmails.collect { socialConnection(it) }
+        }
+    }
+```
+
+--
+
+```java
+    private socialConnection(emailAddress) {
+        ImmutableSocialConnection {
+            emailAddress emailAddress
+        }
+    }
+```
+
+---
+class: codeonly
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      networkerOwns(facebookAccount, twitterAccount);
+
+      and:
+      networkerHasUniqueFacebookConnection()
+
+      and:
+      networkerHasDuplicateTwitterConnection()
+    }
+
+    ...
+```
+
+--
+
+```java
+    private networkerHasDuplicaTwitterConnection(accounts) {
+      future.schedule(queryForSocialConnections(twitterAccount.username(), TW))
+          >> returnsSocialConnectionsWithEmails("dupli@ca.te", "dupli@ca.te").inFuture()
+    }
+```
+
+---
+class: codeonly
+```groovy
+class SocialNetworkSpec extends Specification {
+
+    ...
+
+    def "calculates unique connection count"() {
+      given:
+      networkerOwns(facebookAccount, twitterAccount);
+
+      and:
+      networkerHasUniqueFacebookConnection()
+
+      and:
+      networkerHasDuplicateTwitterConnection()
+
+      when:
+      def uniqueConnections = networker.uniqueConnectionCount();
+
+      then:
+      uniqueConnections == 2L
+    }
+
+    ...
+}
+```
+
+---
+class: center, middle
+## Fixing callback hell with CompletableFutures
+
+---
+class: codeonly
 .crap[
 ```java
 Firebase firebase = new Firebase("https://your-app.firebaseio.com");
@@ -1105,23 +1456,31 @@ System.out.println(snapshot.get());
 ]
 
 ---
+class: codeonly
 ```java
-public class RxFirebase {
+class RxFirebase {
 
   private final Firebase root;
 
   public RxFirebase(Firebase root) {
       this.root = root;
   }
+```
 
+--
+
+```java
   public CompletableFuture<DataSnapshot> snapshot(String path) {
       Firebase children = root.child(path);
       CompletableFuture<DataSnapshot> completableFuture = new CompletableFuture<>();
       children.addListenerForSingleValueEvent(new Notify(completableFuture));
       return completableFuture;
   }
+```
 
+--
 
+```java
   private class Notify implements ValueEventListener {
 
       private final CompletableFuture<DataSnapshot> completableFuture;
@@ -1144,41 +1503,84 @@ public class RxFirebase {
 ```
 
 ---
+class: codeonly
 .nice[
 ```java
 Firebase firebase = new Firebase("https://your-app.firebaseio.com");
+```
+]
 
+--
+
+.nice[
+```java
 RxFirebase rxFirebase = new RxFirebase(firebase);
+```
+]
 
+--
+
+.nice[
+```java
 CompletableFuture<DataSnapshot> expenses = rxFirebase.snapshot("expenses");
+```
+]
 
+--
+
+.nice[
+```java
 DataSnapshot snapshot = expenses.get(5, TimeUnit.SECONDS);
+```
+]
 
+--
+
+.nice[
+```java
 System.out.println(snapshot);
 ```
 ]
 
 ---
 # vs.
-### RxJava
-### Spring Reactor
-### Reactive Streams
+### - RxJava
+### - Spring Reactor
+### - Reactive Streams
 
 ---
-### Testing CompletableFuture
+class: center, middle
+## Few testing hints
+
+---
+class: codeonly
 ```java
-  CompletableFuture.complete(T value);
-  CompletableFuture.completeExceptionally(Throwable ex);
-  CompletableFuture.completedFuture(U u);
-  CompletableFuture.get();
+CompletableFuture.complete(T value);
 ```
 
 --
 
-### Awaitility
+```java
+CompletableFuture.completeExceptionally(Throwable ex);
+```
+
+--
+
+```java
+CompletableFuture.completedFuture(U u);
+```
+
+--
+
+```java
+CompletableFuture.get();
+```
+
+--
+
 ```java
 @Test
-public void updatesCustomerStatus() throws Exception {
+void thisExampleUsesAwaitility() throws Exception {
     publishEvent(updateCustomerStatusEvent);
     await().atMost(5, SECONDS).until(eventStore::size(), is(1));
 }
@@ -1187,16 +1589,17 @@ public void updatesCustomerStatus() throws Exception {
 --
 
 ```java
-AtomicInteger atomic = new AtomicInteger();
-await().untilAtomic(atomic, equalTo(1));
+@Test
+void andThisOneToo() throws Exception {
+    await().untilAtomic(atomic, equalTo(1));
+}
 ```
 
 ---
-
-### Thread-weaver (https://github.com/google/thread-weaver)
-
+class: codeonly
 ```java
-public class UniqueListTest {
+@UsesGoogleThreadWeaver
+class ThisTestRevealsSynchronizationIssues {
 
   private static final String HELLO = "Hello";
 
@@ -1228,25 +1631,32 @@ public class UniqueListTest {
 exercises lines of putIfAbsent in diffent combinations in 2 threads.
 
 ---
-class: center, middle, invert
+class: center, middle, example
 # Validation
 
 ---
 class: center, middle
-## Never create an inconsistent domain model.
+## Reject values with wrong type and format asap, before they do harm.
+### Preferably, fail fast **before construction**.
 ???
 because others can rely on it.
 
 ---
+class: center, middle
+## Let's see what JPA/Hibernate want you to do...
+
+
+---
+class: codeonly
 .crap[
 ```java
 class User {
 
     @Email
-    private String email;
+    private String email;                           // not really an email, liar
 
     @Strong
-    private String password;
+    private String password;                        // might not be strong
 
     private LocalDateTime registeredAt;
 
@@ -1269,7 +1679,10 @@ class User {
 }
 ```
 ]
+
 ---
+
+class: codeonly
 .crap[
 ```java
 class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Void> {
@@ -1278,20 +1691,45 @@ class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Voi
 
     @Override
     public Command.R.Void react(RegisterNewUser $) {
-        User user = makeUser($);
-        user.register();
+        User user = makeUser($);                    // broken at this point
+```
+]
 
-        users.persist(user);
-        welcomeNotification.schedule(user);
+--
+
+.crap[
+```java
+        user.register();                            // still broken
+```
+]
+
+--
+
+.crap[
+```java
+        users.persist(user);                        // still broken, not flushed yet
+```
+]
+
+--
+
+.crap[
+```java
+        welcomeNotification.schedule(user);         // shit propagates further
 
         return new Command.R.Void();
     }
-
 }
+```
+]
 
+--
+
+.crap[
+```java
 class WelcomeNotification {
     void schedule(User user) {
-        user.email(); // lies! not an email
+        user.email();                               // accepts lies and (hopefully) booms
     }
 }
 ```
@@ -1300,18 +1738,31 @@ class WelcomeNotification {
 by default, Hibernate validates during FLUSH :-)
 
 ---
+class: codeonly
 ```java
 class Email {
 
   private final String text;
 
-  public Email(String text) {
-      boolean validEmail = new Email.Text(text).isEmail();
-      checkArgument(validEmail, "%s is not an RFC-5322 compliant email.", text);
+  public Email(Email.Unchecked email) {
+      checkArgument(email.isValid(), "%s is not an RFC-5322 compliant email.", text);
       this.text = text;
   }
 
-  static class Text {
+  public Email(String text) {
+      this(new Email.Unchecked(text));
+  }
+
+  ...
+```
+---
+class: codeonly
+```java
+class Email {
+
+  ...
+
+  static class Unchecked {
 
       private static final String LOCAL_PART = "^[\\w!#$%&’*+/=?`{|}~^-]+(?:\\.[\\w!#$%&’*+/=?`{|}~^-]+)*";
       private static final String AT_SIGN = "@";
@@ -1328,7 +1779,7 @@ class Email {
           this.rawText = rawText;
       }
 
-      public boolean isEmail() {
+      public boolean isValid() {
           return RFC_5322.asPredicate().test(rawText);
       }
 
@@ -1337,59 +1788,51 @@ class Email {
           return rawText;
       }
   }
+
 }
 ```
 
 ---
+class: codeonly
 ```java
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-* boolean validEmail = new Email.Text($.email()).isEmail();
-* if (validEmail) {
-*   throw new ValidationException("Dooh! The email " + $.email() + " is not valid");
-* }
+   Email.Unchecked email = new Email.Unchecked($.email()));
+   if (!email.isValid()) {
+     throw new ValidationException("Dooh! The email " + $.email() + " is not valid");
+   }
 
-* Email email = new Email($.email());
-
-  User user = makeUser(email, ...);
-  user.register();
-
-  users.persist(user);
-  welcomeNotification.schedule(user);
-
-  return new Command.R.Void();
+   User user = makeUser(new Email($.email()), ...);
+   ...
 }
 ```
 
 --
 
 ```java
-static class Text {
-  ...
-  public Optional<Email> email() {
-      return isEmail() ? Optional.of(new Email(rawText)) : Optional.empty();
-  }
-  ...
+static class Unchecked {
+
+   ...
+
+   public Optional<Email> valid() {
+       return isEmail() ? Optional.of(new Email(rawText)) : Optional.empty();
+   }
 }
 ```
 
 ---
+class: codeonly
 ```java
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-* Email email = new Email.Text($.email())
-*                   .email()
-*                   .orElseThrow(() -> new ValidationException("Dooh! ..."));
+   Email email = new Email.Unchecked($.email())
+                     .valid()
+                     .orElseThrow(() -> new ValidationException("Dooh! ..."));
 
-  User user = makeUser(email, ...);
-  user.register();
-
-  users.persist(user);
-  welcomeNotification.schedule(user);
-
-  return new Command.R.Void();
+   User user = makeUser(email, ...);
+   ...
 }
 ```
 
@@ -1399,11 +1842,11 @@ public Command.R.Void react(RegisterNewUser $) {
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email email = new Email.Text($.email())
-                    .email()
+  Email email = new Email.Unchecked($.email())
+                    .valid()
                     .orElseThrow(() -> new ValidationException("Dooh! ..."));
 
-  Password password = new Password($.form().password());
+  Password password = new Password($.password());
   if (password.isWeak()) {
       throw new ValidationException("Weak password, sorry fella");
   }
@@ -1415,22 +1858,40 @@ public Command.R.Void react(RegisterNewUser $) {
 ```
 
 ---
+class: center, middle
+## Let's avoid branching and make code more declarative
+
+---
+class: codeonly
 ```java
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email.Text emailText = new Email.Text($.email());
+  Email.Unchecked email = new Email.Unchecked($.email());
   Password password = new Password($.password());
+```
 
+--
+
+```java
   Validator validator = new FailFastValidator();
+```
+
+--
+
+```java
   validator
-          .when(emailText, text -> !text.isEmail())
+          .whenNot(email, Email::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   validator
           .when(password, Password::isWeak)
           .then("Password is too weak. Make it secure by adding some weird characters.");
+```
 
-  validator.throwViolations();
+--
+
+```java
+  validator.throwFirst();
 
   ...
 
@@ -1439,12 +1900,15 @@ public Command.R.Void react(RegisterNewUser $) {
 ```
 
 ---
+class: codeonly
 ```java
 interface Validator {
 
     <T> IfCondition when(T value, Predicate<T> predicate);
 
-    void throwViolations();
+    <T> IfCondition whenNot(T value, Predicate<T> predicate);
+
+    void throwFirst();
 
 }
 ```
@@ -1459,7 +1923,7 @@ class IfCondition<T> {
 
     private String failureMessage;
 
-    public If(T item, Predicate<T> predicate) {
+    public IfCondition(T item, Predicate<T> predicate) {
         this.item = item;
         this.predicate = predicate;
     }
@@ -1480,20 +1944,34 @@ class IfCondition<T> {
 ```
 
 ---
+class: codeonly
 ```java
 class FailFastValidator implements Validator {
 
-    private Collection<IfCondition> ifConditions = new LinkedList<>();
+    private final Collection<IfCondition> ifConditions = new LinkedList<>();
 
     @Override
-    public <T> If when(T value, Predicate<T> predicate) {
+    public <T> IfCondition whenNot(T value, Predicate<T> predicate) {
+        return when(value, predicate.negate());
+    }
+```
+
+--
+
+```java
+    @Override
+    public <T> IfCondition when(T value, Predicate<T> predicate) {
         IfCondition<T> ifCondition = new IfCondition<>(value, predicate);
         ifConditions.add(ifCondition);
         return ifCondition;
     }
+```
 
+--
+
+```java
     @Override
-    public void throwViolations() {
+    public void throwFirst() {
         IfCondition.stream()
                 .filter(IfCondition::isTrue)
                 .findFirst()
@@ -1505,7 +1983,22 @@ class FailFastValidator implements Validator {
 }
 ```
 
+--
+
+```java
+    @Override
+    public void throwAll() {
+        ...
+    }
+```
+
 ---
+class: center, middle
+## Adding business validation
+### (email uniqueness check)
+
+---
+class: codeonly
 ```java
 class Email {
 
@@ -1516,11 +2009,15 @@ class Email {
     }
 
     ...
+```
 
-*   interface Uniqueness {
-*     boolean guaranteed(Email email);
-*   }
+--
 
+```java
+    interface Uniqueness {
+      boolean guaranteed(Email email);
+    }
+}
 ```
 
 --
@@ -1536,7 +2033,7 @@ interface Users {
 
 ```java
 @Component
-class UniquenessAmongUsers implements Email.Uniqueness {
+class AmongUsers implements Email.Uniqueness {
 
     private final Users users;
 
@@ -1548,28 +2045,28 @@ class UniquenessAmongUsers implements Email.Uniqueness {
 ```
 
 ---
+class: codeonly
 ```java
-
-*private final Uniqueness uniqueness;
+private final Uniqueness uniqueness;
 
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email.Text emailText = new Email.Text($.email());
+  Email.Unchecked email = new Email.Unchecked($.email());
   Password password = new Password($.password());
 
   Validator validator = new FailFastValidator();
   validator
-          .when(emailText, text -> !text.isEmail())
+          .whenNot(email, Email::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
-* validator
-*         .when(emailText.email(), email -> !uniqueness.guaranteed(email));
-*         .then("Argh, email is busy.")
+  validator
+*         .whenNot(email.valid(), uniqueness::guaranteed)          // lazy needed
+*         .then("Argh, email is taken by some hacker.");
   validator
           .when(password, Password::isWeak)
           .then("Password is too weak. Make it secure by adding some weird characters.");
 
-  validator.throwViolations();
+  validator.throwFirst();
 
   ...
 
@@ -1578,108 +2075,204 @@ public Command.R.Void react(RegisterNewUser $) {
 ```
 
 ---
-### Optionals
+class: codeonly
 ```java
-validator
-        .when($.affiliateId(), (affiliateId) -> !affiliateId.isPresent())
-        .then("Omg, missing affiliate id!");
+private final Uniqueness uniqueness;
 
-```
+@Override
+public Command.R.Void react(RegisterNewUser $) {
 
---
+  Email.Unchecked email = new Email.Unchecked($.email());
+  Password password = new Password($.password());
 
-```java
-class IsMissing<T> implements Predicate<Optional<T>> {
-    @Override
-    public boolean test(Optional<T> t) {
-        return !t.isPresent() || t.get() == null;
-    }
+  Validator validator = new FailFastValidator();
+  validator
+          .whenNot(() -> email, Email::isValid)
+          .then("Sorry man, email (%s) is completely wrong.");
+  validator
+          .whenNot(() -> email.valid(), uniqueness::guaranteed)
+          .then("Argh, email is taken by some hacker.");
+  validator
+          .when(() -> password, Password::isWeak)
+          .then("Password is too weak. Make it secure by adding some weird characters.");
+
+  validator.throwFirst();
+
+  ...
+
+  return new Command.R.Void();
 }
-
-validator
-        .when($.affiliateId(), new IsMissing<>())
-        .then("Omg, missing affiliate id!");
-```
-
---
-### Junction
-
-```java
-validator
-        .when($.affiliateId(), new IsMissing<>().or(new IsMalformed()))
-        .then("Affiliate id is malformed crap.");
-
 ```
 
 ---
-### Passing constraints as parameters?
-
+class: codeonly
 ```java
-class OutOfRange<T extends Comparable> implements Predicate<T> {
+interface Validator {
 
-    private final Range<T> range;
+    <T> IfCondition when(Supplier<T> value, Predicate<T> predicate);
 
-    public OutOfRange(Range<T> range) {
-        this.range = range;
-    }
+    <T> IfCondition whenNot(Supplier<T> value, Predicate<T> predicate);
 
-    @Override
-    public boolean test(T t) {
-        return !range.contains(t);
-    }
+    void throwFirst();
+
 }
 ```
 
 --
 
 ```java
+class IfCondition<T> {
+
+    private final Supplier<T> item;
+    private final Predicate<T> predicate;
+
+    private String failureMessage;
+
+    public IfCondition(Supplier<T> item, Predicate<T> predicate) {
+        this.item = item;
+        this.predicate = predicate;
+    }
+
+    void then(String failureMessage) {
+        this.failureMessage = failureMessage;
+    }
+
+    boolean isTrue() {
+        return predicate.test(item.get());
+    }
+
+    String message() {
+        return failureMessage.replaceAll("%s", item.get().toString());
+    }
+
+}
+```
+
+---
+class: codeonly
+```java
+class FailFastValidator implements Validator {
+
+    private final Collection<IfCondition> ifConditions = new LinkedList<>();
+
+    @Override
+    public <T> IfCondition whenNot(Supplier<T> value, Predicate<T> predicate) {
+        return when(value, predicate.negate());
+    }
+```
+
+```java
+    @Override
+    public <T> IfCondition when(Supplier<T> value, Predicate<T> predicate) {
+        IfCondition<T> ifCondition = new IfCondition<>(value, predicate);
+        ifConditions.add(ifCondition);
+        return ifCondition;
+    }
+
+    // everythige else stays absolutely the same
+}
+```
+
+
+---
+class: center, middle
+## Some more examples
+
+---
+class: codeonly
+```java
 validator
-        .when($.age(), new OutOfRange<>(atLeast(18)))
-        .then("Sorry, dude, you have to be at least %p years old", 18);
+        .whenNot(() -> $.affiliateId(), Optional::isPresent)
+        .then("Omg, missing affiliate id!");
+
 ```
 
 --
-### client-side l10n + lazy
 
 ```java
+
+
+class TooShort implements Predicate<Password> {
+
+    @Override
+    public boolean test(Password pw) {
+        return pw.text().length() < 10;
+    }
+}
+
+class Guessable implements Predicate<Password> {
+
+    @Override
+    public boolean test(Password pw) {
+        return pw.text().equals("qwerty123");
+    }
+}
+
 validator
-        .when($.age(), new OutOfRange<>(atLeast(18)))
-        .then("error.too_young", () -> 18);
+        .when($.password(), new TooShort().or(new Guessable()))
+        .then("Pick a better password, dude");
 ```
 
 ---
 class: center, middle
 ## Do we need Hibernate Validator aka JSR-349 RI?
 
+---
+
+## - validation is not a rocket science
+
+--
+
+## - HV works out-of-the-box with stateful Java Beans
+
+--
+
+## - HV requires bloody getters for method validation
+
+--
+
+## - HV does not work well with immutables.github.io
+
+--
+
+## - HV is mess when it comes to non-Java Beans
 
 ---
+class: codeonly
 .crap[
 ```java
 class Email {
 
-  private final String text;
-  ...
-  public Email(String text) {
-    ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-    ExecutableValidator validator = factory.getValidator().forExecutables();
-    Constructor<Email> constructor = ClassUtils
-      .getConstructorIfAvailable(Email.class, String.class);
+    private final String text;
 
-    validator
-            .validateConstructorParameters(constructor, new Object[]{text})
-            .stream()
-            .findAny();
-            .ifPresent(violation -> {
-                throw new IllegalArgumentException(violation.getMessage());
-            });
+    public Email(String text) {
+      ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+      ExecutableValidator validator = factory.getValidator().forExecutables();
+      Constructor<Email> constructor = getConstructorIfAvailable(Email.class, String.class);
 
-    this.text = rawText;
-  }
-  ...
+      validator
+              .validateConstructorParameters(constructor, new Object[]{text})
+              .stream()
+              .findAny()
+              .ifPresent(violation -> {
+                  throw new IllegalArgumentException(violation.getMessage());
+              });
+
+      this.text = rawText;
+    }
+}
 ```
 ]
+???
+essentially, it is out of date. Could support Java 8 method and const references instead of reflection
 
 ---
+class: center, middle
+## And tolerable for stateful Java Beans...
+### (but your app is not only a set of stateful Java Beans, hopefully)
+
+---
+class: codeonly
 ```java
 @Documented
 @Constraint(validatedBy = { ElonMuskValidator.class })
@@ -1714,29 +2307,33 @@ class ElonMuskValidator implements ConstraintValidator<ElonMusk, Hiree> {
 ```
 
 ---
-
+class: codeonly
 ```java
-class ApplyForAJob implements Command<Command.R.Void> {
+class ApplyForDreamJob implements Command<Command.R.Void> {
 
   @ElonMusk
-  Hiree hiree;
+  private Hiree hiree;
 
 }
 ```
 
 ```java
-@Component
-class DefaultNow implements Now {
+class Validable implements Now {
 
   private final Validator validator;
 
-  DefaultNow() {
-    ValidatorFactory validationFactory = Validation.buildDefaultValidatorFactory();
-    this.validator = validationFactory.getValidator();
+  Validable() {
+    this.validator = Validation
+                          .buildDefaultValidatorFactory()
+                          .getValidator();
   }
+```
 
+--
+
+```java
   public <C extends Command<R>, R extends Command.R> R execute(C command) {}
-    Set<ConstraintViolation<C>> violations = validation.validate(command);
+    Set<ConstraintViolation<C>> violations = validator.validate(command);
     if (!violations.isEmpty()) {
         throw new ConstraintViolationException("Boom!", violations);
     }
@@ -1747,7 +2344,7 @@ class DefaultNow implements Now {
 ```
 
 ---
-class: center, middle, invert
+class: center, middle, example
 # Persistence
 
 ---
@@ -1759,26 +2356,40 @@ class: center, middle, invert
 
 --
 
-### - Makes client code persistence agnostic (db, ldap, REST...)
+### - Makes client code persistence agnostic (db, ldap, rest...)
 
 --
 
 ### - Don't do this at home:
 
+---
+class: codeonly
 .crap[
 ```java
 interface CustomerDAO {
+
   UUID insert(Customer customer);
+
   UUID insert(CustomerDTO customer);
+
   Customer insert(String personalId, String fullName);
+
   boolean saveOrUpdate(Customer customer);
+
   boolean updateFullname(Customer customer, String newFullName);
+
   boolean delete(Customer customer);
+
   boolean deleteByPersonalId(String personalId);
+
   Customer findByPersonalId(String personalId);
+
   Collection<Customer> findAll();
+
   Collection<PhoneNumber> findMobileNumbers(String personalId);
+
   void merge(Customer detached);
+
   ...
 }
 ```
@@ -1790,6 +2401,7 @@ class: center, middle
 ### — *Fowler, PoEAA*
 
 ---
+class: codeonly
 .crap[
 ```java
 interface CustomerDAO {
@@ -1812,33 +2424,26 @@ interface CustomerDAO {
 --
 
 ```java
-interface Customers extends Repository<Customer> {
+@ImpliesUnitOfWorkPatternWithAutoFlush
+interface Customers {
   void add(Customer customer);
-  // UUID insert(CustomerDTO customer);
-  // Customer insert(String personalId, String fullName);
-  // boolean saveOrUpdate(Customer customer);
-  // boolean updateFullname(Customer customer, String newFullName);
   void delete(Customer customer);
-  // boolean deleteByPersonalId(String personalId);
-  // Customer findByPersonalId(String personalId);
-  Collection<Customer> list();
-  // Collection<PhoneNumber> findMobileNumbers(String personalId);
-  // void merge(Customer detached);
+  Collection<Customer> all();
 }
+
 ```
 
---
-
-### UnitOfWork patterns is implied.
-???
-implement proper equality in hibernate. Hiber's dirty check may go crazy and issue a plenty of update statements.
-
+---
+class: center, middle
+## Repository is not resposible for assigning ids
+### (generate ids upon entity creation)
 
 ---
-### A problem with storage-generated ids
+class: codeonly
 .crap[
 ```java
 class Account {
+
     @GeneratedValue(strategy= GenerationType.AUTO)
     private UUID id;
 
@@ -1855,8 +2460,14 @@ class Account {
 
 .crap[
 ```java
-interface Customers extends Repository<Customer> {
-  UUID add(Customer customer);
+class DontDoThisAtHomeRepository implements Repository<Account> {
+
+    public UUID add(Account account) {
+      entityManager.persits(account);
+      entityManager.flush();
+      return account.id();
+    }
+}
 ```
 ]
 
@@ -1864,22 +2475,40 @@ interface Customers extends Repository<Customer> {
 
 ```java
 Account offshore = new Account("DZ4000400174401001050486");
+```
 
+--
+
+```java
 Collection<Account> accounts = new HashSet<>();
 accounts.add(offshore);
+```
 
+--
+
+```java
 accountRepository.add(offshore); // generates UUID
+```
 
-accounts.contains(offshore) // false
+--
+```java
+accounts.contains(offshore)      // false
 ```
 
 ---
-### Use pre-generated UUIDs
+class: center, middle
+## Use pre-generated UUIDs
+### (consider stealing Cassandra's TimeUUID)
+
+---
+class: codeonly
+
 
 .nice[
 ```java
 interface Customers extends Repository<Customer> {
-  void add(Customer customer);
+    void add(Customer customer);
+}
 ```
 ]
 
@@ -1914,6 +2543,73 @@ now you can use the uuds before the persistance
 
 ---
 class: center, middle
+## Consider writing your own Equality class in Java 8
+
+---
+class: codeonly
+```java
+@Override
+public boolean equals(@Nullable Object obj) {
+    if (this == obj) {
+        return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+        return false;
+    }
+    User other = (User) obj;
+    return Objects.equals(this.id, other.id) &&
+              Objects.equals(this.other, other.other);
+}
+```
+
+--
+
+```java
+@Override
+public boolean equals(@Nullable Object that) {
+    return new Equality<>(Customer::id, Customer::other).equals(this, that);
+}
+```
+
+---
+class: codeonly
+```java
+@ConsumesExtraHeap
+class Equality<T> {
+
+    private final Collection<BiFunction<T, T, Boolean>> checks = new LinkedList<>();
+
+    Equality(Function<T, ?>... properties) {
+        checks.add((me, you) -> you != null);
+        checks.add((me, you) -> me.getClass() == you.getClass());
+        checks.addAll(Arrays
+                .stream(properties)
+                .map(property -> (BiFunction<T, T, Boolean>) (T me, T you) ->
+                    Objects.equals(property.take(me), property.take(you)))
+                .collect(toList()));
+    }
+
+
+    public boolean equals(Object me, @Nullable Object you) {
+        return checks.stream().allMatch(fn -> fn.apply((T) me, (T) you));
+    }
+}
+```
+
+```java
+
+
+
+@FunctionalInterface
+interface Property<T, R> {
+
+   R take(T t);
+
+}
+```
+
+---
+class: center, middle
 # Repository communicate design decisions about object access.
 ### — *Evans, DDD*
 ???
@@ -1935,6 +2631,7 @@ class: center, middle
 # Aggregate root ensures consistency of an aggregate.
 
 ---
+class: codeonly
 ```java
 @Entity
 class BankAccount {
@@ -1975,13 +2672,20 @@ class Transaction {
 ```
 
 ---
-
+class: codeonly
 ```java
 @Entity
 class BankAccount {
 
+    ...
+
     private List<Transaction> transactions = new ArrayList<>();
 
+```
+
+--
+
+```java
     public DecimalNumber balance() {
         DecimalNumber totalDeposited = transactions.stream()
                 .filter(tx -> tx.type().equals(DEPOSIT))
@@ -1993,7 +2697,11 @@ class BankAccount {
                 .map(Transaction::amount)
                 .reduce(totalDeposited, DecimalNumber::minus);
     }
+```
 
+--
+
+```java
     public Transaction deposit(DecimalNumber amount) {
         Domain.ensure(!isClosed(), "Cannot deposit funds to closed account.");
 
@@ -2002,7 +2710,11 @@ class BankAccount {
 
         return depositTx;
     }
+```
 
+--
+
+```java
     private boolean isClosed() {
         return status.equals(Status.CLOSED);
     }
@@ -2013,10 +2725,12 @@ class BankAccount {
 ```
 
 ---
-
+class: codeonly
 ```java
 @Entity
 class BankAccount {
+
+    ...
 
     public Transaction withdraw(DecimalNumber amount) {
         Domain.ensure(!isClosed(), "Cannot withdraw funds from closed account.");
@@ -2038,10 +2752,12 @@ class BankAccount {
 ```
 
 ---
-
+class: codeonly
 ```java
 @Entity
 class BankAccount {
+
+    ...
 
     private void ensureDailyWithdrawalLimitIsNotExceeded() {
         DecimalNumber dailyLimit = withdrawalLimit.dailyLimit();
@@ -2066,28 +2782,28 @@ class BankAccount {
 
 --
 
-### there is no way to create withdraw/deposit a CLOSED account
+### - there is no way to create withdraw/deposit a CLOSED account
 
 --
-### there is no way to withdraw more funds than available
-
---
-
-### there is no way to withdraw more funds than allowed by a daily limit
+### - there is no way to withdraw more funds than available
 
 --
 
-### returned Transactions fulfill all rules imposed by BankAccount
+### - there is no way to withdraw more funds than allowed by a daily limit
+
+--
+
+### - returned Transactions fulfill all rules imposed by BankAccount
 ???
 PLEASE MAKE THE IMMUTABLE!!!
 
 --
 
-### an aggregate is protected by a single optimistic lock
+### - an aggregate is protected by a single optimistic lock
 
 --
 
-### lifecycle of Transactions is bound to BankAccount
+### - lifecycle of Transactions is bound to BankAccount
 
 ---
 class: bottom, middle
@@ -2102,6 +2818,7 @@ class: center, middle
 ### ...and can only be designed after careful transactional analysis.
 
 ---
+class: codeonly
 ```java
 @Entity
 @GuardedByOptimisticLock
@@ -2139,33 +2856,38 @@ public class Customer extends DomainEntity {
 ```
 
 ---
-### org.springframework.orm.ObjectOptimisticLockingFailureException
+class: codeonly
+
 ```java
-Customer customer = new Customer(
-  new Email("hello@devchampions.com"),
-  new Password("qwerty123"));
+@Throws(org.springframework.orm.ObjectOptimisticLockingFailureException)
+void boom() {
 
-executeInTx(() -> entityManager.persist(customer));
+    Customer customer = new Customer(
+      new Email("hello@devchampions.com"),
+      new Password("qwerty123"));
 
-CyclicBarrier coordinator = new CyclicBarrier(2);
+    executeInTx(() -> entityManager.persist(customer));
 
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(Customer.class, customer.id())
-          .relocateTo(new Address("New York, Central Park"));
-        coordinator.await();
-    })
-).start();
+    CyclicBarrier coordinator = new CyclicBarrier(2);
 
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(Customer.class, customer.id())
-          .changePassword(new Password("whatever"));
-        coordinator.await();
-    })
-).start();
+    new Thread(() ->
+        executeInTx(() ->
+            entityManager
+              .find(Customer.class, customer.id())
+              .relocateTo(new Address("New York, Central Park"));
+            coordinator.await();
+        })
+    ).start();
+
+    new Thread(() ->
+        executeInTx(() ->
+            entityManager
+              .find(Customer.class, customer.id())
+              .changePassword(new Password("whatever"));
+            coordinator.await();
+        })
+    ).start();
+}
 ```
 
 ---
@@ -2174,27 +2896,10 @@ class: center, middle
 ### (concurrency exceptions can reach the point where the system becomes unusable)
 
 ---
+class: codeonly
 ```java
 @Entity
-public class BankAccount extends DomainEntity {
-
-    @ManyToOne
-    private Bank bank;
-
-    public BankAccount(Bank bank) {
-        this.bank = bank;
-    }
-
-    public void transfer(Bank newBank, LocalDate effectiveAt) {
-        Bank currentBank = this.bank;
-        newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
-        this.bank = newBank;
-    }
-```
-
-```java
-@Entity
-public class Bank extends DomainEntity {
+class Bank extends DomainEntity {
 
     private String name;
 
@@ -2212,35 +2917,59 @@ public class Bank extends DomainEntity {
 }
 ```
 
----
-### org.springframework.orm.ObjectOptimisticLockingFailureException
+--
+
 ```java
-Bank swedbank = new Bank("Swedbank");
-Bank bankOfAmerica = new Bank("Bank of America");
-BankAccount account = new BankAccount(swedbank);
+@Entity
+class BankAccount extends DomainEntity {
 
-executeInTx(() ->
-  persist(swedbank, bankOfAmerica, account);
-);
+    @ManyToOne
+    private Bank bank;
 
-CyclicBarrier coordinator = new CyclicBarrier(2);
+    public BankAccount(Bank bank) {
+        this.bank = bank;
+    }
 
-new Thread(() ->
+    public void transfer(Bank newBank, LocalDate effectiveAt) {
+        Bank currentBank = this.bank;
+        newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
+        this.bank = newBank;
+    }
+```
+
+---
+class: codeonly
+```java
+@Throws(org.springframework.orm.ObjectOptimisticLockingFailureException)
+void boom() {
+    Bank swedbank = new Bank("Swedbank");
+    Bank bankOfAmerica = new Bank("Bank of America");
+    BankAccount account = new BankAccount(swedbank);
+
     executeInTx(() ->
-        Bank newBank = entityManager.find(Bank.class, bankOfAmerica.id());
-        account.transfer(newBank, now().with(lastDayOfMonth()));
-        coordinator.await();
-    })
-).start();
+      persist(swedbank, bankOfAmerica, account);
+    );
 
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(Bank.class, bankOfAmerica.id())
-          .rename("The Royal Bank of America");
-        coordinator.await();
-    })
-).start();
+    CyclicBarrier coordinator = new CyclicBarrier(2);
+
+    new Thread(() ->
+        executeInTx(() ->
+            entityManager
+              .find(Bank.class, bankOfAmerica.id())
+              .transfer(newBank, now().with(lastDayOfMonth()));
+            coordinator.await();
+        })
+    ).start();
+
+    new Thread(() ->
+        executeInTx(() ->
+            entityManager
+              .find(Bank.class, bankOfAmerica.id())
+              .rename("The Royal Bank of America");
+            coordinator.await();
+        })
+    ).start();
+}
 ```
 
 ---
@@ -2248,28 +2977,31 @@ background-image:url(eventual.jpg)
 background-size: 50%
 
 ---
+class: codeonly
 .crap[
 ```java
-public void transfer(Bank newBank, LocalDate effectiveAt) {
+public void acidTransfer(Bank newBank, LocalDate effectiveAt) {
     Bank currentBank = this.bank;
-*   newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
+    newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
     this.bank = newBank;
 }
 ```
 ]
 
+--
+
 .nice[
 ```java
-public void transfer(Bank newBank, LocalDate effectiveAt) {
+public void baseTransfer(Bank newBank, LocalDate effectiveAt) {
     Bank currentBank = this.bank;
-*   DomainEvents.durable().publish(
-*      new BankAccountTransferred(
-*          id(),
-*          currentBank.id(),
-*          newBank.id(),
-*          effectiveAt
-*      )
-    );
+
+    DomainEvents.durable().publish(
+        new BankAccountTransferred(
+            id(),
+            currentBank.id(),
+            newBank.id(),
+            effectiveAt));
+
     this.bank = newBank;
 }
 ```
@@ -2291,22 +3023,25 @@ class SignInterbankTransferAgreement implements SideEffect<BankAccountTransferre
 ```
 
 ---
+class: codeonly
 .crap[
 ```java
-@ManyToOne
-private Bank bank;
+class EvilBankAccountThatHoldsRefereceToBank {
+    @ManyToOne
+    private Bank bank;
 
-public void transfer(Bank newBank, LocalDate effectiveAt) {
-    Bank currentBank = this.bank;
-    DomainEvents.durable().publish(
-       new BankAccountTransferred(
-           id(),
-           currentBank.id(),
-           newBank.id(),
-           effectiveAt
-       )
-    );
-    this.bank = newBank;
+    public void transfer(Bank newBank, LocalDate effectiveAt) {
+        Bank currentBank = this.bank;
+        DomainEvents.durable().publish(
+           new BankAccountTransferred(
+               id(),
+               currentBank.id(),
+               newBank.id(),
+               effectiveAt
+           )
+        );
+        this.bank = newBank;
+    }
 }
 ```
 ]
@@ -2315,20 +3050,22 @@ public void transfer(Bank newBank, LocalDate effectiveAt) {
 
 .nice[
 ```java
-@Embedded
-private BankId bankId;
+class GoodBankAccountThatReferencesBankByIdentity {
+    @Embedded
+    private BankId bankId;
 
-public void transfer(BankId newBankId, LocalDate effectiveAt) {
-    BankId currentBankId = this.bankId;
-    DomainEvents.durable().publish(
-       new BankAccountTransferred(
-           id(),
-           currentBankId,
-           newBankId,
-           effectiveAt
-       )
-    );
-    this.bankId = newBankId;
+    public void transfer(BankId newBankId, LocalDate effectiveAt) {
+        BankId currentBankId = this.bankId;
+        DomainEvents.durable().publish(
+           new BankAccountTransferred(
+               id(),
+               currentBankId,
+               newBankId,
+               effectiveAt
+           )
+        );
+        this.bankId = newBankId;
+    }
 }
 ```
 ]
@@ -2400,7 +3137,11 @@ class EphemeralDomainEvents implements DomainEvents {
         EphemeralDomainEvents.instance = this;
         ...
     }
+```
 
+--
+
+```java
     public void publish(DomainEvent event) {
         sideEffects.byEvent(event)
                 .forEach(sideEffect -> inFuture(inTx(txStatus -> sideEffect.occur(event))));
@@ -2413,7 +3154,11 @@ class EphemeralDomainEvents implements DomainEvents {
     private Runnable inTx(Consumer<TransactionStatus> consumer) {
         return () -> tx.execute(status -> { consumer.accept(status); return empty(); });
     }
+```
 
+--
+
+```java
     public static DomainEvents instance() {
         return checkNotNull(instance, "Ephemeral domain events have not been initialized yet.");
     }
@@ -2449,7 +3194,123 @@ class SideEffects {
 ```
 
 ---
-# Spring Data JPA boo-boos:
+class: center, middle
+# Repositories with Spring Data JPA in one slide
+
+---
+class: codeonly
+```java
+@Repository
+interface Customers extends JpaRepository<Customer, UUID> {
+
+```
+
+--
+
+```java
+    Collection<Customer> findByLastnameAndFirstnameAllIgnoreCase();
+```
+
+--
+
+```java
+    Page<Customer> findByLastnameAndFirstnameAllIgnoreCase(Pageable pageable);
+```
+
+--
+
+```java
+    Page<Customer> findByLastnameAndFirstnameAllIgnoreCase(Pageable pageable, Sort sort);
+```
+
+--
+
+```java
+    Stream<Customer> findByLastnameAndFirstnameAllIgnoreCase(...);
+```
+
+--
+
+```java
+    Slice<Customer> findByLastnameAndFirstnameAllIgnoreCase(...);
+```
+
+--
+
+```java
+    Optional<Customer> findOne(UUID id);
+```
+
+--
+
+```java
+    CompletableFuture<Customer> findOne(UUID id);
+```
+
+--
+
+```java
+}
+
+@Repository
+interface Customers extends JpaRepository<Customer, UUID>, JpaSpecificationExecutor<Customer> {
+}
+```
+
+--
+
+```java
+class LongTerm implements Specification<Customer> {
+    @Override
+    public Predicate toPredicate(Root<Customer> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+        return builder.lessThan(root.get("registeredAt"), longTimeAgo);
+    }
+}
+```
+
+--
+
+```java
+Stream<Customer> longTermCustomers = customers.findAll(new LongTerm());
+```
+
+---
+class: center, middle
+## A little type-safety never killed nobody
+#### http://in.relation.to/2016/04/14/emulating-property-literals-with-java-8-method-references/
+
+
+---
+class: codeonly
+```java
+class LongTerm implements Specification<Customer> {
+    @Override
+    public Predicate toPredicate(Root<Customer> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+        return builder.lessThan(root.get("registeredAt"), longTimeAgo);
+    }
+}
+```
+
+--
+
+```java
+class LongTerm implements Specification<Customer> {
+    @Override
+    public Predicate toPredicate(Root<Customer> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+
+        Customer $ = Expressions.of(Customer.class, root);
+        Expression<LocalDate> registeredAt = $.expression($::registeredAt);
+
+        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
+        return builder.lessThan(registeredAt, longTimeAgo);
+    }
+}
+```
+
+---
+# What I don't like about Spring Data JPA:
 ### - method naming is not really repositorish (e.g. save())
 
 --
@@ -2459,15 +3320,6 @@ class SideEffects {
 --
 
 ### - does not work with wrapped primary keys (e.g. UserId)
-
---
-
-### - findFirst10DistinctPeopleByLastnameAndFirstnameAllIgnoreCase();
-
---
-
-### - findByAddress_ZipCode(ZipCode zipCode);
-
 --
 
 ### - adds extra bugs on top of Hibernate
@@ -2477,99 +3329,102 @@ class SideEffects {
 ### - may not support the latest JPA/Hibernate features
 
 ---
-
-# Spring Data JPA niceties:
-### - returns Page, Slice, Stream, CompletableFuture, Optional
-### - accepts Pageable, Sort and Specification
-### - accepts Specification
-
-```java
-interface Customers extends Repository<Customer, UUID>,
-                                   JpaSpecificationExecutor<Customer> {
-}
-
-Sort ordering = new Sort(ASC, "registeredAt");
-Stream<Customer> longTermCustomers = customers.findAll(longTerm(), ordering);
-
-Specification<Customer> longTerm() {
-    return (root, query, builder) -> {
-        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
-        return builder.lessThan(root.get("registeredAt"), longTimeAgo);
-    };
-}
-```
+class: center, middle
+## Great repositories without Spring Data? Easy!
 
 ---
-# Type-safety magic
+class: codeonly
 ```java
-Specification<Customer> longTerm() {
-    return (root, query, builder) -> {
-*       Customer $ = Expressions.of(Customer.class, root);
-*       Expression<LocalDate> registeredAt = $.expression($::registeredAt);
-        LocalDate longTimeAgo = LocalDate.now().minusYears(2);
-        return builder.lessThan(registeredAt, longTimeAgo);
-    };
-}
+interface Repository<T, ID extends Id> {
 ```
 
 --
 
-### Or if you want to hide accessors:
 ```java
-return (root, query, builder) -> {
-    LocalDate longTimeAgo = LocalDate.now().minusYears(2);
-*   Expression<LocalDate> registeredAt = Customer.REGISTERED_AT.apply(root);
-    return builder.lessThan(registeredAt, longTimeAgo);
-}
+    T unique(ID id);
 ```
 
+--
 
-http://in.relation.to/2016/04/14/emulating-property-literals-with-java-8-method-references/
-
----
-### Repositories without Spring Data
 ```java
-interface DomainEntities<T, ID extends Id> {
-
-    Optional<T> uniqueOptional(ID id);
-
-    T unique(ID id);
-
     T unique(Criterion<T> criterion);
+```
 
+--
+
+```java
+    Optional<T> uniqueOptional(ID id);
+```
+
+--
+
+```java
     Collection<T> all(Criterion<T> criterion);
+```
 
+--
+
+```java
     void add(T entity);
+```
 
+--
+
+```java
     void remove(T entity);
+```
 
+--
+
+```java
     long count(Criterion<T> criterion);
 
     ...
 }
 ```
 
----
+--
+
 ```java
-abstract class JpaDomainEntities<T, ID extends Id> implements DomainEntities<T, ID> {
+interface Criterion<T> {
+
+    Predicate predicate(Root<T> root, CriteriaBuilder builder);
+
+}
+```
+
+---
+class: codeonly
+```java
+class JpaRepository<T, ID extends Id> implements Repository<T, ID> {
 
     private final EntityManager entityManager;
     private final Class<T> entityType;
+```
 
-    // constructor goes here
+--
 
+```java
     @Override
     public T unique(ID id) {
         return uniqueOptional(id)
                 .orElseThrow(() -> new DomainEntityNotFound(id));
     }
+```
 
+--
+
+```java
     @Override
     public Optional<T> uniqueOptional(ID id) {
         T entity = entityManager.find(entityType, id.uuid());
         return Optional.ofNullable(entity);
     }
+```
 
+--
+
+```java
     @Override
     public T unique(Criterion<T> criterion) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
@@ -2584,54 +3439,62 @@ abstract class JpaDomainEntities<T, ID extends Id> implements DomainEntities<T, 
                 .createQuery(query)
                 .getSingleResult();
     }
+
     ...
 }
 ```
 
 ---
+class: codeonly
 ```java
-interface Customers extends DomainEntities<Customer, CustomerId> {
-}
-```
+@CanBeAutoGenerated(see = org.spr.data.repository.config.RepositoryComponentProvider.class)
+@Configuration
+class CustomerJpaRepository {
 
---
-```java
-@Component
-class JpaCustomers extends JpaDomainEntities<Customer, CustomerId>
-                   implements Customers {
-    public JpaCustomers(EntityManager entityManager) {
-        super(entityManager, Customer.class);
+    @Bean
+    Repository<Customer, CustomerId> repository(EntityManager entityManager) {
+        return new JpaRepository<>(entityManager, Customer.class);
     }
 }
+
 ```
 
 --
 
 ```java
 @Autowired
-Customers customers;
+Repository<Customer, CustomerId> customers;
 
-void addingShowtime() {
+void addition() {
   Customer customer = new Customer(...);
   customers.add(customer);
 }
 
-void uniqueShowtime(CustomerId customerId) {
+void uniqueFetch(CustomerId customerId) {
   Customer unique = customers.unique(customerId);
 }
 
-void allShowtime() {
+void allFetch() {
   Criterion<Customer> withoutPassword = (root, builder) -> {
-      Path<String> password = root.get("password");
+      Customer $ = Expressions.of(Customer.class, root);
+      Expression<Password> password = $.expression($::password);
       return builder.isNull(password);
   };
+
   customers
     .all(withoutPassword)
-    .stream() ...
+    .stream()
+    ...
 };
 ```
 
 ---
+class: center, middle
+## Achievement unlocked: single repository means a single repository test.
+### (only Specifications deserve unique tests)
+
+---
+class: codeonly
 ```java
 class CustomerId extends Id {
 
@@ -2644,9 +3507,10 @@ class CustomerId extends Id {
 --
 
 ```java
+@AKittenWillBeKilledIfYouForgetToImplementHashCodeAndEquals
 abstract class Id {
 
-    private final UUID uuid;
+    private UUID uuid;
 
     public Id(UUID uuid) {
         this.uuid = uuid;
@@ -2660,19 +3524,24 @@ abstract class Id {
         return uuid;
     }
 
-    // customerId.as(BannedUserId::new);
     public <T> T as(Function<Id, T> convert) {
         return convert.apply(this);
     }
-
-    // hashCode and equals()...
 }
 ```
 
+--
+
+```java
+CustomerId customerId = new CustomerId();
+RecipientId recipientId = customerId.as(RecipientId::new);
+```
+
 ---
+class: codeonly
 ```java
 @Entity
-public class Customer extends DomainEntity<CustomerId> {
+public class Customer {
 
     @javax.persistence.Id
     private UUID id = UUID.randomUUID();
@@ -2711,41 +3580,19 @@ class Customer extends DomainEntity<CustomerId> {
 ```
 
 ---
-# Few more things:
-### - Hibernate and Spring Data JPA support Geo Spatial queries
-
---
-
-### - Hibernate supports multi tenancy
-```java
-session = sessionFactory
-            .withOptions()
-            .tenantIdentifier( tenant )
-            .openSession();
-```
-
---
-
-### - Hibernate supports change auditing (Envers)
-
---
-
-### - Hibernate 5 deprecated (Detached)Criteria in favour of JPA criteria
-
---
-
-### - Test repositories in-memory with H2
-
+class: center, middle
+## Repository is not the only way...
 
 ---
-# Often Repository is not the way to go
-
---
+class: codeonly
 
 ```java
 interface RegistrationCount {
+
     void increment(long diff);
+
     void decrement(long diff);
+
     void reset();
 }
 ```
@@ -2777,16 +3624,20 @@ class RedisRegistrationCount implements RegistrationCount {
 ```
 
 ---
-# A drop of (uncomfortable) OO code
+class: center, middle
+## Prepare yourself to very uncomfortable OO code...
+
+---
+class: codeonly
 ```java
 class Post {
 
   private final DataSource source;
   private final int id;
+  private final String content;
 
-  public Post(DataSource source, int id) {
-    this.source = source;
-    this.id = id;
+  public Post(DataSource source, int id, String content) {
+    ...
   }
 
   public int id() {
@@ -2806,26 +3657,11 @@ class Post {
       .set(this.number)
       .select(new SingleOutcome<String>(String.class));
   }
-}
-```
 
----
-# A drop of (uncomfortable) OO code
-```java
-class Book {
-
-  private final DataSource source;
-  private final int id;
-
-  public Book(DataSource source, int id) {
-    this.source = source;
-    this.id = id;
-  }
-
-  public void rename(String title) {
+  public void rewrite(String content) {
     return new JdbcSession(this.source)
-      .sql("UPDATE book SET title=? WHERE id=?")
-      .set(title)
+      .sql("UPDATE post SET content=? WHERE id=?")
+      .set(content)
       .set(this.id)
       .update();
   }
@@ -2836,28 +3672,56 @@ class Book {
 background-image:url(testcontainers.png)
 
 ---
+class: codeonly
+```groovy
+class RedisRegistrationCountIncSpec extends Specification {
+
+    @Subject
+    RedisRegistrationCount registrationCount
+```
+
+--
+
 ```java
-class RedisBackedCacheTest {
+    @ClassRule
+    @Shared
+    GenericContainer redis = new GenericContainer("redis:3.0.6").withExposedPorts(6379)
 
-    @Rule
-    public GenericContainer redis = new GenericContainer("redis:3.0.6")
-                                            .withExposedPorts(6379);
-    private Cache cache;
+```
 
-    @Before
-    public void setUp() {
-        Jedis jedis = new Jedis(redis.getIpAddress(), redis.getMappedPort(6379));
-        cache = new RedisBackedCache(jedis, "test");
+--
+
+```java
+    def setupSpec() {
+        def connectionFactory = new JedisConnectionFactory().with {
+          port = redis.getMappedPort(6379)
+          hostname = redis.ipAddress
+        }
+
+        def redisTemplate = new RedisTemplate(connectionFactory: connectionFactory)
+
+        registrationCount = new RedisRegistrationCount(redisTemplate)
     }
-    @Test
-    public void findsAnInsertedValueInCache() {
-        String MAGIC_KEY = "foo";
-        String MAGIC_VALUE = "whatever";
-        cache.put(MAGIC_KEY, MAGIC_VALUE);
+```
 
-        Optional<String> cachedValue = cache.get(MAGIC_KEY, String.class);
-        assertThat(cachedValue, isPresent());
+--
+
+```groovy
+    def "increments counter by provided diff"() {
+        when:
+        registrationCount.increment(inc)
+
+        then:
+        redisTemplate.opsForValue().get("total_registrations") == total
+
+        where:
+        inc || total
+        0   || 0
+        1   || 1
+        2   || 3
     }
+
+    ...
 }
 ```
 
