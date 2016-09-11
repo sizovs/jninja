@@ -452,6 +452,11 @@ interface Reaction<C extends Command<R>, R extends Command.R> {
 ```
 
 ---
+class: center, middle
+## Bundle advanced functionality into separate objects. Functionality is hidden unless such objects are requested.
+### — *Scott Meyers*
+
+---
 
 ## .strike[Tend to grow like hell]
 
@@ -1844,7 +1849,7 @@ public Command.R.Void react(RegisterNewUser $) {
 
   Email email = new Email.Unchecked($.email())
                     .valid()
-                    .orElseThrow(() -> new ValidationException("Dooh! ..."));
+                    .orElseThrow(() -> new ValidationException("o_O"));
 
   Password password = new Password($.password());
   if (password.isWeak()) {
@@ -2533,80 +2538,13 @@ class Customer {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        User other = (User) obj;
+        Customer other = (Customer) obj;
         return Objects.equals(this.id, other.id);
     }
 ```
 ]
 ???
 now you can use the uuds before the persistance
-
----
-class: center, middle
-## Consider writing your own Equality class in Java 8
-
----
-class: codeonly
-```java
-@Override
-public boolean equals(@Nullable Object obj) {
-    if (this == obj) {
-        return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-        return false;
-    }
-    User other = (User) obj;
-    return Objects.equals(this.id, other.id) &&
-              Objects.equals(this.other, other.other);
-}
-```
-
---
-
-```java
-@Override
-public boolean equals(@Nullable Object that) {
-    return new Equality<>(Customer::id, Customer::other).equals(this, that);
-}
-```
-
----
-class: codeonly
-```java
-@ConsumesExtraHeap
-class Equality<T> {
-
-    private final Collection<BiFunction<T, T, Boolean>> checks = new LinkedList<>();
-
-    Equality(Function<T, ?>... properties) {
-        checks.add((me, you) -> you != null);
-        checks.add((me, you) -> me.getClass() == you.getClass());
-        checks.addAll(Arrays
-                .stream(properties)
-                .map(property -> (BiFunction<T, T, Boolean>) (T me, T you) ->
-                    Objects.equals(property.take(me), property.take(you)))
-                .collect(toList()));
-    }
-
-
-    public boolean equals(Object me, @Nullable Object you) {
-        return checks.stream().allMatch(fn -> fn.apply((T) me, (T) you));
-    }
-}
-```
-
-```java
-
-
-
-@FunctionalInterface
-interface Property<T, R> {
-
-   R take(T t);
-
-}
-```
 
 ---
 class: center, middle
@@ -3726,8 +3664,628 @@ class RedisRegistrationCountIncSpec extends Specification {
 ```
 
 ---
-Wrap commands in Hystryx. And that's it.
+class: center, middle, example
+# Stability Patterns
+## Shed Load, Bulkheads, Timeouts and Circuit Breakers
 
+---
+class: center, middle
+## Load Shedding and Bulkheads with Hystrix
+
+---
+class: codeonly
+```java
+@Component
+class PipedNow implements Now {
+
+    ...
+
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+        Now pipe =
+*               new ConcurrencyLimited(
+                        new Correlable(
+                                new Loggable(
+                                        new Transactional(
+                                                new Reacting())))));
+
+        return pipe.execute(command);
+    }
+```
+
+---
+class: codeonly
+```java
+private class ConcurrencyLimited implements Now {
+
+       private final Now origin;
+
+       Hystrix(Now origin) {
+           this.origin = origin;
+       }
+
+       @Override
+       public <C extends Command<R>, R extends Command.R> R execute(C command) {
+
+         HystrixCommand.Setter commandOptions = hystrixOptions(command);
+         HystrixCommand<R> hystrixCommand = new HystrixCommand<R>(commandOptions) {
+               @Override
+               protected R run() throws Exception {
+                   return origin.execute(command);
+               }
+         };
+         return hystrixCommand.execute();
+       }
+```
+--
+
+```java
+       private HystrixCommand.Setter hystrixOptions(Command command) {
+          int concurrencyLimit = command.concurrencyLimit().orElse(10);
+          return HystrixCommand.Setter
+                .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                      .withExecutionIsolationStrategy(SEMAPHORE)
+                      .withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrencyLimit));
+        }
+}
+```
+
+---
+class: codeonly
+```java
+IntStream.range(1, 10).parallel().forEach(i -> {
+      logOnError(()-> new GetTotalLikes().execute(now));
+      logOnError(()-> new GetTotalShares().execute(now));
+});
+```
+
+--
+```java
+@TwoOutOfTenCommandsWillEndWith
+com.netflix.hystrix.exception.HystrixRuntimeException:
+  GetTotalLikes could not acquire a semaphore for execution and no fallback available.
+
+@TwoOutOfTenCommandsWillEndWith
+com.netflix.hystrix.exception.HystrixRuntimeException:
+  GetTotalShares could not acquire a semaphore for execution and no fallback available.
+```
+
+--
+
+```java
+public interface Reaction<C extends Command<R>, R extends Command.R> {
+
+    R react(C $);
+
+    default R fallback(C $) {
+        throw new UnsupportedOperationException("No fallback available.");
+    }
+
+    ...
+}
+```
+
+--
+
+```java
+class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
+
+    @Override
+    public TotalLikes fallback(GetTotalLikes $) {
+        return new TotalLikes(10000000);
+    }
+```
+
+---
+class: codeonly
+```java
+private class HystrixGuarded implements Now {
+    @Override
+    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+        Reaction<C, R> reaction = reactions.byCommand(command);
+
+        HystrixCommand.Setter commandOptions = hystrixOptions(command);
+        HystrixCommand<R> hystrixCommand = new HystrixCommand<R>(commandOptions) {
+            @Override
+            protected R run() throws Exception {
+                return reaction.react(command);
+            }
+
+            @Override
+            protected R getFallback() {
+                return reaction.fallback(command);
+            }
+
+        };
+
+        return hystrixCommand.execute();
+    }
+}
+```
+
+--
+```java
+@Override
+public <C extends Command<R>, R extends Command.R> R execute(C command) {
+    Now pipe =
+            new Correlable(
+                    new Loggable(
+                            new Transactional(
+                                    new HystrixGuarded())));
+
+    return pipe.execute(command);
+}
+```
+
+---
+
+class: codeonly
+```java
+IntStream.range(1, 10).parallel().forEach(i -> {
+      logOnError(()-> new GetTotalLikes().execute(now));
+      logOnError(()-> new GetTotalShares().execute(now));
+});
+```
+
+--
+```java
+@GetTotalLikesWillAlwaysSucceed
+@TwoOutOfTenCommandsWillEndWith
+@AllExceptionLeadToFallbackExcept(HystrixBadRequestException.class)
+com.netflix.hystrix.exception.HystrixRuntimeException:
+  GetTotalShares could not acquire a semaphore for execution and no fallback available.
+```
+
+---
+class: center, middle
+# Timeouts
+
+
+---
+class: codeonly
+```java
+@AllCommandsRunInTheCallingThread
+@AllCallingThreadsWillBlockSoon
+class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
+
+    @Override
+    public TotalLikes react(GetTotalLikesReaction $) {
+      try {
+          TimeUnit.SECONDS.sleep(30);
+      } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+      }
+    }
+
+```
+
+--
+```java
+@NowAllCommandsRunInASeparateThreadPool
+@BulkheadsOnSteroids
+private HystrixCommand.Setter hystrixOptions(Command command) {
+    int concurrencyLimit = command.concurrencyLimit().orElse(10);
+    return HystrixCommand.Setter
+            .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
+            .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
+            .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                    .withExecutionIsolationStrategy(THREAD)
+                    .withExecutionTimeoutInMilliseconds(1000))
+            .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter()
+                    .withCoreSize(concurrencyLimit));
+}
+```
+???
+runs in a separate thread, because Hystrix must interrupt thread. You don't want to interrupt the whole request.
+
+---
+class: center, middle
+# Circuit Breaking
+
+
+---
+class: codeonly
+```java
+class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
+
+    @Override
+    public TotalLikes react(GetTotalLikesReaction $) {
+      try {
+          TimeUnit.SECONDS.sleep(30);
+      } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+      }
+    }
+
+```
+
+--
+```java
+@FallsBackImmediatelyAfterThirdAttempt
+private HystrixCommand.Setter hystrixOptions(Command command) {
+    int concurrencyLimit = command.concurrencyLimit().orElse(10);
+    return HystrixCommand.Setter
+            .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
+            .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
+            .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+*                   .withCircuitBreakerSleepWindowInMilliseconds(30000)
+*                   .withCircuitBreakerRequestVolumeThreshold(2)
+                    .withExecutionIsolationStrategy(THREAD)
+                    .withExecutionTimeoutInMilliseconds(1000))
+            .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter()
+                    .withCoreSize(concurrencyLimit));
+}
+```
+
+---
+
+class: center, middle, example
+# Logging
+
+---
+# Slf4j please.
+
+--
+
+### - Bridges for all common logging frameworks
+
+--
+
+### - Single dependency on `slf4-api`
+
+---
+# Logback please.
+### - Native, zero-overhead implementation of Slf4j
+
+--
+
+### - Supports configuration via flexible Groovy DSL
+
+--
+
+### - Supports asynchonous logging via AsyncAppender
+
+--
+
+### - Supports {} to variables to avoid concatenation
+
+--
+### - log.isDebugEnabled() check is [almost] obsolete.
+???
+- Groovy can access your classpath. So you can do type-safe stuff.
+- Consider log4j 2 - faster async via disruptor, custom log levels, custom formatters, lazy args.
+- Lambda support in Slf4j is planned in the next release - 1.8.
+
+---
+class: codeonly
+```java
+void serve(HttpRequest request) {
+  MDC.put("userId", new LoggedUserId(user));
+
+  userIdIsAvailableInThisMethod();
+  andInThisOneToo();
+
+  MDC.remove("userId");
+}
+```
+
+--
+
+```groovy
+
+
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.core.ConsoleAppender
+appender("STDOUT", ConsoleAppender) {
+    encoder(PatternLayoutEncoder) {
+      pattern = "[%thread] %mdc{userId:-UNKNOWN} - %msg%n"
+    }
+}
+root DEBUG, ["STDOUT"]
+```
+???
+- so you don't have to pass userId every time you log the message.
+- every log message will contain a userId information.
+
+---
+class: codeonly
+```java
+class Tx {
+
+  static Marker CHATOPS = MarkerManager.getMarker("CHATOPS");
+
+  void execute() {
+    log.error(CHATOPS, "Oh sh%t, transaction failed", new Tx.Failed(cause));
+  }
+}
+```
+
+--
+
+```groovy
+
+
+
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.core.ConsoleAppender
+appender("DEFAULT", ConsoleAppender) {
+    encoder(PatternLayoutEncoder) {
+        pattern = "%m%n"
+    }
+}
+appender("CHATOPS", SlackAppender) {
+    channel = "chatops"
+    filter(EvaluatorFilter) {
+        evaluator(OnMarkerEvaluator) { marker = "CHATOPS" }
+        onMatch = "ACCEPT"
+    }
+}
+
+root DEBUG, ["DEFAULT", "CHATOPS"]
+```
+???
+- you also filter-out messages for a given marker (e.g. commands that do not need to be logged)
+
+---
+background-image:url(12factor.jpg)
+???
+- Software must write to sysout
+- Fluentd
+
+---
+class: codeonly
+
+.crap[
+```java
+class Command {
+
+    String username;
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+log.info("Command received", command);
+```
+]
+
+---
+
+class: codeonly
+
+.crap[
+```java
+class Command {
+
+    String username;
+    String password;
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+}
+
+log.info("Command received", command);
+```
+]
+
+
+---
+class: codeonly
+.nice[
+```java
+class Command implements Loggable {
+
+    String username;
+    String password;
+
+    @Override
+    public String toLogString() {
+        return Joiner.on(' ').join(username, "********");
+    }
+}
+
+log.info("Command received", command.toLogString());
+```
+]
+
+---
+class: codeonly
+```java
+@DoubleLoggingBecauseIDoBothLoggingAndThrowing
+class Mailgun {
+    void send(Email email) {
+      try {
+          // try to send email...
+      } catch(IOException e) {
+*           log.error("Mailgun is unavailable", e);
+          throw new MailgunUnavailable("Mailgun is unavailable", e);
+      }
+    }
+}
+
+class SubscriptionReminder {
+    Mailgun mailgun;
+    void remind() {
+        Email email = new Email(...);
+        try {
+          mailgun.send(email);
+        } catch (MailgunUnavailable e) {
+*         log(e);
+          reschedule();
+        }
+    }
+}
+```
+???
+- MESS in log files. Same shit many times.
+- VERY common and hard to make right.
+- preserve exception cause hierarchy.
+
+---
+class: codeonly
+```java
+@LogOrRethrowAndNeverDoBoth
+class Mailgun {
+    void send(Email email) {
+      try {
+          // try to send email...
+      } catch(IOException e) {
+          throw new MailgunUnavailable("Mailgun is unavailable", e);
+      }
+    }
+}
+
+class SubscriptionReminder {
+    Mailgun mailgun;
+    void remind() {
+        Email email = new Email(...);
+        try {
+          mailgun.send(email);
+        } catch (MailgunUnavailable e) {
+*         log(e);
+          reschedule();
+        }
+    }
+}
+```
+???
+- Hei, fucking handle me, calle!
+- This why the idea of CHECKED exception is not THAT bad :-)
+- log(e) and reschedule() level of abstraction!!!
+
+---
+class: codeonly
+```java
+@LoggingCanBeTested
+class Vault {
+
+    private final Logger log;
+    private final String accessToken;
+
+    public Vault(String accessToken) {
+        this(accessToken, LoggerFactory.getLogger(Vault.class));
+    }
+```
+
+--
+
+```java
+    @VisibleForTesting
+    Vault(String accessToken, Logger log) {
+        this.accessToken = accessToken;
+        this.log = log;
+    }
+
+}
+```
+
+--
+
+```groovy
+class VaultSpec extends Specification {
+
+    def logger = Mock(Logger.class)
+
+    @Subject
+    def vault = new Vault("someToken", logger);
+
+    def "rules the world" {
+        expect:
+        1 * logger.info("The world is mine")
+    }
+
+}
+```
+
+---
+class: codeonly
+```java
+ @Rule
+ public LogbackVerifier logbackVerifier = new LogbackVerifier();
+
+    private MyTestedService service = new MyTestedService();
+
+    @Test
+    public void verifyGoodScenario() throws Exception {
+        service.doJob();
+        logbackVerifier.expectMessage(Level.INFO, "it worked");
+    }
+```
+
+---
+class: codeonly
+```java
+public class LogbackVerifier implements TestRule {
+
+    private Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    private Appender<ILoggingEvent> appender = ... // your Appender impl.
+
+    @Override
+    public Statement apply(final Statement base, Description description) {
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                before();
+                try {
+                    base.evaluate();
+                    verify();
+                } finally {
+                    after();
+                }
+            }
+        };
+    }
+
+    private void before() {
+        rootLogger.addAppender(appender);
+    }
+
+    private void after() {
+        rootLogger.detachAppender(appender);
+    }
+
+    private void verify() { ... }
+
+    public void expectMessage(Level level, String message) { ... }
+
+}
+```
+
+---
+class: center, middle
+# You made it! Now books...
+
+---
+background-image:url(goodreads.png)
+background-size: 100%
+
+---
+background-image:url(twitter.png)
+background-size: 100%
+
+---
+background-image:url(books1.png)
+background-size: 100%
+
+---
+background-image:url(books2.png)
+background-size: 100%
+
+---
+background-image:url(wtw.png)
+background-size: 100%
 
 
     </textarea>
