@@ -128,15 +128,11 @@ class: squeez
 
 --
 
-## - Homework shared on GitHub
+## - Homework
 
 --
 
-## - Homework reviewed by a peer
-
---
-
-## - Homework reviewed by Eduards
+## - Homework review
 
 ---
 class: center, middle
@@ -1091,7 +1087,7 @@ class Swedbank implements PaymentExporter {
 
 .nice[
 ```java
-interface PaymentForExport {
+interface PaymentsForExport {
 	void export(Output into);
 }
 ```
@@ -1101,7 +1097,7 @@ interface PaymentForExport {
 
 .nice[
 ```java
-class SwedbankPayments implements PaymentForExport {
+class SwedbankPayments implements PaymentsForExport {
 	public void export(Output into) {}
 }
 ```
@@ -1702,10 +1698,14 @@ bank.become(anotherBank);
 --
 
 ## - **must not** be confused with DDD value objects
+???
+- immutable
+- can have some behaviour
 
 ---
 class: codeonly
 ```java
+@QuiteALotOfNoise
 class UserRepresentation {
 
     private String firstName;
@@ -2358,10 +2358,10 @@ class EquifaxFacade {
 .crap[
 ```java
 class EquifaxFacade {
-    private static final int MANDATORY_NUMBER_OF_QUESTIONS = 4;
+    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
 
     public boolean validate(Collection<Answer> answers) {
-      return answers.size() == MANDATORY_NUMBER_OF_QUESTIONS;
+      return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
     }
 }
 ```
@@ -2373,11 +2373,11 @@ class: codeonly
 ```java
 class UnvalidatedAnswers {
 
-    private static final int MANDATORY_NUMBER_OF_QUESTIONS = 4;
+    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
     private final Collection<Answer> answers;
 
     boolean areValid() {
-        return answers.size() == MANDATORY_NUMBER_OF_QUESTIONS;
+        return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
     }
 }
 ```

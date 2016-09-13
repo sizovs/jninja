@@ -507,7 +507,7 @@ class GetMobileNumbers implements Command<GetMobileNumbers, MobileNumbers>
 
     @Override
     public Collection<TxFlag> txFlags() {
-        return ImmutableList.of(TransactionTxFlag.READ_ONLY);
+        return ImmutableList.of(TxFlag.READ_ONLY);
     }
 
 }
@@ -797,7 +797,7 @@ interface SocialAccount {
 --
 
 ```java
-class GetSocialAccountsReactionStub implements Reaction<GetSocialAccounts, GetSocialAccounts.R> {
+class GetSocialAccountsReaction implements Reaction<GetSocialAccounts, GetSocialAccounts.R> {
 
     public GetSocialAccounts.R react(GetSocialAccounts $) {
         SocialAccount facebook = ImmutableSocialAccount.builder()
