@@ -4031,7 +4031,12 @@ class SignedAmount extends Amount {
 --
 ### - Prefer composition over inheritance and, if not possible, stick to **NF**.
 ???
-never reuse behaviour via inheritance.
+- we do inheritance because its easy. We get functinaluty for free.
+- but we also committed to make a class substitute.
+- IntelliJ - replace inheritance with delegation :-) stop typing.
+- if you dont have IDE like this... Find someone who can type very fast.
+- violating DRY and OCP now :-) Your choice.
+- Worker work() and Manager w/o work example @Delegate
 
 ---
 class: center, middle
