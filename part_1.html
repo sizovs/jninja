@@ -2081,42 +2081,6 @@ class: codeonly
 
 .crap[
 ```java
-Outer outer = new Outer();
-if (outer != null && outer.nested != null && outer.nested.inner != null) {
-    System.out.println(outer.nested.inner.foo);
-}
-```
-]
-
---
-
-.nice[
-```java
-Optional.of(new Outer())
-    .flatMap(o -> Optional.ofNullable(o.nested))
-    .flatMap(n -> Optional.ofNullable(n.inner))
-    .flatMap(i -> Optional.ofNullable(i.foo))
-    .ifPresent(System.out::println);
-```
-]
-
---
-
-.nice[
-```java
-Optional.of(new Outer())
-    .flatMap(Outer::nested)
-    .flatMap(Nested::inner)
-    .flatMap(Inner::foo)
-    .ifPresent(System.out::println);
-```
-]
-
----
-class: codeonly
-
-.crap[
-```java
 class Entrepreneur {
   private String fullName;
   private Optional<Money> money;
