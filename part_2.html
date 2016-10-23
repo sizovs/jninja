@@ -1879,16 +1879,16 @@ public Command.R.Void react(RegisterNewUser $) {
 --
 
 ```java
-  Validator validator = new FailFastValidator();
+  Preconditions preconditions = new Preconditions();
 ```
 
 --
 
 ```java
-  validator
+  preconditions
           .whenNot(email, Email::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
-  validator
+  preconditions
           .when(password, Password::isWeak)
           .then("Password is too weak. Make it secure by adding some weird characters.");
 ```
@@ -1896,7 +1896,7 @@ public Command.R.Void react(RegisterNewUser $) {
 --
 
 ```java
-  validator.throwFirst();
+  preconditions.check();
 
   ...
 
@@ -1907,13 +1907,13 @@ public Command.R.Void react(RegisterNewUser $) {
 ---
 class: codeonly
 ```java
-interface Validator {
+class Preconditions {
 
-    <T> IfCondition when(T value, Predicate<T> predicate);
+    <T> Condition when(T value, Predicate<T> predicate) {}
 
-    <T> IfCondition whenNot(T value, Predicate<T> predicate);
+    <T> Condition whenNot(T value, Predicate<T> predicate) {}
 
-    void throwFirst();
+    void check() {}
 
 }
 ```
@@ -1921,14 +1921,14 @@ interface Validator {
 --
 
 ```java
-class IfCondition<T> {
+class Condition<T> {
 
     private final T item;
     private final Predicate<T> predicate;
 
     private String failureMessage;
 
-    public IfCondition(T item, Predicate<T> predicate) {
+    public Condition(T item, Predicate<T> predicate) {
         this.item = item;
         this.predicate = predicate;
     }
@@ -1951,12 +1951,12 @@ class IfCondition<T> {
 ---
 class: codeonly
 ```java
-class FailFastValidator implements Validator {
+class Preconditions {
 
-    private final Collection<IfCondition> ifConditions = new LinkedList<>();
+    private final Collection<Condition> condition = new LinkedList<>();
 
     @Override
-    public <T> IfCondition whenNot(T value, Predicate<T> predicate) {
+    public <T> Condition whenNot(T value, Predicate<T> predicate) {
         return when(value, predicate.negate());
     }
 ```
@@ -1965,10 +1965,10 @@ class FailFastValidator implements Validator {
 
 ```java
     @Override
-    public <T> IfCondition when(T value, Predicate<T> predicate) {
-        IfCondition<T> ifCondition = new IfCondition<>(value, predicate);
-        ifConditions.add(ifCondition);
-        return ifCondition;
+    public <T> Condition when(T value, Predicate<T> predicate) {
+        Condition<T> condition = new Condition<>(value, predicate);
+        conditions.add(condition);
+        return condition;
     }
 ```
 
@@ -1976,25 +1976,16 @@ class FailFastValidator implements Validator {
 
 ```java
     @Override
-    public void throwFirst() {
-        IfCondition.stream()
-                .filter(IfCondition::isTrue)
+    public void check() {
+        conditions.stream()
+                .filter(Condition::isTrue)
                 .findFirst()
-                .ifPresent(ifCondition -> {
-                    throw new ValidationException(ifCondition.message());
+                .ifPresent(condition -> {
+                    throw new ValidationException(condition.message());
                 });
 
     }
 }
-```
-
---
-
-```java
-    @Override
-    public void throwAll() {
-        ...
-    }
 ```
 
 ---
@@ -2060,18 +2051,18 @@ public Command.R.Void react(RegisterNewUser $) {
   Email.Unchecked email = new Email.Unchecked($.email());
   Password password = new Password($.password());
 
-  Validator validator = new FailFastValidator();
-  validator
+  Preconditions preconditions = new Preconditions();
+  preconditions
           .whenNot(email, Email::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
-  validator
+  preconditions
 *         .whenNot(email.valid(), uniqueness::guaranteed)          // lazy needed
 *         .then("Argh, email is taken by some hacker.");
-  validator
+  preconditions
           .when(password, Password::isWeak)
           .then("Password is too weak. Make it secure by adding some weird characters.");
 
-  validator.throwFirst();
+  preconditions.check();
 
   ...
 
@@ -2090,18 +2081,18 @@ public Command.R.Void react(RegisterNewUser $) {
   Email.Unchecked email = new Email.Unchecked($.email());
   Password password = new Password($.password());
 
-  Validator validator = new FailFastValidator();
-  validator
+  Preconditions preconditions = new Preconditions();
+  preconditions
           .whenNot(() -> email, Email::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
-  validator
+  preconditions
           .whenNot(() -> email.valid(), uniqueness::guaranteed)
           .then("Argh, email is taken by some hacker.");
-  validator
+  preconditions
           .when(() -> password, Password::isWeak)
           .then("Password is too weak. Make it secure by adding some weird characters.");
 
-  validator.throwFirst();
+  preconditions.check();
 
   ...
 
@@ -2112,13 +2103,13 @@ public Command.R.Void react(RegisterNewUser $) {
 ---
 class: codeonly
 ```java
-interface Validator {
+class Preconditions {
 
-    <T> IfCondition when(Supplier<T> value, Predicate<T> predicate);
+    <T> Condition when(Supplier<T> value, Predicate<T> predicate) {}
 
-    <T> IfCondition whenNot(Supplier<T> value, Predicate<T> predicate);
+    <T> Condition whenNot(Supplier<T> value, Predicate<T> predicate) {}
 
-    void throwFirst();
+    void check() {}
 
 }
 ```
@@ -2126,14 +2117,14 @@ interface Validator {
 --
 
 ```java
-class IfCondition<T> {
+class Condition<T> {
 
     private final Supplier<T> item;
     private final Predicate<T> predicate;
 
     private String failureMessage;
 
-    public IfCondition(Supplier<T> item, Predicate<T> predicate) {
+    public Condition(Supplier<T> item, Predicate<T> predicate) {
         this.item = item;
         this.predicate = predicate;
     }
@@ -2156,22 +2147,22 @@ class IfCondition<T> {
 ---
 class: codeonly
 ```java
-class FailFastValidator implements Validator {
+class Preconditions {
 
-    private final Collection<IfCondition> ifConditions = new LinkedList<>();
+    private final Collection<Condition> conditions = new LinkedList<>();
 
     @Override
-    public <T> IfCondition whenNot(Supplier<T> value, Predicate<T> predicate) {
+    public <T> Condition whenNot(Supplier<T> value, Predicate<T> predicate) {
         return when(value, predicate.negate());
     }
 ```
 
 ```java
     @Override
-    public <T> IfCondition when(Supplier<T> value, Predicate<T> predicate) {
-        IfCondition<T> ifCondition = new IfCondition<>(value, predicate);
-        ifConditions.add(ifCondition);
-        return ifCondition;
+    public <T> Condition when(Supplier<T> value, Predicate<T> predicate) {
+        Condition<T> condition = new Condition<>(value, predicate);
+        conditions.add(condition);
+        return condition;
     }
 
     // everythige else stays absolutely the same
@@ -2186,7 +2177,7 @@ class: center, middle
 ---
 class: codeonly
 ```java
-validator
+preconditions
         .whenNot(() -> $.affiliateId(), Optional::isPresent)
         .then("Omg, missing affiliate id!");
 
@@ -2213,7 +2204,7 @@ class Guessable implements Predicate<Password> {
     }
 }
 
-validator
+preconditions
         .when($.password(), new TooShort().or(new Guessable()))
         .then("Pick a better password, dude");
 ```

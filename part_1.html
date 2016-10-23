@@ -2395,7 +2395,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
   return checkResult;
 }
@@ -2413,7 +2413,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
   return checkResult;
 }
@@ -2431,7 +2431,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
   return checkResult;
 }
@@ -2447,7 +2447,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2461,7 +2461,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2476,7 +2476,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
 * persistResults(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2491,7 +2491,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
 * persist(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2506,7 +2506,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persist(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2521,7 +2521,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persist(checkResult);
 * if (shouldRunScorecard(application)) {
-    runScorecard(application, checkResult);
+    runScorecard(application);
   }
 }
 ```
@@ -2608,7 +2608,7 @@ public def checkApplication(LoanApplication application, Date when) {
   def checkResult = check.run();
   persist(checkResult);
   if (shouldRunScorecard(application)) {
-      runScorecard(application, checkResult);
+      runScorecard(application);
   }
 }
 ```
@@ -2630,7 +2630,7 @@ public def checkApplication(LoanApplication application, Date when) {
 @MuchBetterButScoringDomainIsStillMissing
 public def scoreApplicationIfNecessary(LoanApplication application) {
   if (shouldRunScorecard(application)) {
-      runScorecard(application, checkResult);
+      runScorecard(application);
   }
 }
 ```
