@@ -2912,22 +2912,17 @@ String login() {
 
 --
 
-.crap[
+.nice[
 ```java
 @RequestMapping(method = { RequestMethod.GET, RequestMethod.POST })
 String login() {
   visitor.login();
   return "redirect:/profile";
 }
-```
-]
 
---
-
-```java
 class LoginEndpointSpec extends Specification {
 
-    @SeeTrello("https://trello.com/b/0V4Fn8Gm/login-problem-ie7")
+    @SeeTrello
     def "supports login via http post"() {
         ...
     }
@@ -2937,6 +2932,7 @@ class LoginEndpointSpec extends Specification {
     }
 }
 ```
+]
 
 ---
 
@@ -3143,13 +3139,13 @@ class WebApplication {
 
 ---
 class: codeonly
+
 .crap[
 ```java
 @Transactional
-public Client getClient() {
+public Client getClient(ClientId clientId) {
   Client client = repository.getRequired(Client.class, clientId);
-  // lazy init
-  client.getEntityUuid();
+  client.getEntityUuid();  // lazy init
   return client;
 }
 ```
@@ -3157,29 +3153,65 @@ public Client getClient() {
 
 --
 
+.crap[
 ```java
-@Transactional
-<T> T clientProjection(Function<Client, T> fn) {
-  Client client = repository.getRequired(Client.class, clientId);
-  return fn.apply(client);
+@NonTransactional
+void render(MaritalStatusScreen screen) {
+    Client client = getClient(clientId);
+    MaritalStatus maritalStatus = client.maritalStatus();
+    screen.show(maritalStatus);
 }
 ```
+]
 
 --
 
+.nice[
+```java
+@Transactional
+public MaritalStatusRepresentation maritalStatus(ClientId clientId) {
+  Client client = repository.getRequired(Client.class, clientId);
+  MarialStatus maritalStatus = client.maritalStatus();
+  return new MaritalStatusRepresentation(maritalStatus);
+}
+```
+]
+
+.nice[
+```java
+@NonTransactional
+void render(MaritalStatusScreen screen) {
+    MaritalStatusRepresentation maritalStatus = maritalStatus(clientId);
+    screen.show(maritalStatus);
+}
+```
+]
+
+--
+
+### domain objects must never escape transaction boundaries
+
+---
+class: codeonly
+
+.crap[
 ```java
 class Screenshot {
+
   void take() {
     // Base64 encoding is required by SauceLabs
     String base64Screenshot = webDriver.getScreenshotAs(OutputType.BASE64);
   }
 }
 ```
+]
 
 --
 
+.nice[
 ```java
 class Screenshot {
+
   private static final OutputType SAUCE_ENCODING = OutputType.BASE64;
 
   void take() {
@@ -3187,6 +3219,7 @@ class Screenshot {
   }
 }
 ```
+]
 
 ---
 class: codeonly
@@ -3281,48 +3314,6 @@ WebDriver driver = new PhantomJSDriver(
     .supportAllSslProtocolVersions()
     .ignoreSslErrors()
     .desired());
-```
-
----
-class: codeonly
-```java
-@WhenAuthorCannotExpressHimselfInComments
-@ThisIsCrappyCode(level = 10)
-private void processMsgImages(File parentDir, EmailMessage emailMessage) {
-* // find all img tag src's
-  String body = emailMessage.getBody();
-  Pattern p = Pattern.compile("<img[^>]+src\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>");
-  Matcher m = p.matcher(body);
-  List<String> imageSrcList = new ArrayList<String>();
-  if (m.find()) {
-    String src = m.group(1);
-    imageSrcList.add(src);
-  }
-
-  for (String imgSrc : imageSrcList) {
-		File imgFile = new File(parentDir, imgSrc);
-		if (imgFile.exists()) {
-			addEmbeddedField(emailMessage, imgFile);
-			emailMessage.setBody(emailMessage.getBody().replace(imgSrc, "cid:" + imgFile.getName()));
-		}
-	}
-}
-```
-
---
-
-```java
-private void processMsgImages(File parentDir, EmailMessage emailMessage) {
-* List<String> imageLinks = collectImageLinks(emailMessage);
-
-  for (String imgSrc : imageSrcList) {
-  File imgFile = new File(parentDir, imgSrc);
-  if (imgFile.exists()) {
-    addEmbeddedField(emailMessage, imgFile);
-    emailMessage.setBody(emailMessage.getBody().replace(imgSrc, "cid:" + imgFile.getName()));
-  }
-  }
-}
 ```
 
 ---
@@ -3461,7 +3452,8 @@ Collection<Money> lotsOfMoney = ...
 
 ordering.isOrdered(lotsOfMoney)
 
-ordering.leastOf(lotsOfMoney, new Money(10.00));
+Money million = new Money(1000000);
+List<Money> leastOfAMillion = ordering.leastOf(lotsOfMoney, million);
 
 ordering.reverse();
 ```
@@ -3554,7 +3546,7 @@ TH - Quicksort
 ---
 class: codeonly
 ```java
-@TwoInterwoveConceptsAreHidingInside
+@TwoInterwovenConceptsAreHidingInside
 class FtpClient {
 
   void transferFile(String filename, InputStream input)
@@ -3619,12 +3611,12 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDate postedAt = LocalDate.now();
+    private LocalDate time = LocalDate.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate postedAt() {
-        return postedAt;
+    public LocalDate time() {
+        return time;
     }
 
 *   public Collection<Like> likes() {
@@ -3640,7 +3632,7 @@ public class Tweet {
 *   }
 *
 *   public long totalLikesBy(LikerId likerId) {
-*     return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+*     return likes.stream().filter(like -> like.isBy(likerId)).count();
 *   }
 ```
 
@@ -3649,12 +3641,12 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDate postedAt = LocalDate.now();
+    private LocalDate time = LocalDate.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate postedAt() {
-        return postedAt;
+    public LocalDate time() {
+        return time;
     }
 
     public Likes likes() {
@@ -3672,11 +3664,42 @@ public class Tweet {
         }
 
         public long totalBy(LikerId likerId) {
-            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+            return likes.stream().filter(like -> like.isBy(likerId)).count();
         }
 
         public Collection<Like> all() {
             return ImmutableList.copyOf(likes);
+        }
+    }
+}
+```
+
+---
+class: codeonly
+```java
+public class Tweet {
+
+    private LocalDate time = LocalDate.now();
+
+    private Collection<Like> likes = new LinkedList<>();
+
+    public LocalDate time() {
+        return time;
+    }
+
+    public Likes likes() {
+        return new Likes();
+    }
+
+    class Likes extends ForwardingCollection<Like> {
+
+        public long totalBy(LikerId likerId) {
+            return likes.stream().filter(like -> like.isBy(likerId)).count();
+        }
+
+        @Override
+        protected Collection<Like> delegate() {
+            return likes;
         }
     }
 }
@@ -3729,7 +3752,7 @@ class Likes {
     public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.when()))
+            .filter(like -> blackFriday.fallsOn(like.time()))
             .count();
     }
     ...
@@ -3772,7 +3795,7 @@ class Likes {
     public long totalDuring(SpecialDay specialDay) {
         return likes
             .stream()
-            .filter(like -> specialDay.fallsOn(like.when()))
+            .filter(like -> specialDay.fallsOn(like.time()))
             .count();
     }
     ...
@@ -3782,7 +3805,7 @@ class Likes {
 
 ---
 class: center, middle
-## But different clients has different query requirements...
+## But different clients has different query requirements for Likes...
 
 ---
 class: codeonly
@@ -3813,9 +3836,8 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
     public Long apply(Tweet.Likes likes) {
         return
           likes
-            .all()
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.when()))
+            .filter(like -> blackFriday.fallsOn(like.time()))
             .count();
     }
 }
@@ -3855,9 +3877,8 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
         public boolean test(Tweet tweet) {
             long likesOnAPostingDay = tweet
                     .likes()
-                    .all()
                     .stream()
-                    .filter(like -> like.isPutWhen(tweet.posted()))
+                    .filter(like -> like.madeOn(tweet.time())))
                     .count();
             return likesOnAPostingDay >= 10000000;
         }
