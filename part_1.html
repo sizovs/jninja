@@ -1130,12 +1130,14 @@ class ReportSpammerAction { }
 
 --
 
+.crap[
 ```java
 class CancelTransactionCommand { }
 class ApplyForLoanCommand { }
 class AskQuestionCommand { }
 class ReportSpammerCommand { }
 ```
+]
 
 --
 
@@ -1855,7 +1857,7 @@ bank.setBic(...);
 
 .nice[
 ```java
-@NewBankMustBeCreatedIfEitherCodeOrBicChanges
+@OnlyNameChangeIsAllowedAndIdentityStaysImmutable
 Bank bank = new Bank(code, name, bic);
 bank.rename(...);
 ```
@@ -1863,9 +1865,12 @@ bank.rename(...);
 
 --
 
+### what if need to change bank identity due to acquisition by another bank?
+
+--
+
 .nice[
 ```java
-@IfYouReallyNeedToChangeBankIdentity
 Bank bank = ...
 Bank anotherBank = new Bank(code, name, bic);
 bank.become(anotherBank);
@@ -2199,7 +2204,7 @@ void orElse() {
 ```java
 void orElseThrow() {
   PhoneNumber phoneNumber = phoneBook.phoneNumber(...)
-      .orElseThrow(() -> new NoPhoneNumberFound(regex)
+      .orElseThrow(() -> new PhoneNumberLookupFailed(regex)
 }
 ```
 
