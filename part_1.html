@@ -30,6 +30,7 @@
       .example h2 { color: #00394f; font-weight: bold; line-height: 0;}
       .example h1 { color: #fff; font-weight: bold; background-color: #00394f; padding: 10px }
 
+      .codeonly h1, .codeonly h2, .codeonly h3 { color: white }
       .codeonly { padding: 1em; background-color: #2b303b }
       .codeonly pre { margin: 0 }
 
@@ -70,7 +71,7 @@ class: squeez
 
 --
 
-## - java 8 in 4 slides
+## - java 8 in a few slides
 
 --
 
@@ -79,6 +80,10 @@ class: squeez
 --
 
 ## - naming
+
+--
+
+## - general design principles
 
 --
 
@@ -141,7 +146,7 @@ class: center, middle
 ---
 class: center, middle, example
 # Java 8 additions
-## (in 4 slides)
+## (in a few slides)
 ---
 ###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
 ???
@@ -168,52 +173,212 @@ No Joda anymore.
 
 --
 
+### **PermGen** replaced with out-of-heap **Metaspace**
+???
+why eliminated
+1) fixed size at runtime
+2) because PermGen classes can be removed only via full GC. Want faster.
+
+--
+
 ###**java.lang.reflect.Parameter** (--parameters compiler argument)
 
---
-
-### **PermGen** replaced with out-of-heap **Metaspace**
-
 ---
-### **implicit conversion**
-
---
-
+class: codeonly
+.nice[
 ```java
-@FunctionalInterface
-interface Converter<F, T> {
-    T convert(F from);
+@RestController
+class RegistrationEndpoint {
+  @PostMapping
+  void post(String username) { ... }
 }
 ```
+]
+
 --
+.nice[
 ```java
-Converter<String, Integer> converter = Integer::valueOf;
+void printArgumentNames() {
+    Method[] methods = RegistrationEndpoint.class.getDeclaredMethods();
+    Arrays
+        .stream(methods)
+        .flatMap(method -> stream(method.getParameters()))
+        .map(Parameter::getName)
+        .forEach(System.out::println); // username or arg0
+}
 ```
+]
+
 --
+.nice[
 ```java
-class Person {
+@AvoidMixingArrowsAndMethodReferences
+void printArgumentNames() {
+    Method[] methods = RegistrationEndpoint.class.getDeclaredMethods();
+    Arrays
+        .stream(methods)
+*       .flatMap(this::parameters)
+        .map(Parameter::getName)
+        .forEach(System.out::println);
+}
 
-    private final String firstName, lastName;
+private Stream<Parameter> parameters(Method method) {
+   return Arrays.stream(method.getParameters());
+}
+```
+]
 
-    Person(String firstName, String lastName) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+---
+class: codeonly
+.nice[
+```java
+void printArgumentNames() {
+    Method[] methods = RegistrationEndpoint.class.getDeclaredMethods();
+    Arrays
+        .stream(methods)
+        .flatMap(this::parameters)
+*       .map(this::name)
+        .forEach(System.out::println);
+}
+
+private String name(Parameter parameter) {
+    boolean parameterHasAName = parameter.isNamePresent();
+    checkArgument(parameterHasAName,
+      "Parameter %s does not have a name. Please compile with --parameter flag", parameter);
+    return parameter.getName();
+}
+```
+]
+
+--
+
+.nice[
+```java
+void printArgumentNames() {
+    Method[] methods = RegistrationEndpoint.class.getDeclaredMethods();
+    Arrays
+        .stream(methods)
+        .flatMap(this::parameters)
+*       .map(ParameterName::new)
+        .forEach(System.out::println);
+}
+
+private class ParameterName {
+    ParameterName(Parameter parameter) {
+        boolean parameterHasAName = parameter.isNamePresent();
+        checkArgument(parameterHasAName,
+            "Parameter %s does not have a name. Please compile with --parameter flag", parameter);
+        this.textualName = parameter.getName();
+    }
+    @Override
+    public String toString() {
+        return this.textualName;
+    }
+}
+private String name(Parameter parameter) {
+    boolean parameterHasAName = parameter.isNamePresent();
+    checkArgument(parameterHasAName,
+      "Parameter %s does not have a name. Please compile with --parameter flag", parameter);
+    return parameter.getName();
+}
+```
+]
+
+---
+class: codeonly
+### **implicit conversion**
+
+```java
+class BitcoinExchange {
+    BitcoinExchange(Exchange.Rate rate) {
+        this.rate = rate;
+    }
+    void sell(Bitcoin btc) { ... rate.decimal() ... }
+    void buy(Bitcoin btc) { ... rate.decimal() ... }
+
+    @FunctionalInterface
+    interface Rate {
+        BigDecimal decimal();
     }
 }
 ```
+
 --
 ```java
-interface PersonFactory {
-    Person create(String firstName, String lastName);
+class Coinbase {
+    public BigDecimal exchangeRate() {
+        return remoteApi.fetchExchangeRate();
+    }
 }
 ```
+
 --
+
 ```java
-PersonFactory personFactory = Person::new;
-Person person = personFactory.create("Peter", "Parker");
+Coinbase coinbase = new Coinbase();
+```
+--
+
+```java
+//
+// no need to implement Exchange.Rate interface (imagine Coinbase is from 3rd-party library)
+//
+*BitcoinExchange exchange = new BitcoinExchange(coinbase::exchangeRate);
 ```
 
 ---
+class: codeonly
+```java
+@FunctionalInterface
+interface FileFactory {
+    File newFile(String name);
+}
+```
+
+--
+
+```java
+class Framework {
+    Framework(FileFactory fileFactory) { ... }
+}
+```
+
+--
+
+.crap[
+```java
+@BeforeJava(8)
+class SimpleFileFactory implements FileFactory {
+    @Override
+    public File newFile(String name) {
+        return new File(name);
+    }
+}
+
+Framework framework = new Framework(new SimpleFileFactory());
+```
+]
+
+--
+
+.crap[
+```java
+Framework framework = new Framework(name -> new File(name));
+```
+]
+
+--
+
+.nice[
+```java
+Framework framework = new Framework(File::new);
+```
+]
+???
+conclusion: factories can be partially eliminated.
+
+---
+class: codeonly
 ### **checked exception in lambdas**
 .crap[
 ```java
@@ -230,6 +395,7 @@ Arrays.stream(dir.listFiles())
 ```
 ]
 ---
+class: codeonly
 
 .nice[
 ```java
@@ -275,6 +441,10 @@ public interface CheckedFunction<T, R> {
 }
 ```
 ]
+
+--
+
+# jOOλ – Javaslang
 
 ---
 class: center, middle, example
@@ -460,7 +630,7 @@ class: center, middle, oki
 class: center, middle
 # Does writing clean code take more time than writing crap?
 ???
-- takes time -> lower throghput -> higher cost per change. -> quality is expensive
+- SOMETIMES writing takes longer. But it makes READING easier.
 
 ---
 class: center, middle
@@ -660,7 +830,15 @@ interface Batch {
 
 .crap[
 ```java
-void increment(long incBy) {}
+void increment(long incBy) { this.current += incBy }
+```
+]
+
+--
+
+.crap[
+```java
+void increment(long value) { this.current += value }
 ```
 ]
 
@@ -668,15 +846,7 @@ void increment(long incBy) {}
 
 .nice[
 ```java
-void increment(long by) {}
-```
-]
-
---
-
-.nice[
-```java
-void increment(long diff) {}
+void increment(long adjunct) { this.current += adjunct }
 ```
 ]
 
@@ -880,7 +1050,7 @@ class AwsS3Bucket {
 class: codeonly
 .crap[
 ```java
-interface SpotifyApp  {
+interface SpotifyApp {
     void playMusic();
     void stopMusic();
 }
@@ -891,7 +1061,7 @@ interface SpotifyApp  {
 
 .nice[
 ```java
-interface Music  {
+interface Music {
     void stop();
     void play();
 }
@@ -902,7 +1072,7 @@ interface Music  {
 
 .nice[
 ```java
-interface SpotifyApp  {
+interface SpotifyApp {
     Music music();
 }
 ```
@@ -913,7 +1083,7 @@ interface SpotifyApp  {
 class: codeonly
 .crap[
 ```java
-interface HipChat  {
+interface HipChat {
     void sendMessage(String channel, String mesage);
 }
 ```
@@ -924,7 +1094,7 @@ interface HipChat  {
 class: codeonly
 .nice[
 ```java
-interface Channel  {
+interface Channel {
     void send(String message);
 }
 ```
@@ -934,7 +1104,7 @@ interface Channel  {
 
 .nice[
 ```java
-interface HipChat  {
+interface HipChat {
     Channel channel(String name);
 }
 ```
@@ -945,16 +1115,32 @@ class: center, middle
 ## Avoid dumb suffixes when possible
 ### (but always stay consistent)
 
+
+
 ---
 class: codeonly
 .crap[
+```java
+class CancelTransactionAction { }
+class ApplyForLoanAction { }
+class AskQuestionAction { }
+class ReportSpammerAction { }
+```
+]
+
+--
+
 ```java
 class CancelTransactionCommand { }
 class ApplyForLoanCommand { }
 class AskQuestionCommand { }
 class ReportSpammerCommand { }
 ```
-]
+
+--
+
+### **Verb** – a word used to describe an action, state, or occurrence.
+### **Verbs are actions by default**
 
 --
 
@@ -967,19 +1153,16 @@ class ReportSpammer { }
 ```
 ]
 
+---
+class: codeonly
+
+### exceptions answer a simple question – "what has happened?" in past tense
+
 --
 
 .crap[
 ```java
-class RegistrationFailureException extends BusinessException { }
-```
-]
-
---
-
-.nice[
-```java
-class RegistrationFailure extends BusinessException { }
+class RegistrationFailureException extends BusinessException { } // dumb suffix
 ```
 ]
 
@@ -987,7 +1170,7 @@ class RegistrationFailure extends BusinessException { }
 
 .crap[
 ```java
-class ExecutionTimeoutException extends IllegalStateException { }
+class RegistrationFailure extends BusinessException { }          // confusing noun
 ```
 ]
 
@@ -995,15 +1178,7 @@ class ExecutionTimeoutException extends IllegalStateException { }
 
 .nice[
 ```java
-class ExecutionTimeout extends IllegalStateException { }
-```
-]
-
---
-
-.nice[
-```java
-class ExecutionTookTooLong extends IllegalStateException { }
+class RegistrationFailed extends BusinessException { }           // great
 ```
 ]
 
@@ -1011,15 +1186,7 @@ class ExecutionTookTooLong extends IllegalStateException { }
 
 .crap[
 ```java
-class OverlappingFileLockException extends IllegalStateException { }
-```
-]
-
---
-
-.nice[
-```java
-class FileLockAlreadyTaken extends IllegalStateException { }
+class ExecutionTimeoutException extends ... { }                  // dumb suffix
 ```
 ]
 
@@ -1027,7 +1194,7 @@ class FileLockAlreadyTaken extends IllegalStateException { }
 
 .crap[
 ```java
-class IsNewCustomerSpecification implements Specification { }
+class ExecutionTimeout extends ... { }                           // confusing noun
 ```
 ]
 
@@ -1035,9 +1202,33 @@ class IsNewCustomerSpecification implements Specification { }
 
 .nice[
 ```java
-class IsNewCustomer implements Specification { }
+class ExecutionTimedOut extends ... { }                          // great
 ```
 ]
+
+
+.nice[
+```java
+class ExecutionTookTooLong extends ... { }                       // great
+```
+]
+
+--
+
+.crap[
+```java
+class OverlappingFileLockException extends ... { }               // dumb suffix
+```
+]
+
+--
+
+.nice[
+```java
+class FileLockAcquisitionFailed extends ... { }                  // great
+```
+]
+
 
 ---
 class: codeonly
