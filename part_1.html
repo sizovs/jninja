@@ -190,7 +190,7 @@ class: codeonly
 @RestController
 class RegistrationEndpoint {
   @PostMapping
-  void post(String username) { ... }
+  void post(@RequestParam String username) { ... }
 }
 ```
 ]
