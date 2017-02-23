@@ -3693,15 +3693,15 @@ public class Tweet {
         return new Likes();
     }
 
-    class Likes extends ForwardingCollection<Like> {
+    class Likes extends ForwardingList<Like> {
 
         public long totalBy(LikerId likerId) {
             return likes.stream().filter(like -> like.isBy(likerId)).count();
         }
 
         @Override
-        protected Collection<Like> delegate() {
-            return likes;
+        protected List<Like> delegate() {
+            return ImmutableList.copyOf(likes);
         }
     }
 }
