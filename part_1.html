@@ -1375,7 +1375,7 @@ interface PaymentExporter {
 
 --
 
-.crap[
+.nice[
 ```java
 interface PaymentsForExport {
     void export(Output into);
@@ -2271,7 +2271,7 @@ class PhoneNumber {
 
 ```java
 interface PhoneBook {
-  Optional<PhoneNumber> phoneNumber(Mask mask);
+  Collection<PhoneNumber> phoneNumbers(Mask mask);
 }```
 
 ---
@@ -2483,9 +2483,9 @@ form.parameterize(Parameters.from(httpRequest));
 class: codeonly
 .crap[
 ```java
-class EquifaxFacade {
+class ValidationFacade {
     public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
-      // we always get 4 questions from Equifax
+      // we always get 4 answers
       return MapUtils.isNotEmpty(questionToAnswerMap) && questionToAnswerMap.size() == 4;
     }
 }
@@ -2507,9 +2507,9 @@ class Answer {
 
 .crap[
 ```java
-class EquifaxFacade {
+class ValidationFacade {
     public boolean validateAnswers(Collection<Answer> answers) {
-      // we always get 4 questions from Equifax
+      // we always get 4 answers
       return answers.size() == 4;
     }
 }
@@ -2520,7 +2520,7 @@ class EquifaxFacade {
 
 .crap[
 ```java
-class EquifaxFacade {
+class ValidationFacade {
     private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
 
     public boolean validate(Collection<Answer> answers) {
@@ -2550,7 +2550,7 @@ class UnvalidatedAnswers {
 
 .crap[
 ```java
-class EquifaxFacade {
+class ValidationFacade {
     public boolean validate(UnvalidatedAnswers answers) {
       return answers.areValid();
     }
