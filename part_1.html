@@ -3701,7 +3701,7 @@ public class Tweet {
 
         @Override
         protected List<Like> delegate() {
-            return ImmutableList.copyOf(likes);
+            return likes;
         }
     }
 }
