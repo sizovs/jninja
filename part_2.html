@@ -2460,7 +2460,6 @@ class DontDoThisAtHomeRepository implements Repository<Account> {
 
     public UUID add(Account account) {
       entityManager.persits(account);
-      entityManager.flush();
       return account.id();
     }
 }
