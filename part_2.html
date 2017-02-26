@@ -1712,7 +1712,7 @@ class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Voi
 
 .crap[
 ```java
-        users.persist(user);                        // still broken, not flushed yet
+        users.persist(user);
 ```
 ]
 
@@ -1720,7 +1720,7 @@ class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Voi
 
 .crap[
 ```java
-        welcomeNotification.schedule(user);         // shit propagates further
+        welcomeNotification.schedule(user);         // what if I send notification before PERSIST()?
 
         return new Command.R.Void();
     }
@@ -1740,7 +1740,7 @@ class WelcomeNotification {
 ```
 ]
 ???
-by default, Hibernate validates during FLUSH :-)
+by default, Hibernate validates during PERSIST :-)
 
 ---
 class: codeonly
@@ -2576,6 +2576,7 @@ class BankAccount {
 
     @ElementCollection
     @CollectionTable(name = "BANK_ACCOUNT_TX")
+    @OrderColumn("INDEX")
     private List<Transaction> transactions = new ArrayList<>();
 
     @Version
