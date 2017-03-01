@@ -3817,7 +3817,7 @@ class: center, middle
 class: codeonly
 ```java
 public interface Entity<T> {
-    default <R> R collect(Function<T, R> fn) {
+    default <R> R projection(Function<T, R> fn) {
         return fn.apply((T) this);
     }
 }
@@ -3854,7 +3854,7 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.collect(new TotalDuringBlackFriday());
+long total = likes.projection(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
@@ -3865,10 +3865,10 @@ long total = likes.collect(new TotalDuringBlackFriday());
 class: codeonly
 ```java
 public interface Entity<T> {
-    default <R> R collect(Function<T, R> fn) {
+    default <R> R projection(Function<T, R> fn) {
         return fn.apply((T) this);
     }
-    default boolean isSatisfiedBy(Predicate<T> predicate) {
+    default boolean satisfies(Predicate<T> predicate) {
         return predicate.test((T) this);
     }
 }
@@ -3894,7 +3894,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.isSatisfiedBy(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.satisfies(new GotMillionLikesOnAPostingDay());
 ```
 
 ---
