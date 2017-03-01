@@ -1765,6 +1765,8 @@ class Client {
   String personalId();
 }
 ```
+???
+consider readability if (client.fullName()) vs. if (client.getFullName())
 
 --
 
@@ -3549,6 +3551,7 @@ TH - Quicksort
 class: codeonly
 ```java
 @TwoInterwovenConceptsAreHidingInside
+@FileSuffixAndDirIndicateMissingObject
 class FtpClient {
 
   void transferFile(String filename, InputStream input)
@@ -3561,6 +3564,7 @@ class FtpClient {
 
 }
 ```
+
 
 --
 
@@ -3613,11 +3617,11 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDate time = LocalDate.now();
+    private LocalDateTime time = LocalDateTime.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate time() {
+    public LocalDateTime time() {
         return time;
     }
 
@@ -3643,11 +3647,11 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDate time = LocalDate.now();
+    private LocalDateTime time = LocalDateTime.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate time() {
+    public LocalDateTime time() {
         return time;
     }
 
@@ -3681,11 +3685,11 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDate time = LocalDate.now();
+    private LocalDateTime time = LocalDateTime.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate time() {
+    public LocalDateTime time() {
         return time;
     }
 
@@ -3754,7 +3758,7 @@ class Likes {
     public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.time()))
+            .filter(like -> blackFriday.fallsOn(like.time().toLocalDate()))
             .count();
     }
     ...
@@ -3797,7 +3801,7 @@ class Likes {
     public long totalDuring(SpecialDay specialDay) {
         return likes
             .stream()
-            .filter(like -> specialDay.fallsOn(like.time()))
+            .filter(like -> specialDay.fallsOn(like.time().toLocalDate()))
             .count();
     }
     ...
