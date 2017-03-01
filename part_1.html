@@ -3843,7 +3843,7 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
         return
           likes
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.time()))
+            .filter(like -> blackFriday.fallsOn(like.time().toLocalDate()))
             .count();
     }
 }
@@ -3884,7 +3884,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
-                    .filter(like -> like.madeOn(tweet.time())))
+                    .filter(like -> like.madeOn(tweet.time().toLocalDate())))
                     .count();
             return likesOnAPostingDay >= 10000000;
         }
