@@ -2828,20 +2828,20 @@ class: center, middle
 class: codeonly
 ```java
 @Entity
-class Bank extends DomainEntity {
-
-    private String name;
+class TravisLog extends DomainEntity {
 
     @ElementCollection
-    @CollectionTable(name = "BANK_TRANSFER_AGREEMENTS")
-    private Collection<TransferAgreement> transferAgreements = new ArrayList<>();
+    @CollectionTable(name = "TRAVIS_LOG_ENTRIES")
+    private Collection<Entry> entries = new ArrayList<>();
 
-    public void sign(TransferAgreement transferAgreement) {
-        transferAgreements.add(transferAgreement);
+    private LocalDateTime archivedAt;
+
+    public void write(Entry entry) {
+      this.entries.add(entry);
     }
 
-    public void rename(String name) {
-        this.name = name;
+    public void archive() {
+        this.archivedAt = LocalDateTime.now();
     }
 }
 ```
@@ -2850,19 +2850,18 @@ class Bank extends DomainEntity {
 
 ```java
 @Entity
-class BankAccount extends DomainEntity {
+class Travis extends DomainEntity {
 
     @ManyToOne
-    private Bank bank;
+    private TravisLog log;
 
-    public BankAccount(Bank bank) {
-        this.bank = bank;
-    }
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
 
-    public void transfer(Bank newBank, LocalDate effectiveAt) {
-        Bank currentBank = this.bank;
-        newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
-        this.bank = newBank;
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+        log.write(new NewRepositoryLogEntry(repository.id()))
     }
 ```
 
@@ -2871,12 +2870,13 @@ class: codeonly
 ```java
 @Throws(org.springframework.orm.ObjectOptimisticLockingFailureException)
 void boom() {
-    Bank swedbank = new Bank("Swedbank");
-    Bank bankOfAmerica = new Bank("Bank of America");
-    BankAccount account = new BankAccount(swedbank);
+
+    Travis travis = new Travis();
+    TravisLog travisLog = new TravisLog();
+    GitHubRepository gitHubRepository = new GitHubRepository();
 
     executeInTx(() ->
-      persist(swedbank, bankOfAmerica, account);
+      persist(travis, travisLog, gitHubRepository);
     );
 
     CyclicBarrier coordinator = new CyclicBarrier(2);
@@ -2884,8 +2884,8 @@ void boom() {
     new Thread(() ->
         executeInTx(() ->
             entityManager
-              .find(Bank.class, bankOfAmerica.id())
-              .transfer(newBank, now().with(lastDayOfMonth()));
+              .find(Travis.class, travis.id())
+              .manage(gitHubRepository);
             coordinator.await();
         })
     ).start();
@@ -2893,12 +2893,51 @@ void boom() {
     new Thread(() ->
         executeInTx(() ->
             entityManager
-              .find(Bank.class, bankOfAmerica.id())
-              .rename("The Royal Bank of America");
+              .find(TravisLog.class, travisLog.id())
+              .archive();
             coordinator.await();
         })
     ).start();
 }
+```
+
+---
+class: codeonly
+
+```java
+@Entity
+class Travis extends DomainEntity {
+
+    @ManyToOne
+    private TravisLog log;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+        log.write(new NewRepositoryLogEntry(repository.id()));
+    }
+```
+
+--
+
+```java
+@Entity
+class Travis extends DomainEntity {
+
+*   @Embedded
+*   private TravisLogId logId;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+*       log.write(new NewRepositoryLogEntry(repository.id())); // woohoo, it's impossible now.
+    }
 ```
 
 ---
@@ -2907,98 +2946,36 @@ background-size: 50%
 
 ---
 class: codeonly
-.crap[
 ```java
-public void acidTransfer(Bank newBank, LocalDate effectiveAt) {
-    Bank currentBank = this.bank;
-    newBank.sign(new TransferAgreement(currentBank.id(), effectiveAt));
-    this.bank = newBank;
-}
+@Entity
+class Travis extends DomainEntity {
+
+    @Embedded
+    private TravisLogId logId;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+*       DomainEvents.durable().publish(new NewRepositoryAdded(logId, repository.id()));
+    }
 ```
-]
-
---
-
-.nice[
-```java
-public void baseTransfer(Bank newBank, LocalDate effectiveAt) {
-    Bank currentBank = this.bank;
-
-    DomainEvents.durable().publish(
-        new BankAccountTransferred(
-            id(),
-            currentBank.id(),
-            newBank.id(),
-            effectiveAt));
-
-    this.bank = newBank;
-}
-```
-]
 
 --
 
 ```java
 @RunInASeparateTransaction
 @RetryBeforePanic(times = 3)
-class SignInterbankTransferAgreement implements SideEffect<BankAccountTransferred> {
+class WriteNewRepositryLogEntry implements SideEffect<NewRepositoryAdded> {
     @Override
-    public void occur(BankAccountTransferred $) {
-        Bank oldBank = banks.findBy($.oldBankId());
-        Bank newBank = banks.findBy($.newBankId());
-        newBank.sign(new TransferAgreement(oldBank.id(), $.effectiveAt));
+    public void occur(NewRepositoryAdded $) {
+        TravisLog log = logs.byId($.logId());
+        log.write(new NewRepositoryLogEntry($.newRepositoryId()));
     }
 }
 ```
-
----
-class: codeonly
-.crap[
-```java
-class EvilBankAccountThatHoldsRefereceToBank {
-    @ManyToOne
-    private Bank bank;
-
-    public void transfer(Bank newBank, LocalDate effectiveAt) {
-        Bank currentBank = this.bank;
-        DomainEvents.durable().publish(
-           new BankAccountTransferred(
-               id(),
-               currentBank.id(),
-               newBank.id(),
-               effectiveAt
-           )
-        );
-        this.bank = newBank;
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-class GoodBankAccountThatReferencesBankByIdentity {
-    @Embedded
-    private BankId bankId;
-
-    public void transfer(BankId newBankId, LocalDate effectiveAt) {
-        BankId currentBankId = this.bankId;
-        DomainEvents.durable().publish(
-           new BankAccountTransferred(
-               id(),
-               currentBankId,
-               newBankId,
-               effectiveAt
-           )
-        );
-        this.bankId = newBankId;
-    }
-}
-```
-]
-
 
 ---
 class: center, middle, example

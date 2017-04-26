@@ -290,7 +290,7 @@ class: codeonly
 
 ```java
 class BitcoinExchange {
-    BitcoinExchange(Exchange.Rate rate) {
+    BitcoinExchange(BitcoinExchange.Rate rate) {
         this.rate = rate;
     }
     void sell(Bitcoin btc) { ... rate.decimal() ... }
@@ -321,7 +321,7 @@ Coinbase coinbase = new Coinbase();
 
 ```java
 //
-// no need to implement Exchange.Rate interface (imagine Coinbase is from 3rd-party library)
+// no need to implement BitcoinExchange.Rate interface (imagine Coinbase is from 3rd-party library)
 //
 *BitcoinExchange exchange = new BitcoinExchange(coinbase::exchangeRate);
 ```
@@ -1233,72 +1233,6 @@ class FileLockAcquisitionFailed extends ... { }                  // great
 ```
 ]
 
-
----
-class: codeonly
-.crap[
-```java
-//
-// A BeanFactoryPostProcessor used to register and inject
-// @MockBeans with the ApplicationContext...
-// ...
-// @author Phillip Webb
-// @since 1.4.0
-//
-public class MockitoPostProcessor extends ... implements ..., BeanFactoryPostProcessor {}
-```
-]
-
---
-
-.nice[
-```java
-public class MockBeanInjector extends ... implements ..., BeanFactoryPostProcessor {}
-```
-]
-
---
-
-```java
-
-
-
-interface PaymentExporter {
-	void export(Output into);
-}
-```
-
---
-
-.crap[
-```java
-@NotThatEasy
-class Swedbank implements PaymentExporter {
-	public void export(Output into) {}
-}
-```
-]
-
---
-
-.nice[
-```java
-interface PaymentsForExport {
-	void export(Output into);
-}
-```
-]
-
---
-
-.nice[
-```java
-class SwedbankPayments implements PaymentsForExport {
-	public void export(Output into) {}
-}
-```
-]
-
 ---
 class: center, middle
 # Prefer creating objects that represent **what they are**, rather than what they do
@@ -1363,12 +1297,22 @@ interface Condition {
 ```
 ]
 
+---
+class: codeonly
+
+```java
+interface PaymentExporter {
+	void export(Output into);
+}
+```
+
 --
 
 .crap[
 ```java
-interface PaymentExporter {
-    void export(Output into);
+@NotThatEasy
+class Swedbank implements PaymentExporter {
+	public void export(Output into) {}
 }
 ```
 ]
@@ -1378,10 +1322,21 @@ interface PaymentExporter {
 .nice[
 ```java
 interface PaymentsForExport {
-    void export(Output into);
+	void export(Output into);
 }
 ```
 ]
+
+--
+
+.nice[
+```java
+class SwedbankPayments implements PaymentsForExport {
+	public void export(Output into) {}
+}
+```
+]
+
 
 
 ---
@@ -1842,7 +1797,7 @@ agreement.sign();
 
 .nice[
 ```java
-agreement.unsign();
+agreement.waive();
 ```
 ]
 
