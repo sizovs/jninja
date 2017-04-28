@@ -4017,7 +4017,7 @@ class EmailNotificationChannel implements NotificationChannel {
 ```java
 class SmsNotificationChannel implements NotificationChannel {
     boolean accepts(Notification notification) {
-        return notification.isSatisifiesBy(new FitsIntoSms());
+        return notification.satisfies(new FitsIntoSms());
     }
 }
 ```
