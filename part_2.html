@@ -1820,8 +1820,8 @@ static class Unchecked {
 
    ...
 
-   public Optional<Email> valid() {
-       return isEmail() ? Optional.of(new Email(rawText)) : Optional.empty();
+   public Optional<Email> checked() {
+       return isValid() ? Optional.of(new Email(rawText)) : Optional.empty();
    }
 }
 ```
@@ -1833,7 +1833,7 @@ class: codeonly
 public Command.R.Void react(RegisterNewUser $) {
 
    Email email = new Email.Unchecked($.email())
-                     .valid()
+                     .checked()
                      .orElseThrow(() -> new ValidationException("Dooh! ..."));
 
    User user = makeUser(email, ...);
@@ -1848,7 +1848,7 @@ public Command.R.Void react(RegisterNewUser $) {
 public Command.R.Void react(RegisterNewUser $) {
 
   Email email = new Email.Unchecked($.email())
-                    .valid()
+                    .checked()
                     .orElseThrow(() -> new ValidationException("o_O"));
 
   Password password = new Password($.password());
@@ -1886,7 +1886,7 @@ public Command.R.Void react(RegisterNewUser $) {
 
 ```java
   preconditions
-          .whenNot(email, Email::isValid)
+          .whenNot(email, Email.Unchecked::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
           .when(password, Password::isWeak)
@@ -2053,10 +2053,10 @@ public Command.R.Void react(RegisterNewUser $) {
 
   Preconditions preconditions = new Preconditions();
   preconditions
-          .whenNot(email, Email::isValid)
+          .whenNot(email, Email.Unchecked::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
-*         .whenNot(email.valid(), uniqueness::guaranteed)          // lazy needed
+*         .whenNot(email.checked(), uniqueness::guaranteed)          // lazy needed
 *         .then("Argh, email is taken by some hacker.");
   preconditions
           .when(password, Password::isWeak)
@@ -2083,10 +2083,10 @@ public Command.R.Void react(RegisterNewUser $) {
 
   Preconditions preconditions = new Preconditions();
   preconditions
-          .whenNot(() -> email, Email::isValid)
+          .whenNot(() -> email, Email.Unchecked::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
-          .whenNot(() -> email.valid(), uniqueness::guaranteed)
+          .whenNot(() -> email.checked(), uniqueness::guaranteed)
           .then("Argh, email is taken by some hacker.");
   preconditions
           .when(() -> password, Password::isWeak)
@@ -2541,14 +2541,6 @@ class Customer {
 ]
 ???
 now you can use the uuds before the persistance
-
----
-class: center, middle
-# Repository communicate design decisions about object access.
-### — *Evans, DDD*
-???
-- you can't derive all your repos from a single CRUD repo
-- you can't design repositories like java collections :-) which are modifiable
 
 ---
 class: right, middle
@@ -3532,51 +3524,6 @@ class RedisRegistrationCount implements RegistrationCount {
     public void reset() {
         redis.opsForValue().set(KEY, 0L);
     }
-}
-```
-
----
-class: center, middle
-## Prepare yourself to very uncomfortable OO code...
-
----
-class: codeonly
-```java
-class Post {
-
-  private final DataSource source;
-  private final int id;
-  private final String content;
-
-  public Post(DataSource source, int id, String content) {
-    ...
-  }
-
-  public int id() {
-    return this.id;
-  }
-
-  public Date date() {
-    return new JdbcSession(this.source)
-      .sql("SELECT date FROM post WHERE id = ?")
-      .set(this.number)
-      .select(new SingleOutcome<Utc>(Utc.class));
-  }
-
-  public String title() {
-    return new JdbcSession(this.source)
-      .sql("SELECT title FROM post WHERE id = ?")
-      .set(this.number)
-      .select(new SingleOutcome<String>(String.class));
-  }
-
-  public void rewrite(String content) {
-    return new JdbcSession(this.source)
-      .sql("UPDATE post SET content=? WHERE id=?")
-      .set(content)
-      .set(this.id)
-      .update();
-  }
 }
 ```
 

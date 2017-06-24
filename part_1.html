@@ -110,7 +110,7 @@ class: squeez
 
 --
 
-## - peristence
+## - persistence
 
 --
 
@@ -1274,7 +1274,7 @@ interface EmailSender {
 .nice[
 ```java
 interface EmailProvider {
-  void send(Email email);
+  void deliver(Email email);
 }
 ```]
 
@@ -1292,7 +1292,35 @@ interface ConditionChecker {
 
 .nice[```java
 interface Condition {
-  boolean isTrue();
+  boolean isFulfilled();
+}
+```
+]
+
+--
+
+.crap[
+```java
+interface RegistrationService {
+  void register(String username, String password) throws UsernameAlreadyTaken;
+}
+```
+]
+
+--
+
+.nice[```java
+class Registration {
+  void attempt(Credentials credentials) throws UsernameAlreadyTaken;
+}
+```
+]
+
+--
+
+.nice[```java
+class Registration {
+  Attempt attempt(Credentials credentials);
 }
 ```
 ]
@@ -1802,6 +1830,56 @@ agreement.waive();
 ]
 
 --
+
+.crap[
+```java
+user.setTwitter(Twitter twitter);
+```
+]
+
+--
+
+.nice[
+```java
+user.establish(TwitterPresence twitterPresence);
+```
+]
+
+--
+
+.crap[
+```java
+blog.setTags(Tag... tags);
+```
+]
+
+--
+
+.nice[
+```java
+blog.tag(Tag... tag);
+```
+]
+
+--
+
+.nice[
+```java
+conference.addSpeaker(Speaker speaker);
+```
+]
+
+--
+
+.crap[
+```java
+conference.accept(Speaker speaker);
+```
+]
+
+
+---
+class: codeonly
 
 .crap[
 ```java
