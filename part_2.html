@@ -1008,13 +1008,13 @@ class Email {
 
   private final String text;
 
-  public Email(Email.Unchecked email) {
+  public Email(Email.Unvalidated email) {
       checkArgument(email.isValid(), "%s is not an RFC-5322 compliant email.", text);
       this.text = text;
   }
 
   public Email(String text) {
-      this(new Email.Unchecked(text));
+      this(new Email.Unvalidated(text));
   }
 
   ...
@@ -1026,7 +1026,7 @@ class Email {
 
   ...
 
-  static class Unchecked {
+  static class Unvalidated {
 
       private static final String LOCAL_PART = "^[\\w!#$%&’*+/=?`{|}~^-]+(?:\\.[\\w!#$%&’*+/=?`{|}~^-]+)*";
       private static final String AT_SIGN = "@";
@@ -1037,19 +1037,19 @@ class Email {
       private final Pattern RFC_5322 = compile(
               LOCAL_PART + AT_SIGN + HOSTNAME_FOLLOWED_BY_DOT + COUNTRY_CODE + END_OF_LINE);
 
-      private String rawText;
+      private String text;
 
-      public Unchecked(String rawText) {
-          this.rawText = rawText;
+      public Unvalidated(String text) {
+          this.text = text;
       }
 
       public boolean isValid() {
-          return RFC_5322.asPredicate().test(rawText);
+          return RFC_5322.asPredicate().test(text);
       }
 
       @Override
       public String toString() {
-          return rawText;
+          return text;
       }
   }
 
@@ -1062,9 +1062,9 @@ class: codeonly
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-   Email.Unchecked email = new Email.Unchecked($.email()));
+   Email.Unvalidated email = new Email.Unvalidated($.email()));
    if (!email.isValid()) {
-     throw new ValidationException("Dooh! The email " + $.email() + " is not valid");
+     throw new ValidationConstraintViolated("Dooh! The email " + $.email() + " is not valid");
    }
 
    User user = makeUser(new Email($.email()), ...);
@@ -1075,11 +1075,11 @@ public Command.R.Void react(RegisterNewUser $) {
 --
 
 ```java
-static class Unchecked {
+static class Unvalidated {
 
    ...
 
-   public Optional<Email> checked() {
+   public Optional<Email> valid() {
        return isValid() ? Optional.of(new Email(rawText)) : Optional.empty();
    }
 }
@@ -1091,9 +1091,9 @@ class: codeonly
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-   Email email = new Email.Unchecked($.email())
-                     .checked()
-                     .orElseThrow(() -> new ValidationException("Dooh! ..."));
+   Email email = new Email.Unvalidated($.email())
+                     .valid()
+                     .orElseThrow(() -> new ValidationConstraintViolated("Dooh! ..."));
 
    User user = makeUser(email, ...);
    ...
@@ -1106,13 +1106,13 @@ public Command.R.Void react(RegisterNewUser $) {
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email email = new Email.Unchecked($.email())
-                    .checked()
-                    .orElseThrow(() -> new ValidationException("o_O"));
+  Email email = new Email.Unvalidated($.email())
+                    .valid()
+                    .orElseThrow(() -> new ValidationConstraintViolated("o_O"));
 
   Password password = new Password($.password());
   if (password.isWeak()) {
-      throw new ValidationException("Weak password, sorry fella");
+      throw new ValidationConstraintViolated("Weak password, sorry fella");
   }
 
   ...
@@ -1131,7 +1131,7 @@ class: codeonly
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email.Unchecked email = new Email.Unchecked($.email());
+  Email.Unvalidated email = new Email.Unvalidated($.email());
   Password password = new Password($.password());
 ```
 
@@ -1145,7 +1145,7 @@ public Command.R.Void react(RegisterNewUser $) {
 
 ```java
   preconditions
-          .whenNot(email, Email.Unchecked::isValid)
+          .whenNot(email, Email.Unvalidated::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
           .when(password, Password::isWeak)
@@ -1168,9 +1168,9 @@ class: codeonly
 ```java
 class Preconditions {
 
-    <T> Condition when(T value, Predicate<T> predicate) {}
+    <T> Constraint when(T value, Predicate<T> predicate) {}
 
-    <T> Condition whenNot(T value, Predicate<T> predicate) {}
+    <T> Constraint whenNot(T value, Predicate<T> predicate) {}
 
     void check() {}
 
@@ -1180,14 +1180,14 @@ class Preconditions {
 --
 
 ```java
-class Condition<T> {
+class Constraint<T> {
 
     private final T item;
     private final Predicate<T> predicate;
 
     private String failureMessage;
 
-    public Condition(T item, Predicate<T> predicate) {
+    public Constraint(T item, Predicate<T> predicate) {
         this.item = item;
         this.predicate = predicate;
     }
@@ -1196,7 +1196,7 @@ class Condition<T> {
         this.failureMessage = failureMessage;
     }
 
-    boolean isTrue() {
+    boolean isViolated() {
         return predicate.test(item);
     }
 
@@ -1212,10 +1212,10 @@ class: codeonly
 ```java
 class Preconditions {
 
-    private final Collection<Condition> condition = new LinkedList<>();
+    private final Collection<Constraint> constraints = new LinkedList<>();
 
     @Override
-    public <T> Condition whenNot(T value, Predicate<T> predicate) {
+    public <T> Constraint whenNot(T value, Predicate<T> predicate) {
         return when(value, predicate.negate());
     }
 ```
@@ -1224,10 +1224,10 @@ class Preconditions {
 
 ```java
     @Override
-    public <T> Condition when(T value, Predicate<T> predicate) {
-        Condition<T> condition = new Condition<>(value, predicate);
-        conditions.add(condition);
-        return condition;
+    public <T> Constraint when(T value, Predicate<T> predicate) {
+        Constraint<T> constraint = new Constraint<>(value, predicate);
+        constraints.add(condition);
+        return constraint;
     }
 ```
 
@@ -1236,11 +1236,11 @@ class Preconditions {
 ```java
     @Override
     public void check() {
-        conditions.stream()
-                .filter(Condition::isTrue)
+        constraints.stream()
+                .filter(Constraint::isViolated)
                 .findFirst()
-                .ifPresent(condition -> {
-                    throw new ValidationException(condition.message());
+                .ifPresent(constraint -> {
+                    throw new ValidationConstraintViolated(constraint.message());
                 });
 
     }
@@ -1307,7 +1307,7 @@ private final Email.Uniqueness uniqueness;
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email.Unchecked email = new Email.Unchecked($.email());
+  Email.Unvalidated email = new Email.Unvalidated($.email());
   Password password = new Password($.password());
 
   Preconditions preconditions = new Preconditions();
@@ -1315,7 +1315,7 @@ public Command.R.Void react(RegisterNewUser $) {
           .whenNot(email, Email.Unchecked::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
-*         .whenNot(email.checked(), uniqueness::guaranteed)          // lazy needed
+*         .whenNot(email.valid().get(), uniqueness::guaranteed)          // lazy needed
 *         .then("Argh, email is taken by some hacker.");
   preconditions
           .when(password, Password::isWeak)
@@ -1337,7 +1337,7 @@ private final Email.Uniqueness uniqueness;
 @Override
 public Command.R.Void react(RegisterNewUser $) {
 
-  Email.Unchecked email = new Email.Unchecked($.email());
+  Email.Unvalidated email = new Email.Unvalidated($.email());
   Password password = new Password($.password());
 
   Preconditions preconditions = new Preconditions();
@@ -1345,7 +1345,7 @@ public Command.R.Void react(RegisterNewUser $) {
           .whenNot(() -> email, Email.Unchecked::isValid)
           .then("Sorry man, email (%s) is completely wrong.");
   preconditions
-          .whenNot(() -> email.checked(), uniqueness::guaranteed)
+          .whenNot(() -> email.valid().get(), uniqueness::guaranteed)
           .then("Argh, email is taken by some hacker.");
   preconditions
           .when(() -> password, Password::isWeak)
@@ -1364,9 +1364,9 @@ class: codeonly
 ```java
 class Preconditions {
 
-    <T> Condition when(Supplier<T> value, Predicate<T> predicate) {}
+    <T> Constraint when(Supplier<T> value, Predicate<T> predicate) {}
 
-    <T> Condition whenNot(Supplier<T> value, Predicate<T> predicate) {}
+    <T> Constraint whenNot(Supplier<T> value, Predicate<T> predicate) {}
 
     void check() {}
 
@@ -1376,14 +1376,14 @@ class Preconditions {
 --
 
 ```java
-class Condition<T> {
+class Constraint<T> {
 
     private final Supplier<T> item;
     private final Predicate<T> predicate;
 
     private String failureMessage;
 
-    public Condition(Supplier<T> item, Predicate<T> predicate) {
+    public Constraint(Supplier<T> item, Predicate<T> predicate) {
         this.item = item;
         this.predicate = predicate;
     }
@@ -1392,7 +1392,7 @@ class Condition<T> {
         this.failureMessage = failureMessage;
     }
 
-    boolean isTrue() {
+    boolean isViolated() {
         return predicate.test(item.get());
     }
 
@@ -1408,20 +1408,20 @@ class: codeonly
 ```java
 class Preconditions {
 
-    private final Collection<Condition> conditions = new LinkedList<>();
+    private final Collection<Constraint> constraints = new LinkedList<>();
 
     @Override
-    public <T> Condition whenNot(Supplier<T> value, Predicate<T> predicate) {
+    public <T> Constraint whenNot(Supplier<T> value, Predicate<T> predicate) {
         return when(value, predicate.negate());
     }
 ```
 
 ```java
     @Override
-    public <T> Condition when(Supplier<T> value, Predicate<T> predicate) {
-        Condition<T> condition = new Condition<>(value, predicate);
-        conditions.add(condition);
-        return condition;
+    public <T> Constraint when(Supplier<T> value, Predicate<T> predicate) {
+        Constraint<T> constraint = new Constraint<>(value, predicate);
+        constraints.add(constraint);
+        return constraint;
     }
 
     // everythige else stays absolutely the same
@@ -1455,7 +1455,7 @@ class TooShort implements Predicate<Password> {
     }
 }
 
-class Guessable implements Predicate<Password> {
+class TooEasyToGuess implements Predicate<Password> {
 
     @Override
     public boolean test(Password pw) {
@@ -1464,7 +1464,7 @@ class Guessable implements Predicate<Password> {
 }
 
 preconditions
-        .when($.password(), new TooShort().or(new Guessable()))
+        .when($.password(), new TooShort().or(new TooEasyToGuess()))
         .then("Pick a better password, dude");
 ```
 
@@ -1685,14 +1685,26 @@ interface CustomerDAO {
 --
 
 ```java
-@ImpliesUnitOfWorkPatternWithAutoFlush
+@VanillaImplementation
 interface Customers {
   void add(Customer customer);
   void delete(Customer customer);
   Collection<Customer> all();
 }
-
 ```
+
+--
+
+```java
+@InRealWorldWeAlsoNeedCriteria
+interface Customers {
+  void add(Customer customer);
+  void delete(Customer customer);
+  Collection<Customer> allBy(Criteria criteria);
+  Collection<Customer> singleBy(Criteria criteria);
+}
+```
+
 
 ---
 class: center, middle
@@ -1848,7 +1860,7 @@ class Transaction {
 
     private DecimalNumber amount;
 
-    private LocalDate bookedAt = LocalDate.now();
+    private LocalDateTime bookedAt = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
     private TransactionType type;
@@ -1953,10 +1965,10 @@ class BankAccount {
           "Cannot withdraw funds. Daily withdrawal limit (%s) reached.", dailyLimit);
     }
 
-    private DecimalNumber totalWithdrawn(LocalDate bookedAt) {
+    private DecimalNumber totalWithdrawn(LocalDate bookedOn) {
         return transactions.stream()
                 .filter(tx -> tx.type().equals(WITHDRAWAL))
-                .filter(tx -> tx.bookedAt().isEqual(bookedAt))
+                .filter(tx -> tx.bookedAt().toLocalDate().isEqual(bookedOn))
                 .map(Transaction::amount)
                 .reduce(new Const(0), DecimalNumber::plus);
     }

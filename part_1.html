@@ -2318,7 +2318,7 @@ void lifeWithoutOptionals() {
 ```java
 void optionalIsAMonad() {
   phoneBook.phoneNumber(...)
-      .flatMap(no -> facebookProfile.byPhoneNumber(no))
+      .flatMap(facebookProfile::byPhoneNumber
       .flatMap(FacebookProfile::picture)
       .ifPresent(ProfilePicture::download);
 }
@@ -2356,18 +2356,8 @@ class Regex implements Mask {
 
   @Override
   public boolean matches(PhoneNumber phoneNumber) {
-    return phoneNumber.matches(regex);
+    return regex.asPredicate().test(phoneNumber.toString());
   }
-}
-```
-
---
-
-```java
-class PhoneNumber {
-    boolean matches() {
-        return regex.asPredicate().test(text());
-    }
 }
 ```
 
@@ -2377,6 +2367,15 @@ class PhoneNumber {
 interface PhoneBook {
   Collection<PhoneNumber> phoneNumbers(Mask mask);
 }```
+
+--
+
+```java
+phoneBook.phoneNumbers(Mask.ANY);
+
+phoneBook.phoneNumbers(new Regex(...));
+
+```
 
 ---
 class: codeonly
