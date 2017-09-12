@@ -378,7 +378,7 @@ class: codeonly
 class TryReaction<C extends Command<R>, R extends Command.R>
                                           implements Reaction<Try<C, R>, R> {
 
-    private final Reactions reactions;
+    private final Router router;
 
     @Override
     public R react(Try<R> $) {
@@ -391,7 +391,7 @@ class TryReaction<C extends Command<R>, R extends Command.R>
 
         return template.execute(context -> {
             Command<R> origin = $.origin();
-            Reaction<Command<R>, R> reaction = reactions.byCommand(origin);
+            Reaction<Command<R>, R> reaction = router.route(origin);
             return reaction.react(origin);
         });
     }
@@ -411,13 +411,13 @@ new Try<>(
 class: codeonly
 ```java
 @Component
-class Reactions {
+class Router {
 
-    private final LoadingCache<Type, Reaction> cachedReactions;
+    private final LoadingCache<Type, Reaction> reactions;
 
     @Autowired
-    public Reactions(ListableBeanFactory beanFactory) {
-        this.cachedReactions = Caffeine.newBuilder()
+    public Router(ListableBeanFactory beanFactory) {
+        this.reactions = Caffeine.newBuilder()
             .build(commandType -> reactions(beanFactory)
                 .stream()
                 .filter(reaction -> reaction.commandType().isSupertypeOf(commandType))
@@ -429,8 +429,8 @@ class Reactions {
         return beanFactory.getBeansOfType(Reaction.class).values();
     }
 
-    public <C extends Command<R>, R extends Command.R> Reaction<C, R> byCommand(C command) {
-        return cachedReactions.get(command.type());
+    public <C extends Command<R>, R extends Command.R> Reaction<C, R> route(C command) {
+        return reactions.get(command.type());
     }
 }
 ```
@@ -519,14 +519,14 @@ class: codeonly
 @Component
 class TransactionalNow implements Now {
 
-    private final Reactions reactions;
+    private final Router router;
 
     private final PlatformTransactionManager txManager;
 
     @Override
     public <C extends Command<R>, R extends Command.R> R execute(C command) {
 
-        Reaction<C, R> reaction = reactions.byCommand(command);
+        Reaction<C, R> reaction = router.route(command);
 
 *       TransactionTemplate tx = new TransactionTemplate(txManager);
 *       command.txFlags().forEach(flag -> flag.apply(tx));
@@ -548,14 +548,14 @@ class: codeonly
 @Component
 class TransactionalAndLoggingNow implements Now {
 
-    private final Reactions reactions;
+    private final Router router;
 
     private final PlatformTransactionManager txManager;
 
     @Override
     public <C extends Command<R>, R extends Command.R> R execute(C command) {
 
-        Reaction<C, R> reaction = reactions.byCommand(command);
+        Reaction<C, R> reaction = router.route(command);
 
         TransactionTemplate tx = new TransactionTemplate(txManager);
         command.txFlags().forEach(flag -> flag.apply(tx));
@@ -607,7 +607,7 @@ class: codeonly
 @Component
 class GrowingNow implements Now {
 
-    private final Reactions reactions;
+    private final Router router;
 
     private final PlatformTransactionManager txManager;
 
@@ -616,7 +616,7 @@ class GrowingNow implements Now {
     @Override
     public <C extends Command<R>, R extends Command.R> R execute(C command) {
 
-        Reaction<C, R> reaction = reactions.byCommand(command);
+        Reaction<C, R> reaction = rounter.route(command);
 
 *       correlationId.storeForLogging();
 
@@ -642,9 +642,9 @@ class: center, middle
 class: codeonly
 ```java
 @Component
-class PipedNow implements Now {
+class Pipeline implements Now {
 
-    private final Reactions reactions;
+    private final Router router;
 
     private final PlatformTransactionManager txManager;
 
@@ -685,7 +685,7 @@ class PipedNow implements Now {
 class: codeonly
 ```java
 @Component
-class PipedNow implements Now {
+class Pipeline implements Now {
 
     ...
 
@@ -730,7 +730,7 @@ class PipedNow implements Now {
 class: codeonly
 ```java
 @Component
-class PipedNow implements Now {
+class Pipeline implements Now {
 
     ...
 
@@ -738,7 +738,7 @@ class PipedNow implements Now {
 
         @Override
         public <C extends Command<R>, R extends Command.R> R execute(C command) {
-            Reaction<C, R> reaction = reactions.byCommand(command);
+            Reaction<C, R> reaction = router.route(command);
             return reaction.react(command);
         }
     }
@@ -2489,7 +2489,7 @@ class: codeonly
 private class HystrixGuarded implements Now {
     @Override
     public <C extends Command<R>, R extends Command.R> R execute(C command) {
-        Reaction<C, R> reaction = reactions.byCommand(command);
+        Reaction<C, R> reaction = router.route(command);
 
         HystrixCommand.Setter commandOptions = hystrixOptions(command);
         HystrixCommand<R> hystrixCommand = new HystrixCommand<R>(commandOptions) {
