@@ -1314,8 +1314,8 @@ interface EmailSender {
 
 .nice[
 ```java
-interface EmailProvider {
-  void deliver(Email email);
+interface Email {
+  void deliver();
 }
 ```]
 
@@ -1324,7 +1324,7 @@ interface EmailProvider {
 .crap[
 ```java
 interface ConditionChecker {
-  boolean checkCondition()
+  boolean checkCondition(Condition condition)
 }
 ```
 ]
