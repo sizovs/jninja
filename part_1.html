@@ -935,7 +935,7 @@ class: codeonly
 
 .crap[
 ```java
-  class BorrowedAndroidDevice {
+  class BorrowedMoney {
       private LocalDate promisedBackDate;
 ```
 ]
@@ -944,16 +944,7 @@ class: codeonly
 
 .nice[
 ```java
-  class BorrowedAndroidDevice {
-      private LocalDate promisedBackBy;
-```
-]
-
---
-
-.nice[
-```java
-  class BorrowedAndroidDevice {
+  class BorrowedMoney {
       private LocalDate returnBy;
 ```
 ]
@@ -987,10 +978,19 @@ class: codeonly
 
 --
 
-.nice[
+.crap[
 ```java
   interface Movie {
       void stream(OutputStream output);
+```
+]
+
+--
+
+.nice[
+```java
+  interface Movie {
+      Stream stream();
 ```
 ]
 
@@ -1075,11 +1075,11 @@ class: codeonly
 class AwsS3Bucket {
 
   private final AwsAccount account;
-  private final String bucketName;
+  private final String name;
 
-  public AwsS3Bucket(AwsAccount account, String bucketName) {
+  public AwsS3Bucket(AwsAccount account, String name) {
     this.account = account;
-    this.bucketName = bucketName;
+    this.name = name;
   }
 
   void create() {
@@ -1207,7 +1207,7 @@ class: codeonly
 
 .crap[
 ```java
-class RegistrationFailureException extends BusinessException { } // dumb suffix
+class RegistrationFailureException { }                           // dumb suffix
 ```
 ]
 
@@ -1215,7 +1215,7 @@ class RegistrationFailureException extends BusinessException { } // dumb suffix
 
 .crap[
 ```java
-class RegistrationFailure extends BusinessException { }          // confusing noun
+class RegistrationFailure { }                                    // confusing noun
 ```
 ]
 
@@ -1223,7 +1223,7 @@ class RegistrationFailure extends BusinessException { }          // confusing no
 
 .nice[
 ```java
-class RegistrationFailed extends BusinessException { }           // great
+class RegistrationFailed { }                                     // great
 ```
 ]
 
@@ -1271,6 +1271,54 @@ class OverlappingFileLockException extends ... { }               // dumb suffix
 .nice[
 ```java
 class FileLockAcquisitionFailed extends ... { }                  // great
+```
+]
+
+--
+
+.crap[
+```java
+class WebDriverException extends ... { }                         
+```
+]
+
+--
+
+.nice[
+```java
+class WebDriverCrashed extends ... { }                         
+```
+]
+
+--
+
+.crap[
+```java
+class BrowserNotSupportedException extends ... { }                         
+```
+]
+
+--
+
+.nice[
+```java
+class UnsupportedBrowserProvided extends ... { }                         
+```
+]
+
+--
+
+.crap[
+```java
+class InvisibleButtonException extends ... { }                         
+```
+]
+
+--
+
+.nice[
+```java
+class InvisibleButtonClicked extends ... { }                         
 ```
 ]
 
@@ -2055,8 +2103,7 @@ background-size: 100%
 
 ---
 class: center, middle
-## Be careful with booleans
-### (boolean are not nouns)
+## Booleans are not nouns!
 
 ---
 class: codeonly
@@ -2174,6 +2221,11 @@ package tomtom.navigation.maps;
 package tomtom.navigation;
 package tomtom.navigation.map;
 ```
+
+--
+
+### Use the plural for packages with homogeneous contents.
+### Use the singular for packages with heterogeneous contents.
 
 ---
 class: center, middle, example
@@ -2300,7 +2352,7 @@ class: codeonly
 void lifeWithoutOptionals() {
   PhoneNumber phoneNumber = phoneBook.phoneNumber(...);
   if (phoneNumber != null) {
-    FacebookProfile facebookProfile = facebook.profileBy(phoneNumber);
+    FacebookProfile facebookProfile = facebook.profile(phoneNumber);
     if (facebookProfile != null) {
       Picture picture = facebookProfile.picture();
       if (picture != null) {
@@ -2318,10 +2370,15 @@ void lifeWithoutOptionals() {
 ```java
 void optionalIsAMonad() {
   phoneBook.phoneNumber(...)
-      .flatMap(facebookProfile::byPhoneNumber
+      .flatMap(this::facebookProfile)
       .flatMap(FacebookProfile::picture)
       .ifPresent(ProfilePicture::download);
 }
+
+private FacebookProfile facebookProfile(PhoneNumber) {
+  ...  
+}
+
 ```
 ]
 
@@ -2884,7 +2941,6 @@ public def checkApplication(LoanApplication application, Date when) {
 --
 
 ```groovy
-@MuchBetterButScoringDomainIsStillMissing
 public def scoreApplicationIfNecessary(LoanApplication application) {
   if (shouldRunScorecard(application)) {
       runScorecard(application);
@@ -3421,6 +3477,10 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
 Tweet tweet = ...
 boolean milionLikesInADay = tweet.satisfies(new GotMillionLikesOnAPostingDay());
 ```
+
+---
+class: center, middle
+# In order to improve searchability, consider creating custom @FunctionalInterfaces – Projection and Specification.
 
 
 

@@ -160,16 +160,6 @@ interface Now {
 a funnel finds and executes appropriate impl for a command using generics
 
 --
-.nice[
-```java
-@Remote(Protocol.PROTOBUFS)
-interface Now {
-    <C extends Command<R>, R extends Command.R> R execute(C command);
-}
-```
-]
-
---
 
 .nice[
 ```java
@@ -2381,7 +2371,7 @@ class: center, middle
 class: codeonly
 ```java
 @Component
-class PipedNow implements Now {
+class Pipeline implements Now {
 
     ...
 
@@ -2441,8 +2431,8 @@ private class ConcurrencyLimited implements Now {
 class: codeonly
 ```java
 IntStream.range(1, 10).parallel().forEach(i -> {
-      logOnError(()-> new GetTotalLikes().execute(now));
-      logOnError(()-> new GetTotalShares().execute(now));
+      logOnError(()-> new Foo().execute(now));
+      logOnError(()-> new Bar().execute(now));
 });
 ```
 
@@ -2450,11 +2440,7 @@ IntStream.range(1, 10).parallel().forEach(i -> {
 ```java
 @TwoOutOfTenCommandsWillEndWith
 com.netflix.hystrix.exception.HystrixRuntimeException:
-  GetTotalLikes could not acquire a semaphore for execution and no fallback available.
-
-@TwoOutOfTenCommandsWillEndWith
-com.netflix.hystrix.exception.HystrixRuntimeException:
-  GetTotalShares could not acquire a semaphore for execution and no fallback available.
+  Foo could not acquire a semaphore for execution and no fallback available.
 ```
 
 --
