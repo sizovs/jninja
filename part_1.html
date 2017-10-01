@@ -403,26 +403,54 @@ class: codeonly
 ### **checked exception in lambdas**
 .crap[
 ```java
-Arrays.stream(dir.listFiles())
-        .map(file -> {
-            try {
-                return file.getCanonicalPath();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-
-            }
-        })
-        .forEach(System.out::println);
+    int from = 8000;
+    int to = 9000;
+    IntStream
+              .rangeClosed(from, to)
+              .mapToObj(Port::new)
+              .filter(p -> {
+                  try {
+                      return p.free();
+                  } catch (IOException e) {
+                      throwIfUnchecked(e);
+                      throw new RuntimeException(e);
+                  }
+              })
+              .findFirst();
 ```
 ]
+
+--
+
+class: codeonly
+
+### noexception.machinezoo.com
+
+.nice[
+```java
+    IntStream
+            .rangeClosed(from, to)
+            .mapToObj(Port::new)
+            .filter(Exceptions.sneak().predicate(Port::free))
+            .findFirst();
+```
+]
+
 ---
 class: codeonly
 
-.nice[
+.crap[
 ```java
-Arrays.stream(dir.listFiles())
-        .map(Unchecked.function(File::getCanonicalPath))
-        .forEach(System.out::println);
+    Master master = new Master();
+    Slave slave = new Slave();
+
+    Connection connection;
+    try {
+        connection = master.connection();
+    } catch (RuntimeException e) {
+        log.warning(e);
+        connection = slave.connection();
+    }
 ```
 ]
 
@@ -430,25 +458,10 @@ Arrays.stream(dir.listFiles())
 
 .nice[
 ```java
-class Unchecked {
-  public static <T, R> Function<T, R> function(CheckedFunction<T, R> function) {
-    return t -> {
-        try {
-            return function.apply(t);
-        }
-        catch (Throwable e) {
-          if (e instanceof Error) {
-              throw (Error) e;
-          }
-          if (e instanceof RuntimeException) {
-              throw (RuntimeException) e;
-          }
-          throw new RuntimeException(e);
-        }
-    };
-  }
-
-}
+    Connection connection = Exceptions
+      .log()
+      .get(master::connection)
+      .orElse(slave.connection());
 ```
 ]
 
@@ -456,16 +469,12 @@ class Unchecked {
 
 .nice[
 ```java
-@FunctionalInterface
-public interface CheckedFunction<T, R> {
-    R apply(T t) throws Throwable;
-}
+    Connection connection = Exceptions
+      .silence()
+      .get(master::connection)
+      .orElse(slave.connection());
 ```
 ]
-
---
-
-# jOOλ – Javaslang
 
 ---
 class: center, middle, example

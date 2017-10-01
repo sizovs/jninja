@@ -373,13 +373,11 @@ class TryReaction<C extends Command<R>, R extends Command.R>
     @Override
     public R react(Try<R> $) {
 
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts($.times());
+        RetryPolicy retryPolicy = new RetryPolicy()
+                .withDelay(500, TimeUnit.MILLISECONDS)
+                .withMaxRetries($.times());
 
-        RetryTemplate template = new RetryTemplate();
-        template.setRetryPolicy(retryPolicy);
-
-        return template.execute(context -> {
+        return Failsafe.with(retryPolicy).get(() -> {
             Command<R> origin = $.origin();
             Reaction<Command<R>, R> reaction = router.route(origin);
             return reaction.react(origin);
@@ -882,7 +880,7 @@ System.out.println(snapshot);
 # vs.
 ### - RxJava
 ### - Spring Reactor
-### - Reactive Streams
+### - Reactive Streams -> java.util.concurrent.Flow
 
 ---
 class: center, middle, example
