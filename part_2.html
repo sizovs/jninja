@@ -691,7 +691,7 @@ class Pipeline implements Now {
         public <C extends Command<R>, R extends Command.R> R execute(C command) {
             log.info(">>> {}", command.toLogString());
             R response = origin.execute(command);
-            log.info(">>> {}", command.toLogString());
+            log.info("<<< {}", command.toLogString());
             return response;
         }
     }
@@ -1688,8 +1688,8 @@ interface Customers {
 interface Customers {
   void add(Customer customer);
   void delete(Customer customer);
+  Customer singleBy(Criteria criteria);  
   Collection<Customer> allBy(Criteria criteria);
-  Collection<Customer> singleBy(Criteria criteria);
 }
 ```
 

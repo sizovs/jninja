@@ -60,7 +60,7 @@
 
 class: center, middle, example
 background-image:url(background.jpg)
-# Effective Coding Principles and Patterns in Java 8
+# Effective Coding Principles and Patterns in Java 8/9
 ???
 - Introduce myself and let others introduce themselves.
 - Setting expectations
@@ -412,7 +412,6 @@ class: codeonly
                   try {
                       return p.free();
                   } catch (IOException e) {
-                      throwIfUnchecked(e);
                       throw new RuntimeException(e);
                   }
               })
@@ -918,7 +917,7 @@ class: codeonly
 ```java
   class Ticket {
       private LocalDate refundedOn;
-      private LocalDate refundableTill;
+      private LocalDate refundableUntil;
 ```
 ]
 
@@ -945,7 +944,7 @@ class: codeonly
 .crap[
 ```java
   class BorrowedMoney {
-      private LocalDate promisedBackDate;
+      private LocalDate returnDate;
 ```
 ]
 
@@ -2042,17 +2041,17 @@ bank.become(anotherBank);
 class: codeonly
 ```java
 @QuiteALotOfNoise
-class UserRepresentation {
+class User {
 
     private String firstName;
     private String lastName;
     private Optional<String> middleName = Optional.empty();
 
-    public UserRepresentation(String firstName, String lastName) {
+    public User(String firstName, String lastName) {
         ...
     }
 
-    public UserRepresentation withMiddleName(String middleName) {
+    public User withMiddleName(String middleName) {
         this.middleName = Optional.of(middleName);
         return this;
     }
@@ -2075,7 +2074,7 @@ class UserRepresentation {
 class: codeonly
 ```java
 @Immutable
-interface UserRepresentation {
+interface User {
 
   String firstName();
   String lastName();
@@ -2088,22 +2087,20 @@ interface UserRepresentation {
 --
 
 ```java
-UserRepresentation carlosNorris = ImmutableUserRepresentation
-                                    .builder()
-                                    .firstName("Carlos")
-                                    .lastName("Norris")
-                                    .addNickname("Chuck")
-                                    .build();
-}
+User uncleBob = UmmutableUser
+                  .builder()
+                  .firstName("Robert")
+                  .lastName("Martin")
+                  .addNickname("Uncle Bob")
+                  .build();
 ```
 
 --
 
 ```java
-UserRepresentation rayNorris = ImmutableUserRepresentation
-                                  .copyOf(chuck)
-                                  .withFirstName("Ray");
-}
+User anotherUncleBob = UmmutableUser
+                        .copyOf(uncleBob)
+                        .withFirstName("R.");
 ```
 
 ---
@@ -3476,7 +3473,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
                     .stream()
                     .filter(like -> like.madeOn(tweet.time().toLocalDate())))
                     .count();
-            return likesOnAPostingDay >= 10000000;
+            return likesOnAPostingDay >= 1000000;
         }
     }
 ```
