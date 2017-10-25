@@ -1616,7 +1616,7 @@ class FuckupProbability implements DecimalNumber {
 
     @Override
     public BigDecimal decimal() {
-      return new Const(random.nextInt());
+      return new BigDecimal(random.nextInt());
     }
 }
 ```]
