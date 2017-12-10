@@ -901,13 +901,60 @@ interface Counter {
 ```
 ]
 
+--
+
+.crap[
+```java
+class Widget {
+    private long length;
+```
+]
+
+--
+
+.crap[
+```java
+class Widget {
+    private long lengthInPixels;
+```
+]
+
+--
+
+.nice[
+```java
+class Widget {
+    private Pixels length;
+```
+]
+
+--
+
+.crap[
+```java
+interface Movie {
+    void stream(Channel channel);
+```
+]
+
+--
+
+.crap[
+```java
+interface Movie {
+    void streamInto(Channel channel);
+```
+]
+
 ---
 class: codeonly
+
+# Code must speak the domain language
+
 .crap[
 ```java
-  class Ticket {
-      private LocalDate refundedDate;
-      private LocalDate refundedUntilDate;
+  class BillingAgreement {
+      private LocalDate startingDate;
 ```
 ]
 
@@ -915,9 +962,8 @@ class: codeonly
 
 .nice[
 ```java
-  class Ticket {
-      private LocalDate refundedOn;
-      private LocalDate refundableUntil;
+  class BillingAgreement {
+      private LocalDate asOfDate;
 ```
 ]
 
@@ -925,8 +971,8 @@ class: codeonly
 
 .crap[
 ```java
-  class Ticket {
-      private LocalTime bookingTime;
+  class Payment {
+      private LocalDate maxPaymentDate;
 ```
 ]
 
@@ -934,8 +980,8 @@ class: codeonly
 
 .nice[
 ```java
-  class Ticket {
-      private LocalTime bookedAt;
+  class Payment {
+      private LocalDate dueDate;
 ```
 ]
 
@@ -943,8 +989,8 @@ class: codeonly
 
 .crap[
 ```java
-  class BorrowedMoney {
-      private LocalDate returnDate;
+  class Loan {
+      private Customer customer;
 ```
 ]
 
@@ -952,59 +998,14 @@ class: codeonly
 
 .nice[
 ```java
-  class BorrowedMoney {
-      private LocalDate returnBy;
-```
-]
-
---
-
-.crap[
-```java
-  class Widget {
-      private long lengthInPixels;
-```
-]
-
---
-
-.nice[
-```java
-  class Widget {
-      private Pixels length;
-```
-]
-
---
-
-.crap[
-```java
-  interface Movie {
-      void stream(OutputStream outputStream);
-```
-]
-
---
-
-.crap[
-```java
-  interface Movie {
-      void stream(OutputStream output);
-```
-]
-
---
-
-.nice[
-```java
-  interface Movie {
-      Stream stream();
+  class Loan {
+      private Borrower borrower;
 ```
 ]
 
 ---
 class: center, middle
-## Composite names usually indicate a missing root object
+## Compound names usually indicate a missing root object
 
 ---
 class: codeonly
@@ -1332,16 +1333,33 @@ class InvisibleButtonClicked extends ... { }
 
 ---
 class: center, middle
-# Prefer creating objects that represent **what they are**, rather than what they do
+# Move from **f(o)** to **o.f()**
+### (start doing proper OOP)
 
 ---
 class: codeonly
-.crap[
+
 ```java
 class File { }
+```
 
-interface FileReader {
-   Data read(File file) { }
+--
+
+.crap[
+```java
+class FileReader {
+   Data read(File file) { ... }
+}
+```
+]
+
+--
+
+.crap[
+```java
+class FileReader {
+   Data read(File file) { ... }
+   Data read(Path path) { ... }   
 }
 ```
 ]
@@ -1350,7 +1368,8 @@ interface FileReader {
 
 .nice[
 ```java
-interface DataFile {
+class DataFile {
+   DateFile(Path) { ... }
    Data data();
 }
 ```
@@ -1358,6 +1377,35 @@ interface DataFile {
 
 --
 
+.crap[
+```java
+class FileReader {
+   ...  
+   boolean hasData(File file) { ... }
+   boolean hasData(Path file) { ... }
+}
+```
+]
+
+--
+
+.nice[
+```java
+class DataFile {
+   ...
+   boolean isEmpty();
+}
+```
+]
+
+--
+### How many places will contain file.exists() check? 
+
+--
+### What if FileReader has become FileReader and FileMeasurer, due to its growth?
+
+---
+class: codeonly
 .crap[
 ```java
 interface EmailSender {
@@ -1398,8 +1446,8 @@ interface Condition {
 
 .crap[
 ```java
-interface RegistrationService {
-  void register(String username, String password) throws UsernameAlreadyTaken;
+interface CredentialValidator {
+  boolean validated(String username, String password);
 }
 ```
 ]
@@ -1407,8 +1455,8 @@ interface RegistrationService {
 --
 
 .nice[```java
-class Registration {
-  void attempt(Credentials credentials) throws UsernameAlreadyTaken;
+interface Credentials {
+  boolean areValid();
 }
 ```
 ]
@@ -1416,57 +1464,58 @@ class Registration {
 ---
 class: codeonly
 
+.crap[
 ```java
-interface PaymentExporter {
-	void export(File file);
-}
-```
-
---
-
-.nice[
-```java
-interface Payments {
-  void export(File file);
+class BankAccount {
+  private Collection<Transactions> transactions;
+  void exportTransactions(Period period, Media media) {}
 }
 ```
 ]
 
---
-
-### what if only specific payments can be exported?
-
---
-
-.nice[
-```java
-interface PaymentsForExport {
-	void export(File file);
-}
-```
-]
-
---
-
-.nice[
-```java
-class BankOfAmericaPayments implements PaymentsForExport {
-	public void export(File file) {}
-}
-```
-]
+### For some reason, we want to move transaction exporting to a separate class...
 
 --
 
 .crap[
 ```java
-class BankOfAmerica implements PaymentsForExport {
-  public void exportPayments(File file) {}
+class TransactionExporter {
+  void export(BankAccount account, Period period, Media media) { ... }
 }
 ```
 ]
 
+--
 
+.nice[
+```java
+class BankAccount {
+  private Collection<Transactions> transactions;
+  TransactionsForExport transactions(Period period) {}
+}
+
+class TransactionsForExport {
+  private Period period;
+  void export(Media media);
+}
+```
+]
+
+--
+
+.nice[
+```java
+class BankAccount {
+  private Collection<Transactions> transactions;
+  BankStatement statement(Period period) {}
+}
+
+class BankStatement {
+  private Period period;
+  void export(Media media);
+}
+```
+]
 
 ---
 class: codeonly
@@ -1475,7 +1524,16 @@ class: codeonly
 interface MoneyFormatter {
   String format(Money money);
 }
-```]
+```
+]
+
+--
+
+.nice[
+```java
+String ? = money.format(FormatSpecification specification)
+```
+]
 
 --
 
@@ -1788,7 +1846,7 @@ class: codeonly
 ```java
 interface Document {
 
-  BytesWritten write(InputStream to);
+  BytesWritten writeInto(OutputStream output);
 }
 ```
 ]
@@ -1809,9 +1867,9 @@ interface Document {
 ```java
 interface OutputPipe {}
 
-     void write(InputStream to);
+     void write();
 
-     BytesWritten written();
+     BytesWritten bytesWritten();
 
      Duration timeTaken();
 }
