@@ -572,7 +572,7 @@ class CommandCorrelationId {
     private final AtomicLong counter = new AtomicLong();
 
     @Value("${unique.node.id}")
-    private private String node;
+    private String node;
 
 
     public void storeForLogging() {
@@ -1752,7 +1752,7 @@ accountRepository.add(offshore); // generates UUID
 
 --
 ```java
-accounts.contains(offshore)      // false
+accounts.contains(offshore)      
 ```
 
 ---
@@ -2045,35 +2045,31 @@ public class Customer extends DomainEntity {
 class: codeonly
 
 ```java
-@Throws(org.springframework.orm.ObjectOptimisticLockingFailureException)
-void boom() {
+Customer customer = new Customer(
+  new Email("hello@devchampions.com"),
+  new Password("qwerty123"));
 
-    Customer customer = new Customer(
-      new Email("hello@devchampions.com"),
-      new Password("qwerty123"));
+executeInTx(() -> entityManager.persist(customer));
 
-    executeInTx(() -> entityManager.persist(customer));
+CyclicBarrier coordinator = new CyclicBarrier(2);
 
-    CyclicBarrier coordinator = new CyclicBarrier(2);
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Customer.class, customer.id())
+          .relocateTo(new Address("New York, Central Park"));
+        coordinator.await();
+    })
+).start();
 
-    new Thread(() ->
-        executeInTx(() ->
-            entityManager
-              .find(Customer.class, customer.id())
-              .relocateTo(new Address("New York, Central Park"));
-            coordinator.await();
-        })
-    ).start();
-
-    new Thread(() ->
-        executeInTx(() ->
-            entityManager
-              .find(Customer.class, customer.id())
-              .changePassword(new Password("whatever"));
-            coordinator.await();
-        })
-    ).start();
-}
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Customer.class, customer.id())
+          .changePassword(new Password("whatever"));
+        coordinator.await();
+    })
+).start();
 ```
 
 ---
@@ -2125,37 +2121,33 @@ class Travis extends DomainEntity {
 ---
 class: codeonly
 ```java
-@Throws(org.springframework.orm.ObjectOptimisticLockingFailureException)
-void boom() {
+Travis travis = new Travis();
+TravisLog travisLog = new TravisLog();
+GitHubRepository gitHubRepository = new GitHubRepository();
 
-    Travis travis = new Travis();
-    TravisLog travisLog = new TravisLog();
-    GitHubRepository gitHubRepository = new GitHubRepository();
+executeInTx(() ->
+  persist(travis, travisLog, gitHubRepository);
+);
 
+CyclicBarrier coordinator = new CyclicBarrier(2);
+
+new Thread(() ->
     executeInTx(() ->
-      persist(travis, travisLog, gitHubRepository);
-    );
+        entityManager
+          .find(Travis.class, travis.id())
+          .manage(gitHubRepository);
+        coordinator.await();
+    })
+).start();
 
-    CyclicBarrier coordinator = new CyclicBarrier(2);
-
-    new Thread(() ->
-        executeInTx(() ->
-            entityManager
-              .find(Travis.class, travis.id())
-              .manage(gitHubRepository);
-            coordinator.await();
-        })
-    ).start();
-
-    new Thread(() ->
-        executeInTx(() ->
-            entityManager
-              .find(TravisLog.class, travisLog.id())
-              .archive();
-            coordinator.await();
-        })
-    ).start();
-}
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(TravisLog.class, travisLog.id())
+          .archive();
+        coordinator.await();
+    })
+).start();
 ```
 
 ---
