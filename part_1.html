@@ -59,8 +59,8 @@
     <textarea id="source">
 
 class: center, middle, example
-background-image:url(background.jpg)
-# Effective Coding Principles and Patterns in Java 8/9
+# Effective Java Software Design
+## (Java 9 edition)
 ???
 - Introduce myself and let others introduce themselves.
 - Setting expectations
@@ -72,7 +72,7 @@ class: squeez
 
 --
 
-## - java 8 in a few slides
+## - java updates (relevant to design) in a few slides
 
 --
 
@@ -135,7 +135,7 @@ class: center, middle
 
 ---
 class: center, middle, example
-# Java 8 additions
+# Java updates relevant to design
 ## (in a few slides)
 ---
 ###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
@@ -163,11 +163,7 @@ No Joda anymore.
 
 --
 
-### **PermGen** replaced with out-of-heap **Metaspace**
-???
-why eliminated
-1) fixed size at runtime
-2) because PermGen classes can be removed only via full GC. Want faster.
+###**modularity**
 
 --
 
@@ -262,7 +258,7 @@ class MethodArgumentNames {
 
 --
 
-### Any design smells?
+### Can we do any better?
 
 ---
 class: codeonly
@@ -464,17 +460,6 @@ class: codeonly
 ```
 ]
 
---
-
-.nice[
-```java
-    Connection connection = Exceptions
-      .silence()
-      .get(master::connection)
-      .orElse(slave.connection());
-```
-]
-
 ---
 class: center, middle, example
 # The economics of software design 101
@@ -549,17 +534,10 @@ name: throughput
 
 --
 
-### low quality tolerated -> lower quality -> tolerated -> even bigger decline in quality -> ... (Drift to Low Performace)
-
---
-
 ### Graham's Law
 ???
 - BWT - if there is mess, or rush, you don't be the first to make a mess.
 - Graham's law - Shitty component remain a part of the system over time precisely because it's hard to take out. Conversely, a component that is easy to replace is one that we may replace.
-
----
-![](donella.png)
 
 ---
 class: center, middle
@@ -588,7 +566,7 @@ class: center, middle
 
 ---
 class: center, middle
-# Technical debt is a **tool** for gaining a **short-term** gain. **Causes addiction** and needs to be **managed**.
+# Technical debt is a **tool** for gaining a **short-term** gain. **Needs to be carefully managed**.
 ???
 - Spike and Throwaway! (Dan North). E.g. TDDing at this level is kinda waste.
 - Meeting deadline (critical problem, black swan events -> unexpected prospect)
@@ -687,11 +665,6 @@ class: center, middle
 # Consider your reputation.
 ???
 
-
----
-class: center, middle
-## If you think someone is an asshole, most people who are silently observing the situation think so, too.
-#### *— Guy’s Theory of Perfect Knowledge of Assholes*
 
 ---
 background-image:url(SonarQube-02.png)
@@ -1210,21 +1183,19 @@ class ReportSpammer { }
 ---
 class: codeonly
 
-### exceptions answer a simple question – "what has happened?" in past tense
+### exceptions are events. "what has happened?" in past tense
 
 --
 
-.crap[
 ```java
-class RegistrationFailureException { }                           // dumb suffix
+class RuleException { }                                          // what is that?
 ```
-]
 
 --
 
 .crap[
 ```java
-class RegistrationFailure { }                                    // confusing noun
+class RuleExceptionException { }                                 // oh shit
 ```
 ]
 
@@ -1232,7 +1203,7 @@ class RegistrationFailure { }                                    // confusing no
 
 .nice[
 ```java
-class RegistrationFailed { }                                     // great
+class RuleExceptionIncorrectlyApplied { }                        // great
 ```
 ]
 
@@ -1334,7 +1305,7 @@ class InvisibleButtonClicked extends ... { }
 ---
 class: center, middle
 # Move from **f(o)** to **o.f()**
-### (start doing proper OOP)
+### (encapsulate state)
 
 ---
 class: codeonly
@@ -1348,7 +1319,7 @@ class File { }
 .crap[
 ```java
 class FileReader {
-   Data read(File file) { ... }
+   String read(File file) { ... }
 }
 ```
 ]
@@ -1358,8 +1329,8 @@ class FileReader {
 .crap[
 ```java
 class FileReader {
-   Data read(File file) { ... }
-   Data read(Path path) { ... }   
+   String read(File file) { ... }
+   String read(Path path) { ... }   
 }
 ```
 ]
@@ -1368,9 +1339,10 @@ class FileReader {
 
 .nice[
 ```java
-class DataFile {
-   DateFile(Path) { ... }
-   Data data();
+class TextFile {
+   TextFile(Path) { ... }
+   TextFile(File) { ... }
+   String text();
 }
 ```
 ]
@@ -1381,8 +1353,8 @@ class DataFile {
 ```java
 class FileReader {
    ...  
-   boolean hasData(File file) { ... }
-   boolean hasData(Path file) { ... }
+   boolean hasText(File file) { ... }
+   boolean hasText(Path file) { ... }
 }
 ```
 ]
@@ -1391,18 +1363,59 @@ class FileReader {
 
 .nice[
 ```java
-class DataFile {
+class TextFile {
    ...
    boolean isEmpty();
 }
 ```
 ]
 
---
-### How many places will contain file.exists() check? 
+---
+class: codeonly
+
+.nice[
+```java
+class TextFile {
+   TextFile(Path) { ... }
+   TextFile(File) { ... }
+   String text();
+}
+```
+]
 
 --
-### What if FileReader has become FileReader and FileMeasurer, due to its growth?
+
+.crap[
+```java
+class TextFile {
+   TextFile(Path) { ... }
+   TextFile(File) { ... }
+   String text();
+   byte[] binary();
+}
+```
+]
+
+--
+
+.nice[
+```java
+class TextFile {
+   TextFile(Path) { ... }
+   TextFile(File) { ... }
+   Content content();
+}
+```
+]
+
+.nice[
+```java
+class Content {
+   String textual() { ... };
+   byte[] binary() { ... };
+}
+```
+]
 
 ---
 class: codeonly
