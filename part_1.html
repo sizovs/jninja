@@ -456,7 +456,7 @@ class: codeonly
     Connection connection = Exceptions
       .log()
       .get(master::connection)
-      .orElse(slave.connection());
+      .orElseGet(slave::connection);
 ```
 ]
 
