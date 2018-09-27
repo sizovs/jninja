@@ -60,7 +60,6 @@
 
 class: center, middle, example
 # Effective Java Software Design
-## (Java 9 edition)
 ???
 - Introduce myself and let others introduce themselves.
 - Setting expectations
@@ -69,14 +68,6 @@ class: center, middle, example
 ---
 class: squeez
 # Part I
-
---
-
-## - java updates (relevant to design) in a few slides
-
---
-
-## - software design economics
 
 --
 
@@ -132,42 +123,7 @@ class: squeez
 ---
 class: center, middle
 # Part I
-
----
-class: center, middle, example
-# Java updates relevant to design
-## (in a few slides)
----
-###**java.time** (Clock, Instant, LocalDate, TemporalAdjuster)
-???
-No Joda anymore.
---
-
-###**streams** (collections, arrays, chars, files etc.)
-
---
-
-###**lambdas**
-
---
-
-###**@FunctionalInterface** (Function, Predicate, Consumer, Supplier)
-
---
-
-###**method references** (Class::new, instance::method)
-
---
-
-###**default methods**
-
---
-
-###**modularity**
-
---
-
-###**java.lang.reflect.Parameter** (--parameters compiler argument)
+### let's warm up...
 
 ---
 class: codeonly
@@ -459,226 +415,6 @@ class: codeonly
       .orElseGet(slave::connection);
 ```
 ]
-
----
-class: center, middle, example
-# The economics of software design 101
-???
-Before HOW -> WHY
-
----
-class: center, middle
-# There is a strong correlation between quality of the codebase and developer productivity or **throughput**.
-## (c) me
-???
-- The higher is quality, the higher is productivity. And vice versa.
-- Everyone agrees?!
-- Productivity - TIME we spend per CHANGE.
-
----
-class: middle
-# <span class="ktx" expr="Throughput = \dfrac{RTF}{TIME}"></span>
-#### *RTF - Released Tested Features (c) [The Economics of Software Design](https://www.youtube.com/watch?v=7HecgbghFTk), J.B. Rainsberger *
-???
-
----
-class: center, middle
-# Higher throughput = lower **cost per change**.
-#### <span class="ktx" expr="cost\,per\,change = time\,spent\,on\,change\,\times salary"></span>
-
----
-class: center, middle
-# Why do these guys move so slow?!
-???
-Low throughput
-
----
-class: center, middle
-# Why are these guys so expensive?!
-???
-High CPC (low throghput; too low for given salary!!!)
-
-
----
-class: center, middle
-# By writing clean code, you enable **stable throughput / responsiveness over time**.
-### (the time that is usually longer than your employment)
-???
-- The goal of design is to be able to ship as fast as we can now not only in the next 3 months, but in years etc.
-- Unfortunately, we do not usually know see long-term consequences of our work, but we should.
-- For example, my best friend is now maintaining a software that I wrote 6 years ago :-)
-
-
----
-name: throughput
-<div id="throughput" style="width: 100%; height: 100%;"></div>
-???
-- team is slow and becomes a bottleneck to make world a better place :-) New teams, rewrites etc.
-- a nice thing about sustainable pace that I can estimate.
-- Do you know the rule that makes throughput gradually grow? BS rule. That's how we escale from SHIT.
-- Can someone explain why throughput drops that fast?
-
----
-#  Reinforcing loops:
-
---
-
-### low throughput -> pressure -> more corners cut -> lower throghput
-
---
-### low throughput -> unmet deadlines -> more people to work on features -> lower throughput (Brook's Law)
-
---
-
-### low quality tolerated -> lower quality (Broken window theory)
-
---
-
-### Graham's Law
-???
-- BWT - if there is mess, or rush, you don't be the first to make a mess.
-- Graham's law - Shitty component remain a part of the system over time precisely because it's hard to take out. Conversely, a component that is easy to replace is one that we may replace.
-
----
-class: center, middle
-# Technical debt
-
-
----
-class: center, middle
-##  Technical debt is a metaphor to express cumulative **future** consequences of corners being cut.
----
-name: debt
-<div id="debt" style="width: 100%; height: 100%;"></div>
-???
-- TD - cumulative future consequences of corners being cut.
-- In this example, we pay TD in terms of throughput.
-- TD is about future. And we want future US to thank us in future.
-
----
-class: center, middle
-# ?
-???
-- raise your hand who thinks technical debt is a bad thing?
-- who thinks it's a good thing?
-- is taking a loan a bad thing?
-- is taking and loan and not returning it back for a long time - a bad thing?
-
----
-class: center, middle
-# Technical debt is a **tool** for gaining a **short-term** gain. **Needs to be carefully managed**.
-???
-- Spike and Throwaway! (Dan North). E.g. TDDing at this level is kinda waste.
-- Meeting deadline (critical problem, black swan events -> unexpected prospect)
-
----
-class: conversation
-### **Manager**: When will the new permission be done?
-
---
-
-### **Dev**: Mmmm, I hope tomorrow, in the end of the day.
-
---
-
-### **Manager**: We need it today. Can’t you find a “creative” way to do it?
-
---
-
-### **Dev**: Let me think…
-
---
-
-### **Manager**: We have 5 clients that really need this today. Else they will probably not sign the contract.
-
---
-
-### **Dev**: But the…
-
---
-
-### **Manager**: Look, it’s important that you understand the business value of it. Isn’t it just a new condition in the code? Just put it there, and we’ll “fix it” later.
-
---
-
-### **Dev**: Ok.
-
---
-
-### **Manager**: So we’ll be able to deploy today?
-
---
-
-### **Dev**: Aham.
-
-#### *— [Technical Debt 101](https://medium.com/@joaomilho/festina-lente-e29070811b84#.7d8asvofr)*
-
----
-class: bottom, right
-background-image:url(techDebtQuadrant.png)
-#### *Technical debt quadrant: http://martinfowler.com/bliki/TechnicalDebtQuadrant.html*
-???
-- reckless - we focus on completing tasks fast instead of building HQ system. Boil like frogs.
-- It's often the case that it can take a year of programming on a project before you understand what the best design approach should have be.
-
----
-class: center, middle, bad
-# The only way to go fast is to go well.
-### (c) Uncle Bob
-???
-really?
-
----
-class: center, middle, oki
-# The only way to go fast [in a long run] is to go well.
-### (c) Uncle Bob (edited)
-
----
-class: center, middle
-# Does writing clean code take more time than writing crap?
-???
-- SOMETIMES writing takes longer. But it makes READING easier.
-
----
-class: center, middle
-# Reading vs. writing ratio is 10:1.
-???
-we want reading to be easy if it makes writing harder. Making code easy to read, makes it easier to write.
-
----
-class: center, middle
-# There are people who write clean code blazingly fast.
-???
-I saw master at work. You can be that master. Skill acquisition graph (performance over time)
-
----
-class: center, middle
-# If something is not worth our time, consider not doing it.
-![](stepsofmastery.png)
-???
-- Avoiding it - nice! less INHERENT COMPLEXITY. less code to maintain.
-- Agile Manifesto principle. Simplicity — the art of maximizing the amount of work not done.
-- First law of software quality: e = mc^2 ; errors = (more code)^2
-
----
-class: center, middle
-# Consider your reputation.
-???
-
-
----
-background-image:url(SonarQube-02.png)
-background-size: 100%
-???
-- not used
-- running on every push
-- before every push (https://hub.docker.com/_/sonarqube)
-- running on every code change
-
----
-class: lint
-background-image:url(sonarlint.png)
-background-size: 100%
 
 ---
 class: center, middle, example
@@ -1144,16 +880,6 @@ class: center, middle
 
 ---
 class: codeonly
-.crap[
-```java
-class CancelTransactionAction { }
-class ApplyForLoanAction { }
-class AskQuestionAction { }
-class ReportSpammerAction { }
-```
-]
-
---
 
 .crap[
 ```java
@@ -1480,307 +1206,66 @@ class: codeonly
 .crap[
 ```java
 class BankAccount {
-  private Collection<Transactions> transactions;
+  private Collection<Transaction> transactions;
   void exportTransactions(Period period, Media media) {}
 }
 ```
 ]
 
-### For some reason, we want to move transaction exporting to a separate class...
-
---
-
-.crap[
-```java
-class TransactionExporter {
-  void export(BankAccount account, Period period, Media media) { ... }
-}
-```
-]
+### Any design smells?
 
 --
 
 .nice[
 ```java
-class BankAccount {
-  private Collection<Transactions> transactions;
-  TransactionsForExport transactions(Period period) {}
-}
-
-class TransactionsForExport {
-  private Period period;
-  void export(Media media);
-}
-```
-]
-
---
-
-.nice[
-```java
-class BankAccount {
-  private Collection<Transactions> transactions;
-  BankStatement statement(Period period) {}
-}
 
 class BankStatement {
   private Period period;
   void export(Media media);
 }
+
+class BankAccount {
+  private Collection<Transaction> transactions;
+
+  public BankStatement statement(Period period) {
+    return new BankStatement(transactions, period);
+  }
+}
 ```
 ]
+
+### Look ma, fewer parameters!
 
 ---
 class: codeonly
 .crap[
 ```java
-interface MoneyFormatter {
-  String format(Money money);
-}
-```
-]
-
---
-
-.nice[
-```java
-String ? = money.format(FormatSpecification specification)
-```
-]
-
---
-
-.nice[
-```java
-interface PrettyMoney {
-
-  String asText();
-```
-]
-
---
-
-.nice[
-```java
-  class Humane implements PrettyMoney {
-    @Override
-    public String asText() { ... }
-  }
-```
-]
---
-
-.nice[
-```java
-  class ISO_1234 implements PrettyMoney {
-    @Override
-    public String asText() { ... }
-  }
-
-}
-```
-]
-
---
-
-```java
-public static void main(String[] args) {
-    Money money = new Money(99.00);
-    PrettyMoney prettyMoney = new PrettyMoney.Humane(money);
-    println(prettyMoney.asText());
-}
-```
-???
-- makes our software more OO, composable from classes, not methods
-- why not MoneyFormat?
-- why not toString()
-
----
-class: codeonly
-.crap[
-```java
-class FuckupProbabilityCalculator {
+class ProbabilityCalculator {
     BigDecimal calculate() { ... }
 }
-```]
 
---
-
-![](fuckupdecimal.png)
-
----
-class: codeonly
-
-.nice[
-```java
-interface DecimalNumber {
-
-    BigDecimal decimal();
-```
-]
-
---
-
-.nice[
-```java
-    default DecimalNumber dividedBy(DecimalNumber divisor) {
-        BigDecimal roundedDivision = decimal().divide(
-            divisor.decimal(), RoundingMode.ROUND_UNNECESSARY);
-        return new Const(roundedDivision);
-    }
-
-    ...
-
-}```
-]
-
---
-
-.nice[
-```java
-class Const implements DecimalNumber {
-
-    private final BigDecimal origin;
-```
-]
-
---
-
-.nice[
-```java
-    public Const(int origin) {
-      this(new BigDecimal(origin));
-    }
-```
-]
-
---
-
-.nice[
-```java
-    public Const(BigDecimal origin) {
-      this.origin = origin.setScale(2, BigDecimal.ROUND_UNNECESSARY);
-    }
-```
-]
-
---
-
-.nice[
-```java
-    @Override
-    public BigDecimal decimal() {
-      return origin;
-    }
+class ProbabilityUtils {
+  boolean isHigh(BigDecimal decimal) { ... }
 }
+
 ```
 ]
 
----
-class: codeonly
+--
 
 .nice[
 ```java
-class FuckupProbability implements DecimalNumber {
-
-    private final SecureRandom random = new SecureRandom();
-
-    @Override
-    public BigDecimal decimal() {
-      return new BigDecimal(random.nextInt());
+class Probability extends BigDecimal {
+    Probability() { 
+      calculationGoesHere();
     }
-}
-```]
-
---
-
-.nice[
-```java
-void wunderDemo() {
-    DecimalNumber one = new FuckupProbability();
-    DecimalNumber another = new FuckupProbability();
-```
-]
-
---
-
-.nice[
-```java
-    DecimalNumber average = one.plus(another).dividedBy(new Const(2));
-```
-]
-
---
-
-.nice[
-```java
-    DecimalNumber average = new Average(one, another);
-}
-```
-]
-
---
-
-.nice[
-```java
-class Average implements DecimalNumber {
-
-    private final DecimalNumber[] numbers;
-
-    public Average(DecimalNumber... numbers) {
-        this.numbers = numbers;
-    }
-
-    @Override
-    public BigDecimal decimal() {
-        DecimalNumber total = new Const(numbers.length);
-        DecimalNumber sum = new Sum(numbers);
-        DecimalNumber average = sum.dividedBy(total);
-        return average.decimal();
-    }
+    boolean isHigh(); 
 
 }
 ```
 ]
 
----
-class: codeonly
-.crap[
-```java
-@Goodbye
-public final class BigDecimalUtils {
 
-    public static final int AMOUNT_SCALE = 2;
-
-    private BigDecimalUtils() {
-    }
-
-    public static BigDecimal amount(int value) {
-      return amount(new BigDecimal(value));
-    }
-
-    public static BigDecimal amount(BigDecimal amount) {
-      return amount.setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
-    }
-
-    public static boolean isEqual(BigDecimal value1, BigDecimal value2) {
-      boolean isEqual = value1.compareTo(value2) == 0;
-      return isEqual;
-    }
-
-    public static boolean isInRange(BigDecimal amount, BigDecimal amountFrom, BigDecimal amountTo) {
-      return isGe(amount, amountFrom) && isLe(amount, amountTo);
-    }
-
-    public static boolean isZero(BigDecimal value) {
-      return isEqual(BigDecimal.ZERO, value);
-    }
-
-  ...
-
-}
-```
-]
 ---
 class: center, middle
 # Methods are either **commands** or **queries**.
@@ -1882,9 +1367,7 @@ interface OutputPipe {}
 
      void write();
 
-     BytesWritten bytesWritten();
-
-     Duration timeTaken();
+     BytesWritten length();
 }
 ```
 
@@ -1958,14 +1441,21 @@ borrower.setLastName(lastName);
 borrower.giveName(String firstName, String lastName);
 ```
 ]
-???
-grant permissions vs. set permissions
+
+--
+
+.nice[
+```java
+borrower.give(Name name);
+```
+]
+
 
 --
 
 .crap[
 ```java
-borrower.setAcceptedAgreementType(AgreementType acceptedAgreementType);
+borrower.setAcceptedAgreement(Agreement agreement);
 ```
 ]
 
@@ -2258,51 +1748,6 @@ interface Input {
 }
 ```
 ]
-
----
-class: center, middle
-# Package naming
-
----
-
-class: codeonly
-
-### name of the company has nothing to do with code
-
-.crap[
-```java
-package org.apache.spark;
-```
-]
-
---
-
-.nice[
-```java
-package spark;
-```
-]
-
-
---
-
-### plural or singular?
-
-
-```java
-package tomtom.navigation;
-package tomtom.navigation.maps;
-```
-
-```java
-package tomtom.navigation;
-package tomtom.navigation.map;
-```
-
---
-
-### Use the plural for packages with homogeneous contents.
-### Use the singular for packages with heterogeneous contents.
 
 ---
 class: center, middle, example
@@ -2776,14 +2221,14 @@ class: center, middle
 
 ---
 class: codeonly
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = this.applicationCheckFactory.make(when, application, this.countryCode);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = this.applicationCheckFactory.make(when, application, this.countryCode);
   if (log.isDebugEnabled()) {
     log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
   }
-  def checkResult = check.run();
+  var checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2794,14 +2239,14 @@ public def checkApplication(LoanApplication application, Date when) {
 
 --
 
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-* def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application) {
+* var check = makeCheck(application);
   if (log.isDebugEnabled()) {
     log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
   }
-  def checkResult = check.run();
+  var checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2812,14 +2257,14 @@ public def checkApplication(LoanApplication application, Date when) {
 
 ---
 class: codeonly
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   if (log.isDebugEnabled()) {
     log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
   }
-  def checkResult = check.run();
+  var checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2830,26 +2275,27 @@ public def checkApplication(LoanApplication application, Date when) {
 
 --
 
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
 * log(check); // logIfNeeded if conditional needs to be communicated
-  def checkResult = check.run();
+  var checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
   }
 }
 ```
+
 ---
 class: codeonly
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
   persistResults(checkResult, application);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2859,12 +2305,12 @@ public def checkApplication(LoanApplication application, Date when) {
 
 --
 
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
 * persistResults(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2874,12 +2320,12 @@ public def checkApplication(LoanApplication application, Date when) {
 
 --
 
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
 * persist(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2889,12 +2335,12 @@ public def checkApplication(LoanApplication application, Date when) {
 
 ---
 class: codeonly
-```groovy
+```java
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
   persist(checkResult);
   if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
     runScorecard(application);
@@ -2906,10 +2352,10 @@ public def checkApplication(LoanApplication application, Date when) {
 
 ```groovy
 @Override
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
   persist(checkResult);
 * if (shouldRunScorecard(application)) {
     runScorecard(application);
@@ -2992,11 +2438,11 @@ private boolean shouldRunScorecard(LoanApplication application) {
 
 ---
 class: codeonly
-```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+```java
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
   persist(checkResult);
   if (shouldRunScorecard(application)) {
       runScorecard(application);
@@ -3007,10 +2453,10 @@ public def checkApplication(LoanApplication application, Date when) {
 --
 
 ```groovy
-public def checkApplication(LoanApplication application, Date when) {
-  def check = makeCheck(application, when);
+public CheckResult checkApplication(LoanApplication application, Date when) {
+  var check = makeCheck(application);
   log(check);
-  def checkResult = check.run();
+  var checkResult = check.run();
   persist(checkResult);
 }
 ```
@@ -3018,7 +2464,7 @@ public def checkApplication(LoanApplication application, Date when) {
 --
 
 ```groovy
-public def scoreApplicationIfNecessary(LoanApplication application) {
+public void scoreApplicationIfNecessary(LoanApplication application) {
   if (shouldRunScorecard(application)) {
       runScorecard(application);
   }
@@ -3030,100 +2476,6 @@ public def scoreApplicationIfNecessary(LoanApplication application) {
 class: center, middle
 ## The code should read like a top-down narrative. Start with high-level, abstract paragraphs. Then dive into details.
 ### — The Stepdown Rule
-
-
----
-class: center, middle
-# Is Guava still a thing?
-
----
-class: codeonly
-```java
-Range.closed(1, 3).contains(2);
-
-Range.lessThan(5).contains(5);
-```
-
---
-
-```java
-Multimap<String, String> gadgets = HashMutimap.create();
-
-gadgets.put("iPhone", "5S");
-gadgets.put("iPhone", "6S");
-gadgets.put("LG", "Nexus");
-```
-
---
-
-```java
-List<Iphone> iphones() {
-  return ImmutableList.copyOf(iphones);
-}
-```
-
---
-
-```java
-Ordering<Money> ordering = Ordering
-  .natural()
-  .nullsFirst()
-  .onResultOf(Money::amount);
-
-Collection<Money> lotsOfMoney = ...
-
-ordering.isOrdered(lotsOfMoney)
-
-Money million = new Money(1000000);
-List<Money> leastOfAMillion = ordering.leastOf(lotsOfMoney, million);
-
-ordering.reverse();
-```
-
----
-class: codeonly
-```java
-public int compareTo(Foo that) {
-  return ComparisonChain.start()
-    .compare(this.a, that.a)
-    .compare(this.b, that.b)
-    .compare(this.c, that.c, Ordering.natural())
-    .result();
-```
-
-
---
-
-```java
-CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, "CONSTANT_NAME"));
-```
-
---
-
-```java
-new EqualsTester()
-    .addEqualityGroup("hello", "h" + "ello")
-    .addEqualityGroup("world", "wor" + "ld")
-    .addEqualityGroup(2, 1 + 1)
-    .testEquals();
-```
-
---
-
-```java
-int maxNumberOfInsertions = 10000;
-int falsePositiveProbability = 3;
-
-BloomFilter<String> ipAddresses = BloomFilter.create(stringFunnel(Charsets.UTF_8),
-                                                     maxNumberOfInsertions,
-                                                     falsePositiveProbability);
-
-boolean mightContain = ipAddresses.mightContain("121.21.13.111");
-boolean neverContain = !mightContain;
-```
-???
-Briefly, Bloom filters are a probabilistic DS, definitely NOT containing, but if yes - MAYBE
-
 
 ---
 class: middle, center, example
@@ -3228,7 +2580,7 @@ class FtpUtils {
 class: codeonly
 .crap[
 ```java
-@StilProcedural
+@StillProcedural
 class FtpClient {
 
   void transferFile(File file, File newLocation)
