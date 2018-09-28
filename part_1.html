@@ -2601,7 +2601,7 @@ public class Tweet {
         }
 
         public long totalBy(LikerId likerId) {
-            return likes.stream().filter(like -> like.isBy(likerId)).count();
+            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
         }
 
         public Collection<Like> all() {
@@ -2631,7 +2631,7 @@ public class Tweet {
     class Likes extends ForwardingList<Like> {
 
         public long totalBy(LikerId likerId) {
-            return likes.stream().filter(like -> like.isBy(likerId)).count();
+            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
         }
 
         @Override
@@ -2681,62 +2681,20 @@ class BlackFriday {
 
 --
 
-.crap[
 ```java
 class Likes {
     ...
     public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.time().toLocalDate()))
+            .map(Like::time)
+            .filter(blackFriday::fallsOn)
             .count();
     }
     ...
 }
 ```
-]
 
----
-class: codeonly
-```java
-class BlackFriday implements SpecialDay {
-```
-
-```java
-    public boolean fallsOn(LocalDate date) {
-        return blackFriday().isEqual(date);
-    }
-```
-
-```java
-    private LocalDate blackFriday() {
-        return thanksGivingDay().plusDays(1);
-    }
-```
-
-```java
-    private LocalDate thanksGivingDay() {
-        return Year.now()
-                .atMonth(Month.NOVEMBER)
-                .with(TemporalAdjusters.lastInMonth(DayOfWeek.THURSDAY));
-    }
-}
-```
-
-.crap[
-```java
-class Likes {
-    ...
-    public long totalDuring(SpecialDay specialDay) {
-        return likes
-            .stream()
-            .filter(like -> specialDay.fallsOn(like.time().toLocalDate()))
-            .count();
-    }
-    ...
-}
-```
-]
 
 ---
 class: center, middle
@@ -2746,7 +2704,7 @@ class: center, middle
 class: codeonly
 ```java
 public interface Entity<T> {
-    default <R> R projection(Function<T, R> fn) {
+    default <R> R whatAbout(Function<T, R> fn) {
         return fn.apply((T) this);
     }
 }
@@ -2772,7 +2730,8 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
         return
           likes
             .stream()
-            .filter(like -> blackFriday.fallsOn(like.time().toLocalDate()))
+            .map(Like::time)
+            .filter(blackFriday::fallsOn))
             .count();
     }
 }
@@ -2783,7 +2742,7 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.projection(new TotalDuringBlackFriday());
+long total = likes.whatAbout(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
@@ -2794,10 +2753,10 @@ long total = likes.projection(new TotalDuringBlackFriday());
 class: codeonly
 ```java
 public interface Entity<T> {
-    default <R> R projection(Function<T, R> fn) {
+    default <R> R whatAbout(Function<T, R> fn) {
         return fn.apply((T) this);
     }
-    default boolean satisfies(Predicate<T> predicate) {
+    default boolean has(Predicate<T> predicate) {
         return predicate.test((T) this);
     }
 }
@@ -2813,7 +2772,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
-                    .filter(like -> like.madeOn(tweet.time().toLocalDate())))
+                    .filter(like -> like.isPutOn(tweet.date())))
                     .count();
             return likesOnAPostingDay >= 1000000;
         }
@@ -2823,7 +2782,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.satisfies(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.has(new GotMillionLikesOnAPostingDay());
 ```
 
 ---
