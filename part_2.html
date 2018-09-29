@@ -222,10 +222,10 @@ class GrantPermissionReaction implements Reaction<GrantPermission, Command.R.Voi
     @Override
     public Command.R.Void react(GrantPermissionCommand $) {
         MemberId memberId = new MemberId($.memberId());
-        Member member = members.byId(memberId);
+        Member member = members.singleBy(memberId);
 
         PermissionId permissionId = new PermissionId($.permissionId());
-        Permission permission = permissions.byId(permissionId);
+        Permission permission = permissions.singleBy(permissionId);
 
         member.grant(permission);
         return new Command.R.Void();
