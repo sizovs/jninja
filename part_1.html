@@ -2434,8 +2434,6 @@ Marco Cecconi - Dev at StackOverflow
 class: codeonly
 
 ```java
-@GenericNamingLeadsToObesity
-@HardToArgueThatTradeIsDoingMoreThanOneThing
 class Trade {
   void process() {
     // 1000 LOC
@@ -2465,12 +2463,6 @@ class *Manager
 
 ```java
 class *Service
-```
-
---
-
-```java
-class *Controller
 ```
 
 
@@ -2548,12 +2540,12 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDateTime time = LocalDateTime.now();
+    private LocalDate date = LocalDate.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDateTime time() {
-        return time;
+    public LocalDate date() {
+        return date;
     }
 
 *   public Collection<Like> likes() {
@@ -2568,8 +2560,8 @@ public class Tweet {
 *     return likes.size();
 *   }
 *
-*   public long totalLikesBy(LikerId likerId) {
-*     return likes.stream().filter(like -> like.isBy(likerId)).count();
+*   public long totalLikesBy(AccountId accountId) {
+*     return likes.stream().filter(like -> like.comesFrom(accountId)).count();
 *   }
 ```
 
@@ -2578,12 +2570,12 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDateTime time = LocalDateTime.now();
+    private LocalDate date = LocalDate.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDateTime time() {
-        return time;
+    public LocalDate date() {
+        return date;
     }
 
     public Likes likes() {
@@ -2600,8 +2592,8 @@ public class Tweet {
             return likes.size();
         }
 
-        public long totalBy(LikerId likerId) {
-            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+        public long totalBy(AccounId accoutId) {
+            return likes.stream().filter(like -> like.comesFrom(accountId)).count();
         }
 
         public Collection<Like> all() {
@@ -2616,12 +2608,12 @@ class: codeonly
 ```java
 public class Tweet {
 
-    private LocalDateTime time = LocalDateTime.now();
+    private LocalDate date = LocalDate.now();
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDateTime time() {
-        return time;
+    public LocalDate date() {
+        return date;
     }
 
     public Likes likes() {
@@ -2630,8 +2622,8 @@ public class Tweet {
 
     class Likes extends ForwardingList<Like> {
 
-        public long totalBy(LikerId likerId) {
-            return likes.stream().filter(like -> like.isPutBy(likerId)).count();
+        public long totalBy(AccountId accountId) {
+            return likes.stream().filter(like -> like.comesFrom(accountId)).count();
         }
 
         @Override
@@ -2687,7 +2679,7 @@ class Likes {
     public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
-            .map(Like::time)
+            .map(Like::date)
             .filter(blackFriday::fallsOn)
             .count();
     }
@@ -2730,8 +2722,8 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
         return
           likes
             .stream()
-            .map(Like::time)
-            .filter(blackFriday::fallsOn))
+            .map(Like::date)
+            .filter(blackFriday::fallsOn)
             .count();
     }
 }
@@ -2772,7 +2764,7 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
-                    .filter(like -> like.isPutOn(tweet.date())))
+                    .filter(like -> like.wasPutOn(tweet.date()))
                     .count();
             return likesOnAPostingDay >= 1000000;
         }
