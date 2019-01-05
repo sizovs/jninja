@@ -491,7 +491,7 @@ interface Command<T extends Command.R> {
 --
 
 ```java
-class GetMobileNumbers implements Command<GetMobileNumbers, MobileNumbers> {
+class GetMobileNumbers implements Command<MobileNumbers> {
 
     @Override
     public Collection<TxFlag> txFlags() {
@@ -2509,7 +2509,7 @@ class: center, middle
 
 
     </textarea>
-    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/remark/0.14.0/remark.min.js"></script>
     <script>
       var slideshow = remark.create({
         highlightLines: true,

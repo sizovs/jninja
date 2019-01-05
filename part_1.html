@@ -422,35 +422,6 @@ class: center, middle, example
 
 ---
 class: codeonly
-.crap[
-```java
-@AstonishingTwilioApi
-class Example {
-
-  public static final String ACCOUNT_SID = "{{ account_sid }}";
-  public static final String AUTH_TOKEN = "{{ auth_token }}";
-
-  public static void main(String[] args) throws TwilioRestException {
-    TwilioRestClient client = new TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN);
-
-    List<NameValuePair> params = new ArrayList<NameValuePair>();
-    params.add(new BasicNameValuePair("Body", "Hello from Java"));
-    params.add(new BasicNameValuePair("To", "+12345678901"));
-    params.add(new BasicNameValuePair("From", "+12345678901"));
-
-    MessageFactory messageFactory = client.getAccount().getMessageFactory();
-    Message message = messageFactory.create(params);
-  }
-}
-```
-]
-???
-- Stroup effect
-- Naming issues has cumulative effect
-- The code is not HONEST.
-
----
-class: codeonly
 ```java
 @WhatDoYouExpectToHappen
 void code() {
@@ -605,7 +576,7 @@ interface Counter {
 ```java
 interface Counter {
   // finally!
-  void incrementBy(long adjunct) { this.current += adjunct }
+  void incrementBy(long increment) { this.current += increment }
 }
 ```
 ]
@@ -648,7 +619,7 @@ interface Movie {
 
 --
 
-.crap[
+.nice[
 ```java
 interface Movie {
     void streamInto(Channel channel);
@@ -2785,7 +2756,7 @@ class: center, middle
 
     </textarea>
     <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/remark/0.14.0/remark.min.js"></script>
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
