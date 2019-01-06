@@ -1002,7 +1002,6 @@ class InvisibleButtonClicked extends ... { }
 ---
 class: center, middle
 # Move from **f(o)** to **o.f()**
-### (encapsulate state)
 
 ---
 class: codeonly
@@ -1171,6 +1170,26 @@ interface Credentials {
 ```
 ]
 
+--
+
+.crap[
+```java
+interface RegistrationService {
+  void register(String username, String password);
+}
+```
+]
+
+--
+
+.nice[```java
+interface Registration {
+  void complete();
+}
+```
+]
+
+
 ---
 class: codeonly
 
@@ -1235,7 +1254,6 @@ class Probability extends BigDecimal {
 }
 ```
 ]
-
 
 ---
 class: center, middle
@@ -1510,43 +1528,6 @@ conference.accept(Speaker speaker);
 ```
 ]
 
-
----
-class: codeonly
-
-.crap[
-```java
-Bank bank = new Bank();
-bank.setCode(...);
-bank.setName(...);
-bank.setBic(...);
-```
-]
-
---
-
-.nice[
-```java
-@OnlyNameChangeIsAllowedAndIdentityStaysImmutable
-Bank bank = new Bank(code, name, bic);
-bank.rename(...);
-```
-]
-
---
-
-### what if need to change bank identity due to acquisition by another bank?
-
---
-
-.nice[
-```java
-Bank bank = ...
-Bank anotherBank = new Bank(code, name, bic);
-bank.become(anotherBank);
-```
-]
-
 ---
 # Data structures
 
@@ -1782,13 +1763,9 @@ void lifeWithoutOptionals() {
 ```java
 void optionalIsAMonad() {
   phoneBook.phoneNumber(...)
-      .flatMap(this::facebookProfile)
+      .flatMap(facebook::profile)
       .flatMap(FacebookProfile::picture)
       .ifPresent(ProfilePicture::download);
-}
-
-private FacebookProfile facebookProfile(PhoneNumber) {
-  ...  
 }
 
 ```
