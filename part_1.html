@@ -79,10 +79,6 @@ class: squeez
 
 --
 
-## - abstraction
-
---
-
 ## - fighting feature bloat
 
 ---
@@ -251,6 +247,8 @@ class MethodArgumentNames {
 }
 ```
 ]
+???
+stepdown rule issue (where to put shared code)
 
 ---
 class: codeonly
@@ -375,6 +373,21 @@ class: codeonly
 
 class: codeonly
 
+### github.com/zalando/faux-pas
+
+.nice[
+```java
+    IntStream
+            .rangeClosed(from, to)
+            .mapToObj(Port::new)
+            .filter(throwingPredicate(Port::free))
+            .findFirst();
+```
+]
+
+---
+class: codeonly
+
 ### noexception.machinezoo.com
 
 .nice[
@@ -384,14 +397,17 @@ class: codeonly
             .mapToObj(Port::new)
             .filter(Exceptions.sneak().predicate(Port::free))
             .findFirst();
-```
+```            
 ]
 
----
-class: codeonly
+
+--
 
 .crap[
 ```java
+
+
+
     Master master = new Master();
     Slave slave = new Slave();
 
@@ -634,6 +650,7 @@ class: codeonly
 .crap[
 ```java
   class BillingAgreement {
+      private LocalDate creationDate;     
       private LocalDate startingDate;
 ```
 ]
@@ -643,7 +660,8 @@ class: codeonly
 .nice[
 ```java
   class BillingAgreement {
-      private LocalDate asOfDate;
+      private LocalDate creationDate; 
+      private AsOfDate asOfDate;       
 ```
 ]
 
@@ -652,7 +670,8 @@ class: codeonly
 .crap[
 ```java
   class Payment {
-      private LocalDate maxPaymentDate;
+      private LocalDate expectedDate;
+      private Days allowedDelay;
 ```
 ]
 
@@ -662,6 +681,7 @@ class: codeonly
 ```java
   class Payment {
       private LocalDate dueDate;
+      private GracePeriod gracePeriod;
 ```
 ]
 
@@ -843,64 +863,15 @@ interface HipChat {
 ]
 
 ---
-class: center, middle
-## Avoid dumb suffixes when possible
-### (but always stay consistent)
-
-
-
----
 class: codeonly
 
-.crap[
-```java
-class CancelTransactionCommand { }
-class ApplyForLoanCommand { }
-class AskQuestionCommand { }
-class ReportSpammerCommand { }
-```
-]
-
---
-
-### **Verb** – a word used to describe an action, state, or occurrence.
-### **Verbs are actions by default**
-
---
-
-.nice[
-```java
-class CancelTransaction { }
-class ApplyForLoan { }
-class AskQuestion { }
-class ReportSpammer { }
-```
-]
-
----
-class: codeonly
-
-### exceptions are events. "what has happened?" in past tense
-
---
-
-```java
-class RuleException { }                                          // what is that?
-```
+### exceptions must tell what has happened
 
 --
 
 .crap[
 ```java
-class RuleExceptionException { }                                 // oh shit
-```
-]
-
---
-
-.nice[
-```java
-class RuleExceptionIncorrectlyApplied { }                        // great
+class RuleException { }  
 ```
 ]
 
@@ -908,7 +879,7 @@ class RuleExceptionIncorrectlyApplied { }                        // great
 
 .crap[
 ```java
-class ExecutionTimeoutException extends ... { }                  // dumb suffix
+class RuleIncorrectlyAppliedException { }
 ```
 ]
 
@@ -916,7 +887,7 @@ class ExecutionTimeoutException extends ... { }                  // dumb suffix
 
 .crap[
 ```java
-class ExecutionTimeout extends ... { }                           // confusing noun
+class FileLockException extends ... { } 
 ```
 ]
 
@@ -924,30 +895,7 @@ class ExecutionTimeout extends ... { }                           // confusing no
 
 .nice[
 ```java
-class ExecutionTimedOut extends ... { }                          // great
-```
-]
-
-
-.nice[
-```java
-class ExecutionTookTooLong extends ... { }                       // great
-```
-]
-
---
-
-.crap[
-```java
-class OverlappingFileLockException extends ... { }               // dumb suffix
-```
-]
-
---
-
-.nice[
-```java
-class FileLockAcquisitionFailed extends ... { }                  // great
+class FileLockAcquisitionFailedException extends ... { } 
 ```
 ]
 
@@ -963,7 +911,7 @@ class WebDriverException extends ... { }
 
 .nice[
 ```java
-class WebDriverCrashed extends ... { }                         
+class WebDriverCrashedException extends ... { }                         
 ```
 ]
 
@@ -979,7 +927,7 @@ class BrowserNotSupportedException extends ... { }
 
 .nice[
 ```java
-class UnsupportedBrowserProvided extends ... { }                         
+class UnsupportedBrowserProvidedException extends ... { }                         
 ```
 ]
 
@@ -995,7 +943,7 @@ class InvisibleButtonException extends ... { }
 
 .nice[
 ```java
-class InvisibleButtonClicked extends ... { }                         
+class InvisibleButtonClickedException extends ... { }                         
 ```
 ]
 
@@ -1543,56 +1491,45 @@ conference.accept(Speaker speaker);
 
 ## - **can** have getters and setters (but should they?)
 
---
-
-## - **must not** be confused with DDD value objects
-???
-- immutable
-- can have some behaviour
-
 ---
 class: codeonly
 ```java
 @QuiteALotOfNoise
 class User {
 
-    private String firstName;
-    private String lastName;
-    private Optional<String> middleName = Optional.empty();
+    private final String firstName;
+    private final String lastName;
+    private String middleName;
 
     public User(String firstName, String lastName) {
         ...
     }
 
-    public User withMiddleName(String middleName) {
-        this.middleName = Optional.of(middleName);
-        return this;
-    }
-
-    ... getters go here ...
+    public void setMiddleName(String middleName) ...
 
     @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
+    public String toString() ...
 
     @Override
-    public boolean equals(Object that) {
-        return EqualsBuilder.reflectionEquals(this, that);
-    }
+    public int hashCode() ...
+
+    @Override
+    public boolean equals(Object that) ...
 }
 ```
 
 ---
 class: codeonly
-```java
-@Immutable
-interface User {
 
-  String firstName();
-  String lastName();
-  Optional<String> middleName();
-  Collection<String> nicknames;
+## github.com/rzwitserloot/lombok
+
+```java
+@Data
+class User {
+
+  private final String firstName;
+  private final String lastName;
+  private String middleName;
 
 }
 ```
@@ -1600,25 +1537,9 @@ interface User {
 --
 
 ```java
-User uncleBob = UmmutableUser
-                  .builder()
-                  .firstName("Robert")
-                  .lastName("Martin")
-                  .addNickname("Uncle Bob")
-                  .build();
+var user = new User("Joe", "Doe");
+user.middleName("Ivanov");
 ```
-
---
-
-```java
-User anotherUncleBob = UmmutableUser
-                        .copyOf(uncleBob)
-                        .withFirstName("R.");
-```
-
----
-background-image:url(immutables.png)
-background-size: 100%
 
 ---
 class: center, middle, example
@@ -1858,504 +1779,12 @@ class Entrepreneur {
 ]
 
 ---
-class: center, middle
-# Code must be kept at the same level of abstraction (**SLAP**)
-### (abstraction - trimming info on a subject to the absolute context relevant minimum)
-
----
-class: codeonly
-
-.crap[
-```java
-if (productsOwnedByPo.get(po.id()).containsKey(product.id())) {
-  ...
-}
-```
-]
-
---
-
-.nice[
-```java
-if (productOwner.owns(product)) {
-  ...
-}
-```
-]
-
---
-
-.crap[
-```java
-
-
-
-Collection<Boolean> checkboxes = new ArrayList<>();
-```
-]
-
---
-
-.nice[
-```java
-Collection<Checkbox> checkboxes = ...
-```
-]
-
---
-
-.crap[
-```java
-
-
-
-interface EShop {
-    Map<String, String> resolveAffiliates(EShopSession session);
-}
-```
-]
-
---
-
-.crap[
-```java
-interface EShop {
-    Affiliates affiliates(EShopSession session);
-}
-```
-]
-
---
-
-.crap[
-```java
-@TryToRemoveIntermediaries
-interface EShopSession {
-    Affiliates affiliates();
-}
-```
-]
-
----
-class: codeonly
-.crap[
-```java
-MultivaluedMap<String, String> formParams = new Form();
-for (String key : params.keySet()) {
-    formParams.add(key, params.get(key));
-}
-```
-]
-
---
-
-.crap[
-```java
-Form form = new Form();
-for (String key : params.keySet()) {
-    form.add(key, params.get(key));
-}
-```
-]
-
---
-
-.nice[
-```java
-Form form = new Form(new Parameters(params));
-```
-]
-
---
-
-.nice[
-```java
-Form form = new Form();
-form.parameterize(new Parameters(params));
-```
-]
-
---
-
-.nice[
-```java
-Form form = new Form();
-form.parameterize(Parameters.from(httpRequest));
-```
-]
-
----
-class: codeonly
-.crap[
-```java
-class ValidationFacade {
-    public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
-      // we always get 4 answers
-      return MapUtils.isNotEmpty(questionToAnswerMap) && questionToAnswerMap.size() == 4;
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-class Answer {
-    String questionId;
-    String answerId;
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    public boolean validateAnswers(Collection<Answer> answers) {
-      // we always get 4 answers
-      return answers.size() == 4;
-    }
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
-
-    public boolean validate(Collection<Answer> answers) {
-      return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
-    }
-}
-```
-]
-
----
-class: codeonly
-.nice[
-```java
-class UnvalidatedAnswers {
-
-    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
-    private final Collection<Answer> answers;
-
-    boolean areValid() {
-        return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
-    }
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    public boolean validate(UnvalidatedAnswers answers) {
-      return answers.areValid();
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-@FacadeBecameObsolete
-UnvalidatedAnswers answers = new UnvalidatedAnswers(...);
-if (answers.areValid()) {
-    ....
-}
-```
-]
-
----
-class: center, middle
-# Reification - a process of making something concrete (implicit -> explicit).
-???
-- with lambdas, you can write short expressions easily. Often, you must reify them.
-
-
----
-class: center, middle
-# Let's come back to keeping code at the same level of abstraction...
-
----
-class: codeonly
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = this.applicationCheckFactory.make(when, application, this.countryCode);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  var checkResult = check.run();
-  persistResults(checkResult, application);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-  return checkResult;
-}
-```
-
---
-
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application) {
-* var check = makeCheck(application);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  var checkResult = check.run();
-  persistResults(checkResult, application);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-  return checkResult;
-}
-```
-
----
-class: codeonly
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  if (log.isDebugEnabled()) {
-    log.debug("ApplicationCheck instance is: {}", check.getClass().getName());
-  }
-  var checkResult = check.run();
-  persistResults(checkResult, application);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-  return checkResult;
-}
-```
-
---
-
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-* log(check); // logIfNeeded if conditional needs to be communicated
-  var checkResult = check.run();
-  persistResults(checkResult, application);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-}
-```
-
----
-class: codeonly
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-  persistResults(checkResult, application);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-}
-```
-
---
-
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-* persistResults(checkResult);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-}
-```
-
---
-
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-* persist(checkResult);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-}
-```
-
----
-class: codeonly
-```java
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-  persist(checkResult);
-  if (this.runScorecard && LoanAgreementType.MAIN.equals(application.agreementType())) {
-    runScorecard(application);
-  }
-}
-```
-
---
-
-```groovy
-@Override
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-  persist(checkResult);
-* if (shouldRunScorecard(application)) {
-    runScorecard(application);
-  }
-}
-```
-
----
-class: codeonly
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-  return runScorecard && LoanAgreementType.MAIN.equals(application.agreementType());
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-  return scoringEnabled && LoanAgreementType.MAIN.equals(application.agreementType());
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-  return scoringEnabled && application.agreementType().equals(MAIN);
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-  return scoringEnabled && application.isAgreementOfTypeMain()); // WTF is Type?
-}
-```
-]
-
---
-
-.crap[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-  return scoringEnabled && application.isAgreementOfType(MAIN)); // WTF is Type?
-}
-```
-]
-
---
-
-.nice[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-   Agreement agreement = application.agreement();
-   return scoringEnabled && agreement.isMain();
-}
-```
-]
-
---
-
-.nice[
-```groovy
-private boolean shouldRunScorecard(LoanApplication application) {
-   Agreement agreement = application.agreement();
-   boolean agreementIsApplicableForScoring = agreement.isMain();
-   return scoringEnabled && agreementIsApplicableForScoring;
-}
-```
-]
-
----
-class: codeonly
-```java
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-  persist(checkResult);
-  if (shouldRunScorecard(application)) {
-      runScorecard(application);
-  }
-}
-```
-
---
-
-```groovy
-public CheckResult checkApplication(LoanApplication application, Date when) {
-  var check = makeCheck(application);
-  log(check);
-  var checkResult = check.run();
-  persist(checkResult);
-}
-```
-
---
-
-```groovy
-public void scoreApplicationIfNecessary(LoanApplication application) {
-  if (shouldRunScorecard(application)) {
-      runScorecard(application);
-  }
-}
-```
-
-
----
-class: center, middle
-## The code should read like a top-down narrative. Start with high-level, abstract paragraphs. Then dive into details.
-### — The Stepdown Rule
-
----
 class: middle, center, example
 # Fighting feature bloat
 ### ... because we want to keep object's behaviour next to the state
 
 ---
-class: middle, center
-# Single Responsibility Principle
-### doesn't help much
-
----
-# How small should be a class?
+# Qualities of a good class
 ???
 
 --
@@ -2634,14 +2063,22 @@ class Likes {
 
 ---
 class: center, middle
-## But different clients has different query requirements for Likes...
+# Yields
+
 
 ---
 class: codeonly
 ```java
+@FunctionalInterface
+interface Yield<T, R> {
+    R from(T entity);
+}
+
+--
+
 public interface Entity<T> {
-    default <R> R whatAbout(Function<T, R> fn) {
-        return fn.apply((T) this);
+    default <R> R yield(Yield<T, R> yield) {
+        return yield.from((T) this);
     }
 }
 ```
@@ -2657,12 +2094,12 @@ class Likes implements Entity<Likes> {
 --
 
 ```java
-class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
+class TotalDuringBlackFriday implements Yield<Tweet.Likes, Long> {
 
     private final BlackFriday blackFriday = new BlackFriday();
 
     @Override
-    public Long apply(Tweet.Likes likes) {
+    public Long from(Tweet.Likes likes) {
         return
           likes
             .stream()
@@ -2678,22 +2115,36 @@ class TotalDuringBlackFriday implements Function<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.whatAbout(new TotalDuringBlackFriday());
+long total = likes.yield(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
 - btw, can be written inline, as lambdas
+- PACKAGING MATTERS! under .likes
 
+
+---
+class: center, middle
+# Specifications
 
 ---
 class: codeonly
 ```java
+
+@FunctionalInterface
+interface Specification<T> {
+    boolean isSatisfiedBy(T entity);
+}
+
+--
+
 public interface Entity<T> {
-    default <R> R whatAbout(Function<T, R> fn) {
-        return fn.apply((T) this);
+    default <R> R yield(Yield<T, R> yield) {
+        return yield.from((T) this);
     }
-    default boolean has(Predicate<T> predicate) {
-        return predicate.test((T) this);
+
+    default boolean satisfies(Specification<T> specification) {
+        return specification.isSatisfiedBy((T) this);
     }
 }
 ```
@@ -2701,10 +2152,10 @@ public interface Entity<T> {
 --
 
 ```java
-class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
+class HasGottenMillionLikesOnAPostingDay implements Specification<Tweet> {
 
         @Override
-        public boolean test(Tweet tweet) {
+        public boolean isSatisfiedBy(Tweet tweet) {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
@@ -2718,12 +2169,8 @@ class GotMillionLikesOnAPostingDay implements Predicate<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.has(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.satisfies(new HasGottenMillionLikesOnAPostingDay());
 ```
-
----
-class: center, middle
-# In order to improve searchability, consider creating custom @FunctionalInterfaces – Projection and Specification.
 
 
 
