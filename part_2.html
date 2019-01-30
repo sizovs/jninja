@@ -1268,71 +1268,20 @@ class BankAccount {
 ### - no data corruption thanks to optimistic locking
 
 ---
-class: bottom, middle
-background-image:url(thrones_aggregate.jpg)
-background-size: 50%
-???
-Effective Aggregate Design by Vaughn Vernon (https://vaughnvernon.co/?p=838)
-
----
-class: center, middle
-# Aggregate root defines transactional boundaries.
-### ...and can only be designed after careful transactional analysis.
-
----
-class: codeonly
-```java
-@Entity
-public class Customer extends DomainEntity {
-
-    @Embedded
-    @AttributeOverride(name = "text", column = @Column(name = "EMAIL_ADDRESS"))
-    private Email emailAddress;
-
-    @Embedded
-    @AttributeOverride(name = "text", column = @Column(name = "PASSWORD"))
-    private Password password;
-
-    @Embedded
-    @AttributeOverride(name = "text", column = @Column(name = "ADDRESS"))
-    private Address address;
-
-    public Customer(Email emailAddress, Password password) {
-        this.emailAddress = emailAddress;
-        this.password = password;
-    }
-
-    private Customer() {
-    }
-
-    public void relocateTo(Address address) {
-        this.address = address;
-    }
-
-    public void changePassword(Password newPassword) {
-        this.password = newPassword;
-    }
-
-}
-```
-
----
 class: codeonly
 
 ```java
-Customer customer = new Customer(
-  new Email("hello@devchampions.com"),
-  new Password("qwerty123"));
+BankAccount bankAccount = new BankAccount();
 
-executeInTx(() -> entityManager.persist(customer));
+executeInTx(() -> entityManager.persist(bankAccount));
 
 CyclicBarrier coordinator = new CyclicBarrier(2);
 
 new Thread(() ->
     executeInTx(() ->
         entityManager
-          .find(Customer.class, customer.id())
-          .relocateTo(new Address("New York, Central Park"));
+          .find(BankAccount.class, bankAccount.id())
+          .close());
         coordinator.await();
     })
 ).start();
@@ -1340,12 +1289,18 @@ new Thread(() ->
 new Thread(() ->
     executeInTx(() ->
         entityManager
-          .find(Customer.class, customer.id())
-          .changePassword(new Password("whatever"));
+          .find(BankAccount.class, bankAccount.id())
+          .deposit(new Amount(1000.00));
         coordinator.await();
     })
 ).start();
 ```
+
+---
+
+class: center, middle
+## Effective Aggregate Design by Vaughn Vernon 
+### dddcommunity.org/library/vernon_2011
 
 ---
 class: center, middle
@@ -1880,24 +1835,20 @@ class: center, middle
 # You made it! Now books...
 
 ---
-background-image:url(goodreads.png)
-background-size: 100%
+class: center, middle
+# goodreads.com
 
 ---
-background-image:url(twitter.png)
-background-size: 100%
+class: center, middle
+# mustread.tech
 
 ---
-background-image:url(books1.png)
-background-size: 100%
+class: center, middle
+# dev.tube
 
 ---
-background-image:url(books2.png)
-background-size: 100%
-
----
-background-image:url(wtw.png)
-background-size: 100%
+class: center, middle
+# DevTernity
 
 ---
 class: center, middle
