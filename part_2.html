@@ -390,9 +390,9 @@ class TryReaction<C extends Command<R>, R extends Command.R>
 
 ```java
 new Try<>(
-  new GrantPermission(...))
-      .times(5)
-      .execute(now);
+        new GrantPermission(...))
+    .times(5)
+    .execute(now);
 ```
 
 ---
@@ -884,587 +884,7 @@ System.out.println(snapshot);
 
 ---
 class: center, middle, example
-# Validation
-
----
-class: center, middle
-## Reject values with wrong type and format asap, before they do harm.
-### Preferably, fail fast **before construction**.
-???
-because others can rely on it.
-
----
-class: center, middle
-## Let's see what JPA/Hibernate want you to do...
-
-
----
-class: codeonly
-.crap[
-```java
-class User {
-
-    @Email
-    private String email;                           // not really an email, liar
-
-    @Strong
-    private String password;                        // might not be strong
-
-    private LocalDateTime registeredAt;
-
-    public User(String email, String password) {
-        this.email = email;
-        this.password = password;
-    }
-
-    public void changePassword(String newPassword) {
-        this.password = newPassword;
-    }
-
-    public void register() {
-        this.registeredAt = LocalDateTime.now();
-    }
-
-    public String email() {
-        return email;
-    }
-}
-```
-]
-
----
-
-class: codeonly
-.crap[
-```java
-class RegisterNewUserReaction implements Reaction<RegisterNewUser, Command.R.Void> {
-
-    private final WelcomeNotification notification;
-
-    @Override
-    public Command.R.Void react(RegisterNewUser $) {
-        User user = makeUser($);                    // broken at this point
-```
-]
-
---
-
-.crap[
-```java
-        user.register();                            // still broken
-```
-]
-
---
-
-.crap[
-```java
-        users.persist(user);
-```
-]
-
---
-
-.crap[
-```java
-        welcomeNotification.schedule(user);         // what if I send notification before PERSIST()?
-
-        return new Command.R.Void();
-    }
-}
-```
-]
-
---
-
-.crap[
-```java
-class WelcomeNotification {
-    void schedule(User user) {
-        user.email();                               // accepts lies and (hopefully) booms
-    }
-}
-```
-]
-???
-by default, Hibernate validates during PERSIST :-)
-
----
-class: codeonly
-```java
-class Email {
-
-  private final String text;
-
-  public Email(Email.Unvalidated email) {
-      checkArgument(email.isValid(), "%s is not an RFC-5322 compliant email.", text);
-      this.text = text;
-  }
-
-  public Email(String text) {
-      this(new Email.Unvalidated(text));
-  }
-
-  ...
-```
----
-class: codeonly
-```java
-class Email {
-
-  ...
-
-  static class Unvalidated {
-
-      private static final String LOCAL_PART = "^[\\w!#$%&’*+/=?`{|}~^-]+(?:\\.[\\w!#$%&’*+/=?`{|}~^-]+)*";
-      private static final String AT_SIGN = "@";
-      private static final String HOSTNAME_FOLLOWED_BY_DOT = "(?:[a-zA-Z0-9-]+\\.)+";
-      private static final String COUNTRY_CODE = "[a-zA-Z]{2,6}";
-      private static final String END_OF_LINE = "$";
-
-      private final Pattern RFC_5322 = compile(
-              LOCAL_PART + AT_SIGN + HOSTNAME_FOLLOWED_BY_DOT + COUNTRY_CODE + END_OF_LINE);
-
-      private String text;
-
-      public Unvalidated(String text) {
-          this.text = text;
-      }
-
-      public boolean isValid() {
-          return RFC_5322.asPredicate().test(text);
-      }
-
-      @Override
-      public String toString() {
-          return text;
-      }
-  }
-
-}
-```
-
----
-class: codeonly
-```java
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-   Email.Unvalidated email = new Email.Unvalidated($.email()));
-   if (!email.isValid()) {
-     throw new ValidationConstraintViolated("Dooh! The email " + $.email() + " is not valid");
-   }
-
-   User user = makeUser(new Email($.email()), ...);
-   ...
-}
-```
-
---
-
-```java
-static class Unvalidated {
-
-   ...
-
-   public Optional<Email> valid() {
-       return isValid() ? Optional.of(new Email(rawText)) : Optional.empty();
-   }
-}
-```
-
----
-class: codeonly
-```java
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-   Email email = new Email.Unvalidated($.email())
-                     .valid()
-                     .orElseThrow(() -> new ValidationConstraintViolated("Dooh! ..."));
-
-   User user = makeUser(email, ...);
-   ...
-}
-```
-
---
-
-```java
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-  Email email = new Email.Unvalidated($.email())
-                    .valid()
-                    .orElseThrow(() -> new ValidationConstraintViolated("o_O"));
-
-  Password password = new Password($.password());
-  if (password.isWeak()) {
-      throw new ValidationConstraintViolated("Weak password, sorry fella");
-  }
-
-  ...
-
-  return new Command.R.Void();
-}
-```
-
----
-class: center, middle
-## Let's avoid branching and make code more declarative
-
----
-class: codeonly
-```java
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-  Email.Unvalidated email = new Email.Unvalidated($.email());
-  Password password = new Password($.password());
-```
-
---
-
-```java
-  Preconditions preconditions = new Preconditions();
-```
-
---
-
-```java
-  preconditions
-          .whenNot(email, Email.Unvalidated::isValid)
-          .then("Sorry man, email (%s) is completely wrong.");
-  preconditions
-          .when(password, Password::isWeak)
-          .then("Password is too weak. Make it secure by adding some weird characters.");
-```
-
---
-
-```java
-  preconditions.check();
-
-  ...
-
-  return new Command.R.Void();
-}
-```
-
----
-class: codeonly
-```java
-class Preconditions {
-
-    <T> Constraint when(T value, Predicate<T> predicate) {}
-
-    <T> Constraint whenNot(T value, Predicate<T> predicate) {}
-
-    void check() {}
-
-}
-```
-
---
-
-```java
-class Constraint<T> {
-
-    private final T item;
-    private final Predicate<T> predicate;
-
-    private String failureMessage;
-
-    public Constraint(T item, Predicate<T> predicate) {
-        this.item = item;
-        this.predicate = predicate;
-    }
-
-    void then(String failureMessage) {
-        this.failureMessage = failureMessage;
-    }
-
-    boolean isViolated() {
-        return predicate.test(item);
-    }
-
-    String message() {
-        return failureMessage.replaceAll("%s", item.toString());
-    }
-
-}
-```
-
----
-class: codeonly
-```java
-class Preconditions {
-
-    private final Collection<Constraint> constraints = new LinkedList<>();
-
-    @Override
-    public <T> Constraint whenNot(T value, Predicate<T> predicate) {
-        return when(value, predicate.negate());
-    }
-```
-
---
-
-```java
-    @Override
-    public <T> Constraint when(T value, Predicate<T> predicate) {
-        Constraint<T> constraint = new Constraint<>(value, predicate);
-        constraints.add(condition);
-        return constraint;
-    }
-```
-
---
-
-```java
-    @Override
-    public void check() {
-        constraints.stream()
-                .filter(Constraint::isViolated)
-                .findFirst()
-                .ifPresent(constraint -> {
-                    throw new ValidationConstraintViolated(constraint.message());
-                });
-
-    }
-}
-```
-
----
-class: center, middle
-## Adding business validation
-### (email uniqueness check)
-
----
-class: codeonly
-```java
-class Email {
-
-    private final String text;
-
-    public Email(String text) {
-        ...
-    }
-
-    ...
-```
-
---
-
-```java
-    interface Uniqueness {
-      boolean guaranteed(Email email);
-    }
-}
-```
-
---
-
-```java
-@Repository
-interface Users {
-    Optional<User> byEmail(Email email);
-}
-```
-
---
-
-```java
-@Component
-class AmongUsers implements Email.Uniqueness {
-
-    private final Users users;
-
-    @Override
-    public boolean guaranteed(Email email) {
-        return !users.byEmail(email).isPresent();
-    }
-}
-```
-
----
-class: codeonly
-```java
-private final Email.Uniqueness uniqueness;
-
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-  Email.Unvalidated email = new Email.Unvalidated($.email());
-  Password password = new Password($.password());
-
-  Preconditions preconditions = new Preconditions();
-  preconditions
-          .whenNot(email, Email.Unchecked::isValid)
-          .then("Sorry man, email (%s) is completely wrong.");
-  preconditions
-*         .whenNot(email.valid().get(), uniqueness::guaranteed)          // lazy needed
-*         .then("Argh, email is taken by some hacker.");
-  preconditions
-          .when(password, Password::isWeak)
-          .then("Password is too weak. Make it secure by adding some weird characters.");
-
-  preconditions.check();
-
-  ...
-
-  return new Command.R.Void();
-}
-```
-
----
-class: codeonly
-```java
-private final Email.Uniqueness uniqueness;
-
-@Override
-public Command.R.Void react(RegisterNewUser $) {
-
-  Email.Unvalidated email = new Email.Unvalidated($.email());
-  Password password = new Password($.password());
-
-  Preconditions preconditions = new Preconditions();
-  preconditions
-          .whenNot(() -> email, Email.Unchecked::isValid)
-          .then("Sorry man, email (%s) is completely wrong.");
-  preconditions
-          .whenNot(() -> email.valid().get(), uniqueness::guaranteed)
-          .then("Argh, email is taken by some hacker.");
-  preconditions
-          .when(() -> password, Password::isWeak)
-          .then("Password is too weak. Make it secure by adding some weird characters.");
-
-  preconditions.check();
-
-  ...
-
-  return new Command.R.Void();
-}
-```
-
----
-class: codeonly
-```java
-class Preconditions {
-
-    <T> Constraint when(Supplier<T> value, Predicate<T> predicate) {}
-
-    <T> Constraint whenNot(Supplier<T> value, Predicate<T> predicate) {}
-
-    void check() {}
-
-}
-```
-
---
-
-```java
-class Constraint<T> {
-
-    private final Supplier<T> item;
-    private final Predicate<T> predicate;
-
-    private String failureMessage;
-
-    public Constraint(Supplier<T> item, Predicate<T> predicate) {
-        this.item = item;
-        this.predicate = predicate;
-    }
-
-    void then(String failureMessage) {
-        this.failureMessage = failureMessage;
-    }
-
-    boolean isViolated() {
-        return predicate.test(item.get());
-    }
-
-    String message() {
-        return failureMessage.replaceAll("%s", item.get().toString());
-    }
-
-}
-```
-
----
-class: codeonly
-```java
-class Preconditions {
-
-    private final Collection<Constraint> constraints = new LinkedList<>();
-
-    @Override
-    public <T> Constraint whenNot(Supplier<T> value, Predicate<T> predicate) {
-        return when(value, predicate.negate());
-    }
-```
-
-```java
-    @Override
-    public <T> Constraint when(Supplier<T> value, Predicate<T> predicate) {
-        Constraint<T> constraint = new Constraint<>(value, predicate);
-        constraints.add(constraint);
-        return constraint;
-    }
-
-    // everythige else stays absolutely the same
-}
-```
-
-
----
-class: center, middle
-## Some more examples
-
----
-class: codeonly
-```java
-preconditions
-        .whenNot(() -> $.affiliateId(), Optional::isPresent)
-        .then("Omg, missing affiliate id!");
-
-```
-
---
-
-```java
-
-
-class TooShort implements Predicate<Password> {
-
-    @Override
-    public boolean test(Password pw) {
-        return pw.text().length() < 10;
-    }
-}
-
-class TooEasyToGuess implements Predicate<Password> {
-
-    @Override
-    public boolean test(Password pw) {
-        return pw.text().equals("qwerty123");
-    }
-}
-
-preconditions
-        .when($.password(), new TooShort().or(new TooEasyToGuess()))
-        .then("Pick a better password, dude");
-```
-
----
-class: center, middle
-# ?
-???
-- how to make sure that whenever password is created, it's always strong?
-
----
-class: center, middle
-## What if I like Hibernate Validator aka JSR-349 RI?
+# Validation (live-show)
 
 ---
 class: center, middle, example
@@ -1567,11 +987,13 @@ interface Customers {
 }
 ```
 
+---
+class: center, middle
+# Equality for Value Objects
 
 ---
 class: center, middle
-## Repository is not resposible for assigning ids
-### (generate ids upon entity creation)
+# Equality for Entities
 
 ---
 class: codeonly
@@ -1580,32 +1002,32 @@ class: codeonly
 class Account {
 
     @GeneratedValue(strategy= GenerationType.AUTO)
-    private UUID id;
+    private Long id;
 
     private String iban;
 
     public Account(String iban) {
         this.iban = iban;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Account)) return false;
+        Account account = (Account) o;
+        return Objects.equals(getId(), account.getId());
+    }    
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId());
+    }    
 }
 ```
 ]
 
---
-
-.crap[
-```java
-class DontDoThisAtHomeRepository implements Repository<Account> {
-
-    public UUID add(Account account) {
-      entityManager.persits(account);
-      return account.id();
-    }
-}
-```
-]
-
---
+---
+class: codeonly
 
 ```java
 Account offshore = new Account("DZ4000400174401001050486");
@@ -1621,59 +1043,49 @@ accounts.add(offshore);
 --
 
 ```java
-accountRepository.add(offshore); // generates UUID
+entityManager.persits(offshore);
 ```
 
 --
 ```java
-accounts.contains(offshore)      
+accounts.contains(offshore);
 ```
 
----
-class: center, middle
-## Use pre-generated UUIDs
-### (consider stealing Cassandra's TimeUUID)
+--
 
----
 class: codeonly
-
-
 .nice[
 ```java
-interface Customers extends Repository<Customer> {
-    void add(Customer customer);
-}
-```
-]
+class Account {
 
-.nice[
-```java
-@Entity
-class Customer {
+    @GeneratedValue(strategy= GenerationType.AUTO)
+    private Long id;
 
-    @Id
-    private UUID id = UUID.randomUUID();
+*   private UUID uuid = UUID.randomUUID();
+
+    private String iban;
+
+    public Account(String iban) {
+        this.iban = iban;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Account)) return false;
+        Account account = (Account) o;
+*       return Objects.equals(uuid, account.uuid);
+    }    
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        Customer other = (Customer) obj;
-        return Objects.equals(this.id, other.id);
-    }
+*      return Objects.hashCode(uuid);
+    }    
+}
 ```
 ]
 ???
-now you can use the uuds before the persistance
+Benefits? Drawbacks?
 
 ---
 class: right, middle
@@ -1842,28 +1254,18 @@ class BankAccount {
 
 --
 
-### - there is no way to create withdraw/deposit a CLOSED account
-
---
-### - there is no way to withdraw more funds than available
+### - cannot create/store 1 million EUR transaction
 
 --
 
-### - there is no way to withdraw more funds than allowed by a daily limit
+### - cannot create/store tx when account is closed
+
+--
+### - cannot create/store tx that violates limits
 
 --
 
-### - returned Transactions fulfill all rules imposed by BankAccount
-???
-PLEASE MAKE THE IMMUTABLE!!!
-
---
-
-### - an aggregate is protected by a single optimistic lock
-
---
-
-### - lifecycle of Transactions is bound to BankAccount
+### - no data corruption thanks to optimistic locking
 
 ---
 class: bottom, middle
@@ -1881,7 +1283,6 @@ class: center, middle
 class: codeonly
 ```java
 @Entity
-@GuardedByOptimisticLock
 public class Customer extends DomainEntity {
 
     @Embedded
