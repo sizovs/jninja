@@ -416,6 +416,11 @@ class Router {
                     .orElseThrow(() -> new NoReactionFoundException(command));
     }
 
+}
+```
+--
+
+```java
     @Component
     static class AllReactions extends ForwardingCollection<Reaction> {
 
