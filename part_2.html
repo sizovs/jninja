@@ -995,128 +995,6 @@ class WriteNewRepositryLogEntry implements SideEffect<NewRepositoryAdded> {
 
 ---
 class: center, middle, example
-## an example of
-# ephemeral domain events
-
----
-class: codeonly
-
-```java
-interface DomainEvent {
-
-    default Type type() {
-        return this.getClass();
-    }
-}
-```
-
---
-
-```java
-interface SideEffect<E extends DomainEvent> {
-
-    void occur(E $);
-
-    default TypeToken<E> eventType() {
-        return new TypeToken<E>(getClass()) {
-        };
-    }
-}
-```
-
---
-
-```java
-interface DomainEvents {
-
-    void publish(DomainEvent event);
-
-    static DomainEvents ephemeral() {
-        return EphemeralDomainEvents.instance();
-    }
-
-    static DomainEvents durable() {
-        return DurableDomainEvents.instance();
-    }
-}
-```
-
----
-class: codeonly
-```java
-class EphemeralDomainEvents implements DomainEvents {
-
-    private static DomainEvents instance;
-
-    @WhyWorkStealing("http://bit.ly/forkjoinj8")
-    private final ExecutorService executor = Executors.newWorkStealingPool();
-
-    private final TransactionTemplate tx;
-
-    private final SideEffects sideEffects;
-
-    public EphemeralDomainEvents(SideEffects sideEffects, TransactionTemplate tx) {
-        EphemeralDomainEvents.instance = this;
-        ...
-    }
-```
-
---
-
-```java
-    public void publish(DomainEvent event) {
-        sideEffects.byEvent(event)
-                .forEach(sideEffect -> inFuture(inTx(txStatus -> sideEffect.occur(event))));
-    }
-
-    private CompletableFuture<Void> inFuture(Runnable runnable) {
-        return CompletableFuture.runAsync(runnable, executor);
-    }
-
-    private Runnable inTx(Consumer<TransactionStatus> consumer) {
-        return () -> tx.execute(status -> { consumer.accept(status); return empty(); });
-    }
-```
-
---
-
-```java
-    public static DomainEvents instance() {
-        return checkNotNull(instance, "Ephemeral domain events have not been initialized yet.");
-    }
-}
-```
-
----
-class: codeonly
-```java
-class SideEffects {
-
-    private final LoadingCache<Type, Collection<SideEffect>> cachedSideEffects;
-
-    public SideEffects(ListableBeanFactory beanFactory) {
-        this.cachedSideEffects = Caffeine.newBuilder()
-                .build(eventType -> sideEffects(beanFactory)
-                        .stream()
-                        .filter(sideEffect -> sideEffect.eventType().isSupertypeOf(eventType))
-                        .collect(toList()));
-
-    }
-
-    private Collection<SideEffect> sideEffects(ListableBeanFactory beanFactory) {
-        return beanFactory
-                .getBeansOfType(SideEffect.class)
-                .values();
-    }
-
-    public Collection<SideEffect> byEvent(DomainEvent event) {
-        return cachedSideEffects.get(event.type());
-    }
-}
-```
-
----
-class: center, middle, example
 # Stability Patterns
 ## Shed Load, Bulkheads, Timeouts and Circuit Breakers
 
@@ -1369,15 +1247,44 @@ private HystrixCommand.Setter hystrixOptions(Command command) {
 
 ---
 class: center, middle
-# You made it! Now books...
+# You made it! 
 
 ---
-class: center, middle
-# goodreads.com
+# Awesome frameworks
+.l50[
+### Caffeine
+### Selenide
+### Testcontainers
+### WireMock
+### Jimfs
+### Awaitility
+]
+.r50[
+### Restassured
+### AssertJ
+### Fabricator
+### jOOR
+### ByteBuddy
+### ArchUnit
+]
+
+---
+
+# Awesome Java people
+### Jakub Nabrdalik
+### Jakub Pilimon
+### Victor Rentea
+### Venkat Subramaniam
+### Lukas Eder
+### Yegor Bugayenko
 
 ---
 class: center, middle
 # mustread.tech
+
+---
+class: center, middle
+# goodreads.com
 
 ---
 class: center, middle
