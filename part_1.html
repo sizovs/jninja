@@ -215,7 +215,7 @@ class MethodArgumentNames {
 ---
 class: codeonly
 
-### Move code to the place it belongs to
+### Push complexity away where it's not visible
 
 --
 
@@ -426,7 +426,7 @@ class: codeonly
 .nice[
 ```java
     Connection connection = Exceptions
-      .log()
+*     .log()
       .get(master::connection)
       .orElseGet(slave::connection);
 ```
@@ -645,13 +645,13 @@ interface Movie {
 ---
 class: codeonly
 
-# Code must speak the domain language
+# Look for domain-specific Value Objects
 
 .crap[
 ```java
   class BillingAgreement {
-      private LocalDate creationDate;     
-      private LocalDate startingDate;
+      private int term;
+
 ```
 ]
 
@@ -659,9 +659,34 @@ class: codeonly
 
 .nice[
 ```java
-  class BillingAgreement {
-      private LocalDate creationDate; 
-      private AsOfDate asOfDate;       
+      private Term term;
+
+```
+]
+
+--
+
+.nice[
+```java
+      if (term.isInfinite()) { ... }
+
+```
+]
+
+--
+
+.crap[
+```java
+  class Company {
+      private String vatNumber;
+```
+]
+
+--
+
+.nice[
+```java
+      private VatNumber vatNumber;
 ```
 ]
 
@@ -670,8 +695,8 @@ class: codeonly
 .crap[
 ```java
   class Payment {
-      private LocalDate expectedDate;
-      private Days allowedDelay;
+      private BigDecimal amount;
+      private BigDecimal currency;
 ```
 ]
 
@@ -679,9 +704,7 @@ class: codeonly
 
 .nice[
 ```java
-  class Payment {
-      private LocalDate dueDate;
-      private GracePeriod gracePeriod;
+      private Amount amount;
 ```
 ]
 
@@ -690,7 +713,7 @@ class: codeonly
 .crap[
 ```java
   class Loan {
-      private Customer customer;
+      private User user;
 ```
 ]
 
@@ -698,7 +721,6 @@ class: codeonly
 
 .nice[
 ```java
-  class Loan {
       private Borrower borrower;
 ```
 ]
@@ -927,7 +949,7 @@ class BrowserNotSupportedException extends ... { }
 
 .nice[
 ```java
-class UnsupportedBrowserProvidedException extends ... { }                         
+class UnsupportedBrowserConfiguredException extends ... { }                         
 ```
 ]
 
@@ -2065,7 +2087,7 @@ interface Yield<T, R> {
 --
 
 public interface Entity<T> {
-    default <R> R yield(Yield<T, R> yield) {
+    default <R> R __(Yield<T, R> yield) {
         return yield.from((T) this);
     }
 }
@@ -2103,7 +2125,7 @@ class TotalDuringBlackFriday implements Yield<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.yield(new TotalDuringBlackFriday());
+long total = likes.__(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
@@ -2127,11 +2149,11 @@ interface Specification<T> {
 --
 
 public interface Entity<T> {
-    default <R> R yield(Yield<T, R> yield) {
+    default <R> R __(Yield<T, R> yield) {
         return yield.from((T) this);
     }
 
-    default boolean satisfies(Specification<T> specification) {
+    default boolean __(Specification<T> specification) {
         return specification.isSatisfiedBy((T) this);
     }
 }
@@ -2157,7 +2179,7 @@ class HasGottenMillionLikesOnAPostingDay implements Specification<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.satisfies(new HasGottenMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.__(new HasGottenMillionLikesOnAPostingDay());
 ```
 
 ---

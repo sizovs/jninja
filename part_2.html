@@ -113,98 +113,15 @@ class: bad
 
 ## - tend to grow like hell
 
---
-
-## - no single entry point
-
---
-
-## - always blocking
-
---
-
-## - hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...
-
 ---
 class: codeonly
 .nice[
 ```java
-interface Command<T extends Command.R> {
-    interface R {
-      class Void implements Command.R {
-      }
-    }
-}
-```
-]
+class GrantPermission implements Command<Voidy> {
 
---
-
-.nice[
-```java
-interface Reaction<C extends Command<R>, R extends Command.R> {
-    R react(C $);
-}
-```
-]
-
---
-.nice[
-```java
-interface Now {
-    <C extends Command<R>, R extends Command.R> R execute(C command);
-}
-```
-]
-???
-a funnel finds and executes appropriate impl for a command using generics
-
---
-
-.nice[
-```java
-interface Future {
-    <C extends Command<R>, R ...> CompletableFuture<R> schedule(C command);
-}```
-]
-
---
-
-.nice[
-```java
-interface Rx {
-    <C extends Command<R>, R ...> Observable<R> observe(C command);
-}
-```
-]
-
---
-
-.nice[
-```java
-interface Durable {
-    <C extends Command> void enqueue(C command);
-}
-```
-]
-
----
-class: codeonly
-.nice[
-```java
-class GrantPermission implements Command<Command.R.Void> {
-
-    private final String memberId, permissionId;
+    public final String memberId, permissionId;
 
     public GrantPermission(String memberId, String permissionId) { ... }
-
-    public String memberId() {
-        return memberId;
-    }
-
-    public String permissionId() {
-        return permissionId;
-    }
 }
 ```
 ]
@@ -212,7 +129,7 @@ class GrantPermission implements Command<Command.R.Void> {
 --
 .nice[
 ```java
-class GrantPermissionReaction implements Reaction<GrantPermission, Command.R.Void> {
+class GrantPermissionHandler implements Command.Handler<GrantPermission, Voidy> {
 
     private final Members members;
     private final Permissions permissions;
@@ -220,15 +137,12 @@ class GrantPermissionReaction implements Reaction<GrantPermission, Command.R.Voi
     public GrantPermissionReaction(Permissions permissions, Members members) { ... }
 
     @Override
-    public Command.R.Void react(GrantPermissionCommand $) {
-        MemberId memberId = new MemberId($.memberId());
-        Member member = members.singleBy(memberId);
-
-        PermissionId permissionId = new PermissionId($.permissionId());
-        Permission permission = permissions.singleBy(permissionId);
+    public Voidy handle(GrantPermissionCommand $) {
+        Member member = members.singleBy($.memberId);
+        Permission permission = permissions.singleBy($.permissionId);
 
         member.grant(permission);
-        return new Command.R.Void();
+        return new Voidy();
     }
 }
 ```
@@ -236,312 +150,80 @@ class GrantPermissionReaction implements Reaction<GrantPermission, Command.R.Voi
 
 ---
 class: codeonly
+.nice[
+```java
+@Configuration
+class PipelinrConfiguration {
+
+    @Bean
+    Pipeline pipeline(ObjectProvider<Command.Handler> commandHandlers, 
+                      ObjectProvider<PipelineStep> pipelineSteps) {
+        return new Pipelinr(commandHandlers::stream, pipelineSteps::orderedStream);
+    }
+}
+```
+]
+
+--
+class: codeonly
 ```java
 @RestController
 class GrantPermissionEndpoint {
 
     @Autowired
-    Now now;
+    Pipeline pipeline;
 
     @PostMapping("/users/{memberId}/permissions")
-    Command.R.Void accept(@PathVariable String memberId, @RequestParam String permissionId) {
-        GrantPermission grantPermission = new GrantPermission(memberId, permissionId);
-        return now.execute(grantPermission);
+    Voidy accept(@PathVariable String memberId, @RequestParam String permissionId) {
+        var grantPermission = new GrantPermission(memberId, permissionId);
+        return pipeline.send(grantPermission);
     }
-```
-
---
-
-```java
-    ...
-
-    @Autowired
-    Future future;
-
-    future.schedule(grantPermission)
-      .thenAccept(System.out::println)
-      .thenAccept(...)
-```
-
---
-
-```java
-    ...
-
-    @Autowired
-    Rx rx;
-
-    rx.observe(grantPermission).subscribe(System.out::println);
-```
-
---
-
-```java
-    ...
-
-    @Autowired
-    Durable durable;
-
-    durable.enqueue(grantPermission);
 ```
 
 ---
-class: codeonly
-```java
-interface Command<T extends Command.R> {
+class: bad
 
-    default T execute(Now now) {
-        return now.execute(this);
-    }
+## - ~~tend to grow like hell~~
 
-    default CompletableFuture<T> schedule(Future future) {
-        return future.schedule(this);
-    }
+## - no dynamic routing
 
-    default Observable<T> observe(Rx rx) {
-        return rx.observe(this);
-    }
 
-    default void enqueue(Durable durable) {
-        durable.enqueue(this);
-    }
-}
-```
-
---
-```java
-GrantPermission grantPermission = new GrantPermission("memba", "permission");
-
-grantPermission.execute(now);
-```
-
---
-
-```java
-grantPermission.schedule(future);
-```
-
---
-
-```java
-grantPermission.observe(rx);
-```
-
---
-
-```java
-grantPermission.enqueue(durable);
-```
 
 ---
 class: codeonly
+
 ```java
-class Try<C extends Command<R>, R extends Command.R> implements Command<R> {
-
-    private final C origin;
-
-    private long times = 3;
-
-    public Try(C origin) {
-        this.origin = origin;
-    }
-
-    public Command<R> origin() {
-        return origin;
-    }
-
-
-    public Try<C, R> times(long times) {
-        this.times = times;
-        return this;
-    }
-
-    public long times() {
-        return times;
-    }
-}
-```
-
----
-class: codeonly
-```java
-class TryReaction<C extends Command<R>, R extends Command.R>
-                                          implements Reaction<Try<C, R>, R> {
-
-    private final Router router;
+class LegacyBecomeAUserHandler implements Command.Handler<BecomeAUser, Voidy> {
 
     @Override
-    public R react(Try<R> $) {
-
-        RetryPolicy retryPolicy = new RetryPolicy()
-                .withDelay(500, TimeUnit.MILLISECONDS)
-                .withMaxRetries($.times());
-
-        return Failsafe.with(retryPolicy).get(() -> {
-            Command<R> origin = $.origin();
-            Reaction<Command<R>, R> reaction = router.route(origin);
-            return reaction.react(origin);
-        });
+    public boolean matches(BecomeAUser command) {
+        return command.user.registrationDate.isBefore(migrationDate) ||
+               command.user.registrationDate.isEqual(migrationDate)
     }
+
+    ...
 }
-```
 
---
-
-```java
-new Try<>(
-        new GrantPermission(...))
-    .times(5)
-    .execute(now);
-```
-
----
-class: codeonly
-```java
-@Component
-class Router {
-
-    private final AllReactions allReactions;
-
-    @Autowired
-    public Router(AllReactions allReactions) {
-        this.allReactions = allReactions;
-    }
-
-    public <C extends Command<R>, R extends Command.R> Reaction<C, R> route(C command) {
-        return reactions
-                    .stream()
-                    .filter(reaction -> reaction.isApplicableFor(command))
-                    .findFirst()
-                    .orElseThrow(() -> new NoReactionFoundException(command));
-    }
-
-}
-```
---
-
-```java
-    @Component
-    static class AllReactions extends ForwardingCollection<Reaction> {
-
-        private final ListableBeanFactory beanFactory;
-
-        public AllReactions(ListableBeanFactory beanFactory) {
-            this.beanFactory = beanFactory;
-        }
-
-        @Override
-        protected Collection<Reaction> delegate() {
-            return beanFactory.getBeansOfType(Reaction.class).values();
-        }
-    }    
-}
-```
-
----
-class: codeonly
-```java
-
-
-interface Reaction<C extends Command<R>, R extends Command.R> {
-
-    R react(C $);
-
-    default boolean isApplicableFor(C $) {
-        var typeToken = new TypeToken<C>(getClass()) {
-        };
-
-        return typeToken.isSupertypeOf($.getClass());
-    }
-}
-```
-
----
-class: center, middle
-## Bundle advanced functionality into separate objects. Functionality is hidden unless such objects are requested.
-### — *Scott Meyers*
-
----
-
-## .strike[Tend to grow like hell]
-
---
-
-## .strike[No single entry point]
-
---
-
-## .strike[Always blocking]
-
---
-
-## .strike[Hard to batch, reorder, cancel, retry, throttle, schedule, serialize, log, validate, decorate...]
-
----
-class: center, middle
-## Centralized Transaction management?
-
----
-class: codeonly
-```java
-interface Command<T extends Command.R> {
-
-    interface R {
-        class Void implements R {
-
-        }
-    }
-
-    interface TxFlag {
-
-        TxFlag READ_ONLY = tx -> tx.setReadOnly(true);
-
-        void apply(TransactionTemplate tx);
-    }
-
-    default Collection<TxFlag> txFlags() {
-        return Collections.emptyList();
-    }
-}
-```
-
---
-
-```java
-class GetMobileNumbers implements Command<MobileNumbers> {
-
+class NewBecomeAUserHandler implements Command.Handler<BecomeAUser, Voidy> {
+    
     @Override
-    public Collection<TxFlag> txFlags() {
-        return ImmutableList.of(TxFlag.READ_ONLY);
-    }
+    public boolean matches(BecomeAUser command) {
+        return command.user.registrationDate.isAfter(migrationDate);
+    } 
 
+    ...
 }
 ```
 
 ---
-class: codeonly
-```java
-@Component
-class TransactionalNow implements Now {
+class: bad
 
-    private final Router router;
+## - ~~tend to grow like hell~~
 
-    private final PlatformTransactionManager txManager;
+## - ~~no dynamic routing~~
 
-    @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+## - hard to plug-in without proxy magic
 
-        Reaction<C, R> reaction = router.route(command);
-
-*       TransactionTemplate tx = new TransactionTemplate(txManager);
-*       command.txFlags().forEach(flag -> flag.apply(tx));
-
-        R response = tx.execute(txStatus -> reaction.react(command));
-
-        return response;
-    }
-}
-```
 
 ---
 class: center, middle
@@ -551,353 +233,191 @@ class: center, middle
 class: codeonly
 ```java
 @Component
-class TransactionalAndLoggingNow implements Now {
+@Order(2)
+class CommandLogging implements PipelineStep {
 
-    private final Router router;
-
-    private final PlatformTransactionManager txManager;
+    private final Logger log = LoggerFactory.getLogger(CommandLogging.class);
 
     @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
-
-        Reaction<C, R> reaction = router.route(command);
-
-        TransactionTemplate tx = new TransactionTemplate(txManager);
-        command.txFlags().forEach(flag -> flag.apply(tx));
-
-*       log.info(">>> {}", command.toLogString());
-        R response = tx.execute(txStatus -> reaction.react(command));
-*       log.info("<<< {}", response.toLogString());
-
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+        log.info(">>> {}", command.toString());
+        var response = next.invoke();
+        log.info("<<< {} ", response.toString());
         return response;
     }
+
 }
 ```
 
 ---
 class: center, middle
-## Logging correlation?
+## Correlation id?
 
 ---
 class: codeonly
+
 ```java
 @Component
-class CommandCorrelationId {
+class CorrelationId {
 
     private static final String MDC_KEY = "ccid";
 
     private final AtomicLong counter = new AtomicLong();
 
-    @Value("${unique.node.id}")
-    private String node;
-
-
-    public void storeForLogging() {
-        MDC.put(MDC_KEY, next());
-    }
-
-    public void stashFromLogging() {
-        MDC.remove(MDC_KEY);
+    public MDC.MDCCloseable storeForLogging() {
+        return MDC.putCloseable(MDC_KEY, next());
     }
 
     private String next() {
-        return node + counter.incrementAndGet() % 1000;
+        return String.valueOf(counter.incrementAndGet() % 1000);
+    }
+
+}
+```
+
+```java
+@Component
+@Order(1)
+class Correlation implements PipelineStep {
+
+    private final CorrelationId correlationId;
+
+    Correlation(CorrelationId correlationId) {
+        this.correlationId = correlationId;
+    }
+
+    @Override
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+        try (var stashAutomatically = correlationId.storeForLogging()) {
+            return next.invoke();
+        }
     }
 }
 ```
 
 ---
+class: codeonly, invert
+```
+16:38:00.451 [main] INFO  CommandLogging   >>> BecomeAMember{name=Eduards} [1] 
+16:38:00.451 [main] INFO  Validation       >>> Eduards has typed a strong password [1] 
+16:38:00.451 [main] INFO  Registration     >>> Eduards has been registered [1] 
+16:38:00.591 [main] INFO  CommandLogging   >>> GrantPermission{user=14523343,role=Superpowers} [2] 
+16:38:00.692 [main] INFO  Permissions      >>> Alan has granted Superpowers permissions [2] 
+16:38:00.665 [main] INFO  CommandLogging   <<< Voidy [2] 
+16:38:00.590 [main] INFO  CommandLogging   <<< Voidy [1] 
+```
+---
+class: center, middle
+## Centralized Transaction management?
+
+---
 class: codeonly
 ```java
 @Component
-class GrowingNow implements Now {
-
-    private final Router router;
+@Order(3)
+class CommandTransaction implements PipelineStep {
 
     private final PlatformTransactionManager txManager;
 
-    private final CommandCorrelationId correlationId;
+    CommandTransaction(PlatformTransactionManager txManager) {
+        this.txManager = txManager;
+    }
 
     @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
 
-        Reaction<C, R> reaction = rounter.route(command);
+        var tx = new TransactionTemplate(txManager);
+        tx.setReadOnly(command instanceof ReadOnlyCommand);
 
-*       correlationId.storeForLogging();
-
-        TransactionTemplate tx = new TransactionTemplate(txManager);
-        command.txFlags().forEach(flag -> flag.apply(tx));
-
-        log.info(">>> {}", command.toLogString());
-        R response = tx.execute(txStatus -> reaction.react(command));
-        log.info("<<< {}", response.toLogString());
-
-*       correlationId.stashFromLogging();
-
-        return response;
+        return tx.execute(txStatus -> next.invoke());
     }
 }
+
+public interface ReadOnlyCommand<R> extends Command<R> {
+    ...
+}
+
 ```
 
----
-class: center, middle
-## Refactoring to decorators
-
----
-class: codeonly
 ```java
-@Component
-class Pipeline implements Now {
-
-    private final Router router;
-
-    private final PlatformTransactionManager txManager;
-
-    private final CommandCorrelationId correlationId;
-
-    @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
-        Now pipe = new Correlable(
-                      new Loggable(
-                         new Transactional(
-                            new Reacting())));
-
-        return pipe.execute(command);
-    }
-```
-
---
-```java
-    private class Correlable implements Now {
-
-        private final Now origin;
-
-        public Correlable(Now origin) {
-            this.origin = origin;
-        }
-
-        @Override
-        public <C extends Command<R>, R extends Command.R> R execute(C command) {
-            correlationId.storeForLogging();
-            R response = origin.execute(command);
-            correlationId.stashFromLogging();
-            return response;
-        }
-    }
-```
-
----
-class: codeonly
-```java
-@Component
-class Pipeline implements Now {
+class GetMobileNumbers implements ReadOnlyCommand<MobileNumbers> {
 
     ...
 
-    private class Loggable implements Now {
+}
+```
 
-        private final Logger log = LoggerFactory.getLogger(Loggable.class);
 
-        private final Now origin;
 
-        public Loggable(Now origin) {
-            this.origin = origin;
-        }
+---
+class: bad
 
-        @Override
-        public <C extends Command<R>, R extends Command.R> R execute(C command) {
-            log.info(">>> {}", command.toLogString());
-            R response = origin.execute(command);
-            log.info("<<< {}", command.toLogString());
-            return response;
-        }
+## - ~~tend to grow like hell~~
+
+## - ~~no dynamic routing~~
+
+## - ~~hard to plug-in without proxy magic~~
+
+--
+
+## - always blocking
+
+---
+class: codeonly
+
+```java
+class ActiveMq {
+    void enqueue(Command command) {
+        ...
     }
-
+}
 ```
 
 --
 
 ```java
-    private class Transactional implements Now {
-
-        private final Now origin;
-
-        @Override
-        public <C extends Command<R>, R extends Command.R> R execute(C command) {
-            TransactionTemplate tx = new TransactionTemplate(txManager);
-            command.txFlags().forEach(flag -> flag.apply(tx));
-            return tx.execute(txStatus -> origin.execute(command));
-        }
+class Kafka {
+    void publish(Command command) {
+        ...
     }
+}
 ```
 
----
-class: codeonly
+--
+
 ```java
-@Component
-class Pipeline implements Now {
-
-    ...
-
-    private class Reacting implements Now {
-
-        @Override
-        public <C extends Command<R>, R extends Command.R> R execute(C command) {
-            Reaction<C, R> reaction = router.route(command);
-            return reaction.react(command);
-        }
+class Async {
+    CompletableFuture<R> schedule(Command<R> command) {
+        ...
     }
+}
+```
 
+--
+
+```java
+class RxJava {
+    Observable<R> observe(Command<R> command) {
+        ...
+    }
 }
 ```
 
 ---
-# Commands are also great, because:
+class: bad
 
---
+## - ~~tend to grow like hell~~
 
-### - new info can be passed downstream w/o changing the interface
+## - ~~no dynamic routing~~
 
---
+## - ~~hard to plug-in without proxy magic~~
 
-### - funnels can read command @Annotations
-
---
-
-### - flexible composition at command, reaction and funnel side
-
---
-
-### - favours composion over jdk/javassist/bytebuddy proxying
+## - ~~always blocking~~
 
 ---
-class: center, middle
-## Fixing callback hell with CompletableFutures
 
----
-class: codeonly
-.crap[
-```java
-Firebase firebase = new Firebase("https://your-app.firebaseio.com");
-Firebase expenses = firebase.child("expenses");
-
-CountDownLatch firebaseWait = new CountDownLatch(1);
-
-AtomicReference<DataSnapshot> snapshot = new AtomicReference<>();
-AtomicReference<FirebaseError> exception = new AtomicReference<>();
-
-expenses.addListenerForSingleValueEvent(new ValueEventListener() {
-   @Override
-   public void onDataChange(DataSnapshot dataSnapshot) {
-       snapshot.set(dataSnapshot);
-       firebaseWait.countDown();
-   }
-
-   @Override
-   public void onCancelled(FirebaseError firebaseError) {
-       exception.set(firebaseError);
-       firebaseWait.countDown();
-   }
-});
-
-firebaseWait.await(5, TimeUnit.SECONDS);
-
-System.out.println(snapshot.get());
-```
-]
-
----
-class: codeonly
-```java
-class RxFirebase {
-
-  private final Firebase root;
-
-  public RxFirebase(Firebase root) {
-      this.root = root;
-  }
-```
-
---
-
-```java
-  public CompletableFuture<DataSnapshot> snapshot(String path) {
-      Firebase children = root.child(path);
-      CompletableFuture<DataSnapshot> completableFuture = new CompletableFuture<>();
-      children.addListenerForSingleValueEvent(new Notify(completableFuture));
-      return completableFuture;
-  }
-```
-
---
-
-```java
-  private class Notify implements ValueEventListener {
-
-      private final CompletableFuture<DataSnapshot> completableFuture;
-
-      public Notify(CompletableFuture<DataSnapshot> completableFuture) {
-          this.completableFuture = completableFuture;
-      }
-
-      @Override
-      public void onDataChange(DataSnapshot dataSnapshot) {
-          completableFuture.complete(dataSnapshot);
-      }
-
-      @Override
-      public void onCancelled(FirebaseError firebaseError) {
-          completableFuture.completeExceptionally(firebaseError.toException());
-      }
-  }
-}
-```
-
----
-class: codeonly
-.nice[
-```java
-Firebase firebase = new Firebase("https://your-app.firebaseio.com");
-```
-]
-
---
-
-.nice[
-```java
-RxFirebase rxFirebase = new RxFirebase(firebase);
-```
-]
-
---
-
-.nice[
-```java
-CompletableFuture<DataSnapshot> expenses = rxFirebase.snapshot("expenses");
-```
-]
-
---
-
-.nice[
-```java
-DataSnapshot snapshot = expenses.get(5, TimeUnit.SECONDS);
-```
-]
-
---
-
-.nice[
-```java
-System.out.println(snapshot);
-```
-]
-
----
-# vs.
-### - RxJava
-### - Spring Reactor
-### - Reactive Streams -> java.util.concurrent.Flow
+## 🚀 github.com/sizovs/PipelinR
+## 🚀 github.com/sizovs/PipelinR-demo
 
 ---
 class: center, middle, example
