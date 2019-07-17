@@ -971,7 +971,7 @@ class InvisibleButtonClickedException extends ... { }
 
 ---
 class: center, middle
-# Move from **f(o)** to **o.f()**
+# From old-school procedures to Objects
 
 ---
 class: codeonly
@@ -985,80 +985,38 @@ class File { }
 .crap[
 ```java
 class FileReader {
+
    String read(File file) { ... }
-}
+   
+
 ```
 ]
 
 --
-
+  
 .crap[
 ```java
-class FileReader {
-   String read(File file) { ... }
-   String read(Path path) { ... }   
-}
-```
-]
-
---
-
-.nice[
-```java
-class TextFile {
-   TextFile(Path) { ... }
-   TextFile(File) { ... }
-   String text();
-}
-```
-]
-
---
-
-.crap[
-```java
-class FileReader {
-   ...  
    boolean hasText(File file) { ... }
-   boolean hasText(Path file) { ... }
-}
 ```
 ]
 
 --
-
-.nice[
-```java
-class TextFile {
-   ...
-   boolean isEmpty();
-}
-```
-]
-
----
-class: codeonly
-
-.nice[
-```java
-class TextFile {
-   TextFile(Path) { ... }
-   TextFile(File) { ... }
-   String text();
-}
-```
-]
-
---
-
+  
 .crap[
 ```java
-class TextFile {
-   TextFile(Path) { ... }
-   TextFile(File) { ... }
-   String text();
-   byte[] binary();
-}
+   Stream<String> lines(File file) { ... }
+```
+]
+
+--
+  
+.crap[
+```java
+   String read(Path path) { ... }
+
+   boolean hasText(Path path) { ... }
+
+   Stream<String> lines(Path path) { ... }
 ```
 ]
 
@@ -1066,22 +1024,43 @@ class TextFile {
 
 .nice[
 ```java
+
+
+
 class TextFile {
+
    TextFile(Path) { ... }
    TextFile(File) { ... }
-   Content content();
-}
 ```
 ]
 
+--
+
 .nice[
 ```java
-class Content {
-   String textual() { ... };
-   byte[] binary() { ... };
-}
+   String text();
 ```
 ]
+
+--
+
+.nice[
+```java
+   boolean isEmpty();
+```
+]
+
+--
+
+.nice[
+```java
+   Stream<String> lines();
+```
+]
+
+--
+
+### Wins? 🚀 
 
 ---
 class: codeonly
@@ -1158,43 +1137,6 @@ interface Registration {
 }
 ```
 ]
-
-
----
-class: codeonly
-
-.crap[
-```java
-class BankAccount {
-  private Collection<Transaction> transactions;
-  void exportTransactions(Period period, Media media) {}
-}
-```
-]
-
-### Any design smells?
-
---
-
-.nice[
-```java
-
-class BankStatement {
-  private Period period;
-  void export(Media media);
-}
-
-class BankAccount {
-  private Collection<Transaction> transactions;
-
-  public BankStatement statement(Period period) {
-    return new BankStatement(transactions, period);
-  }
-}
-```
-]
-
-### Look ma, fewer parameters!
 
 ---
 class: codeonly
@@ -1504,9 +1446,7 @@ conference.accept(Speaker speaker);
 ---
 class: codeonly
 ```java
-@QuiteALotOfNoise
 class User {
-
     private final String firstName;
     private final String lastName;
     private String middleName;
@@ -1515,40 +1455,139 @@ class User {
         ...
     }
 
-    public void setMiddleName(String middleName) ...
+    // getters and a setter for middleName
 
     @Override
-    public String toString() ...
+    public String toString() {
+        return "User{" +
+                "firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", middleName='" + middleName + '\'' +
+                '}';
+    }
 
     @Override
-    public int hashCode() ...
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(firstName, user.firstName) &&
+                Objects.equals(lastName, user.lastName) &&
+                Objects.equals(middleName, user.middleName);
+    }
 
     @Override
-    public boolean equals(Object that) ...
+    public int hashCode() {
+        return Objects.hash(firstName, lastName, middleName);
+    }
 }
 ```
 
 ---
 class: codeonly
-
-## github.com/rzwitserloot/lombok
-
 ```java
-@Data
 class User {
+    public final String firstName;
+    public final String lastName;
+    public String middleName;
 
-  private final String firstName;
-  private final String lastName;
-  private String middleName;
+    public User(String firstName, String lastName) {
+        ...
+    }
 
+    @Override
+    public String toString() {
+        return "User{" +
+                "firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", middleName='" + middleName + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(firstName, user.firstName) &&
+                Objects.equals(lastName, user.lastName) &&
+                Objects.equals(middleName, user.middleName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(firstName, lastName, middleName);
+    }
+}
+```
+
+---
+class: codeonly
+```java
+class User {
+    public final String firstName;
+    public final String lastName;
+    public String middleName;
+
+    public User(String firstName, String lastName) {
+        ...
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(firstName, user.firstName) &&
+                Objects.equals(lastName, user.lastName) &&
+                Objects.equals(middleName, user.middleName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(firstName, lastName, middleName);
+    }
+}
+```
+
+---
+class: codeonly
+```java
+class User {
+    public final String firstName;
+    public final String lastName;
+    public String middleName;
+
+    public User(String firstName, String lastName) {
+        ...
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return EqualsBuilder.reflectionEquals(this, that);
+    }
+
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
 }
 ```
 
 --
-
 ```java
-var user = new User("Joe", "Doe");
-user.middleName("Ivanov");
+  User user = new User("Robert", "Martin");
+  user.middleName = "Cecil"
 ```
 
 ---
