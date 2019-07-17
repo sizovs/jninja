@@ -1584,6 +1584,21 @@ class User {
 }
 ```
 
+---
+class: codeonly
+```java
+class User extends Data {
+    public final String firstName;
+    public final String lastName;
+    public String middleName;
+
+    public User(String firstName, String lastName) {
+        ...
+    }
+
+}
+```
+
 --
 ```java
   User user = new User("Robert", "Martin");
