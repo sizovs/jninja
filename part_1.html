@@ -2127,22 +2127,22 @@ class Likes {
 
 ---
 class: center, middle
-# Yields
+# Projections
 
 
 ---
 class: codeonly
 ```java
 @FunctionalInterface
-interface Yield<T, R> {
-    R from(T entity);
+interface Projection<T, R> {
+    R of(T entity);
 }
 
 --
 
 public interface Entity<T> {
-    default <R> R __(Yield<T, R> yield) {
-        return yield.from((T) this);
+    default <R> R __(Projection<T, R> projection) {
+        return projection.of((T) this);
     }
 }
 ```
@@ -2158,12 +2158,12 @@ class Likes implements Entity<Likes> {
 --
 
 ```java
-class TotalDuringBlackFriday implements Yield<Tweet.Likes, Long> {
+class TotalDuringBlackFriday implements Projection<Tweet.Likes, Long> {
 
     private final BlackFriday blackFriday = new BlackFriday();
 
     @Override
-    public Long from(Tweet.Likes likes) {
+    public Long of(Tweet.Likes likes) {
         return
           likes
             .stream()
@@ -2203,8 +2203,8 @@ interface Specification<T> {
 --
 
 public interface Entity<T> {
-    default <R> R __(Yield<T, R> yield) {
-        return yield.from((T) this);
+    default <R> R __(Projection<T, R> projection) {
+        return projection.of((T) this);
     }
 
     default boolean __(Specification<T> specification) {
@@ -2250,6 +2250,8 @@ class: center, middle
     <script>
       var slideshow = remark.create({
         highlightLines: true,
+        click: true,
+        touch: true,
         slideNumberFormat: function (current, total) { return "" }
       });
       slideshow.on('afterShowSlide', function (slide) {
