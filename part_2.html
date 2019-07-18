@@ -996,215 +996,72 @@ class WriteNewRepositryLogEntry implements SideEffect<NewRepositoryAdded> {
 ---
 class: center, middle, example
 # Stability Patterns
-## Shed Load, Bulkheads, Timeouts and Circuit Breakers
+## Rate Limits, Bulkheads and Circuit Breakers
 
 ---
 class: center, middle
-## Load Shedding and Bulkheads with Hystrix
+## Rate Limiting with Resilience4j
 
 ---
 class: codeonly
 ```java
 @Component
-class Pipeline implements Now {
+@Order(4)
+public class CommandFaultTolerance implements PipelineStep {
+```
 
-    ...
+--
+```java
+    private final RateLimiterConfig rateLimiterConfig = RateLimiterConfig.custom()
+            .limitRefreshPeriod(Duration.ofSeconds(1))
+            .limitForPeriod(3)
+            .build();
+```
 
+--
+```java
     @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
-        Now pipe =
-*               new ConcurrencyLimited(
-                        new Correlable(
-                                new Loggable(
-                                        new Transactional(
-                                                new Reacting())))));
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
 
-        return pipe.execute(command);
-    }
-```
+        var rateLimiter = RateLimiter.of(commandClass.getName(), rateLimiterConfig);
+        var rateLimitedNext = RateLimiter.decorateSupplier(rateLimiter, next::invoke);
 
----
-class: codeonly
-```java
-private class ConcurrencyLimited implements Now {
-
-       private final Now origin;
-
-       Hystrix(Now origin) {
-           this.origin = origin;
-       }
-
-       @Override
-       public <C extends Command<R>, R extends Command.R> R execute(C command) {
-
-         HystrixCommand.Setter commandOptions = hystrixOptions(command);
-         HystrixCommand<R> hystrixCommand = new HystrixCommand<R>(commandOptions) {
-               @Override
-               protected R run() throws Exception {
-                   return origin.execute(command);
-               }
-         };
-         return hystrixCommand.execute();
-       }
-```
---
-
-```java
-       private HystrixCommand.Setter hystrixOptions(Command command) {
-          int concurrencyLimit = command.concurrencyLimit().orElse(10);
-          return HystrixCommand.Setter
-                .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
-                .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                      .withExecutionIsolationStrategy(SEMAPHORE)
-                      .withExecutionIsolationSemaphoreMaxConcurrentRequests(concurrencyLimit));
-        }
-}
-```
-
----
-class: codeonly
-```java
-IntStream.range(1, 10).parallel().forEach(i -> {
-      logOnError(()-> new Foo().execute(now));
-      logOnError(()-> new Bar().execute(now));
-});
-```
-
---
-```java
-@TwoOutOfTenCommandsWillEndWith
-com.netflix.hystrix.exception.HystrixRuntimeException:
-  Foo could not acquire a semaphore for execution and no fallback available.
-```
-
---
-
-```java
-public interface Reaction<C extends Command<R>, R extends Command.R> {
-
-    R react(C $);
-
-    default R fallback(C $) {
-        throw new UnsupportedOperationException("No fallback available.");
-    }
-
-    ...
-}
-```
-
---
-
-```java
-class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
-
-    @Override
-    public TotalLikes fallback(GetTotalLikes $) {
-        return new TotalLikes(10000000);
-    }
-```
-
----
-class: codeonly
-```java
-private class HystrixGuarded implements Now {
-    @Override
-    public <C extends Command<R>, R extends Command.R> R execute(C command) {
-        Reaction<C, R> reaction = router.route(command);
-
-        HystrixCommand.Setter commandOptions = hystrixOptions(command);
-        HystrixCommand<R> hystrixCommand = new HystrixCommand<R>(commandOptions) {
-            @Override
-            protected R run() throws Exception {
-                return reaction.react(command);
-            }
-
-            @Override
-            protected R getFallback() {
-                return reaction.fallback(command);
-            }
-
-        };
-
-        return hystrixCommand.execute();
+        return Try.ofSupplier(rateLimitedNext).get();
     }
 }
-```
-
---
-```java
-@Override
-public <C extends Command<R>, R extends Command.R> R execute(C command) {
-    Now pipe =
-            new Correlable(
-                    new Loggable(
-                            new Transactional(
-                                    new HystrixGuarded())));
-
-    return pipe.execute(command);
-}
-```
-
----
-
-class: codeonly
-```java
-IntStream.range(1, 10).parallel().forEach(i -> {
-      logOnError(()-> new GetTotalLikes().execute(now));
-      logOnError(()-> new GetTotalShares().execute(now));
-});
-```
-
---
-```java
-@GetTotalLikesWillAlwaysSucceed
-@TwoOutOfTenCommandsWillEndWith
-@AllExceptionLeadToFallbackExcept(HystrixBadRequestException.class)
-com.netflix.hystrix.exception.HystrixRuntimeException:
-  GetTotalShares could not acquire a semaphore for execution and no fallback available.
 ```
 
 ---
 class: center, middle
-# Timeouts
-
+## Bulkheads with Resilience4j
 
 ---
 class: codeonly
 ```java
-@AllCommandsRunInTheCallingThread
-@AllCallingThreadsWillBlockSoon
-class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
+@Component
+@Order(4)
+public class CommandFaultTolerance implements PipelineStep {
+
+    private final RateLimiterConfig rateLimiterConfig = RateLimiterConfig.custom()
+            .limitRefreshPeriod(Duration.ofSeconds(1))
+            .limitForPeriod(3)
+            .build();
+
+*   private final ConcurrentHashMap<Class, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
     @Override
-    public TotalLikes react(GetTotalLikesReaction $) {
-      try {
-          TimeUnit.SECONDS.sleep(30);
-      } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-      }
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+
+*       var rateLimiter = rateLimiters.computeIfAbsent(
+*               command.getClass(),
+*               commandClass -> RateLimiter.of(commandClass.getName(), rateLimiterConfig));
+
+        var rateLimitedNext = RateLimiter.decorateSupplier(rateLimiter, next::invoke);
+
+        return Try.ofSupplier(rateLimitedNext).get();
     }
-
-```
-
---
-```java
-@NowAllCommandsRunInASeparateThreadPool
-@BulkheadsOnSteroids
-private HystrixCommand.Setter hystrixOptions(Command command) {
-    int concurrencyLimit = command.concurrencyLimit().orElse(10);
-    return HystrixCommand.Setter
-            .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
-            .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
-            .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                    .withExecutionIsolationStrategy(THREAD)
-                    .withExecutionTimeoutInMilliseconds(1000))
-            .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter()
-                    .withCoreSize(concurrencyLimit));
 }
 ```
-???
-runs in a separate thread, because Hystrix must interrupt thread. You don't want to interrupt the whole request.
 
 ---
 class: center, middle
@@ -1214,34 +1071,30 @@ class: center, middle
 ---
 class: codeonly
 ```java
-class GetTotalLikesReaction implements Reaction<GetTotalLikes, TotalLikes> {
+@Component
+@Order(4)
+public class CommandFaultTolerance implements PipelineStep {
+    
+    private final CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
+            .waitDurationInOpenState(Duration.ofSeconds(60))
+            .failureRateThreshold(50) // 50% out of 100 last calls must fail
+            .ringBufferSizeInClosedState(100)
+            .build();
 
+    private final ConcurrentHashMap<Class, CircuitBreaker> circuitBreakers = new ConcurrentHashMap<>();
+    
     @Override
-    public TotalLikes react(GetTotalLikesReaction $) {
-      try {
-          TimeUnit.SECONDS.sleep(30);
-      } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-      }
+    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+
+
+        var circuitBreaker = circuitBreakers.computeIfAbsent(
+                command.getClass(),
+                commandClass -> CircuitBreaker.of(commandClass.getName(), circuitBreakerConfig));
+
+        var circuitBreakerNext = CircuitBreaker.decorateSupplier(circuitBreaker, next::invoke);
+
+        return Try.ofSupplier(circuitBreakerNext).get();
     }
-
-```
-
---
-```java
-@FallsBackImmediatelyAfterThirdAttempt
-private HystrixCommand.Setter hystrixOptions(Command command) {
-    int concurrencyLimit = command.concurrencyLimit().orElse(10);
-    return HystrixCommand.Setter
-            .withGroupKey(HystrixCommandGroupKey.Factory.asKey(command.name()))
-            .andCommandKey(HystrixCommandKey.Factory.asKey(command.name()))
-            .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-*                   .withCircuitBreakerSleepWindowInMilliseconds(30000)
-*                   .withCircuitBreakerRequestVolumeThreshold(2)
-                    .withExecutionIsolationStrategy(THREAD)
-                    .withExecutionTimeoutInMilliseconds(1000))
-            .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter()
-                    .withCoreSize(concurrencyLimit));
 }
 ```
 
