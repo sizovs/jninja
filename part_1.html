@@ -1699,15 +1699,13 @@ void orElseThrow() {
 class: codeonly
 .crap[
 ```java
-void lifeWithoutOptionals() {
-  PhoneNumber phoneNumber = phoneBook.phoneNumber(...);
-  if (phoneNumber != null) {
-    FacebookProfile facebookProfile = facebook.profile(phoneNumber);
-    if (facebookProfile != null) {
-      Picture picture = facebookProfile.picture();
-      if (picture != null) {
-        picture.download();
-      }
+PhoneNumber phoneNumber = phoneBook.phoneNumber(...);
+if (phoneNumber != null) {
+  FacebookProfile facebookProfile = facebook.profile(phoneNumber);
+  if (facebookProfile != null) {
+    Picture picture = facebookProfile.picture();
+    if (picture != null) {
+      picture.download();
     }
   }
 }
@@ -1718,13 +1716,10 @@ void lifeWithoutOptionals() {
 
 .nice[
 ```java
-void optionalIsAMonad() {
-  phoneBook.phoneNumber(...)
-      .flatMap(facebook::profile)
-      .flatMap(FacebookProfile::picture)
-      .ifPresent(ProfilePicture::download);
-}
-
+phoneBook.phoneNumber(...)
+    .flatMap(facebook::profile)
+    .flatMap(FacebookProfile::picture)
+    .ifPresent(ProfilePicture::download);
 ```
 ]
 
@@ -1818,28 +1813,6 @@ class Entrepreneur {
 class: middle, center, example
 # Fighting feature bloat
 ### ... because we want to keep object's behaviour next to the state
-
----
-# Qualities of a good class
-???
-
---
-
-
-### **Comprehensible** or mind-sized
-
---
-
-### Small enough to lower **coupling**
-
---
-
-### Large enough to maximize **cohesion**
-
---
-
-### Small enough to be easy to **test** 
-
 
 ---
 class: codeonly
@@ -2195,7 +2168,7 @@ class HasGottenMillionLikesOnAPostingDay implements Specification<Tweet> {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
-                    .filter(like -> like.wasPutOn(tweet.date()))
+                    .filter(like -> like.isGivenOn(tweet.date()))
                     .count();
             return likesOnAPostingDay >= 1000000;
         }
