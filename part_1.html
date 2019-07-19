@@ -1622,40 +1622,6 @@ compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 --
 
 ```java
-@IsNotInheritedBySubpackages
-@ParametersAreNonnullByDefault
-package root;
-```
-
---
-
-```java
-@ParametersAreNonnullByDefault
-package root.subpackage;
-```
-
---
-
-class: img100
-![](nevernull.png)
-
-
---
-
-```java
-@Override
-public boolean equals(@Nullable Object obj) { ... }
-```
-???
-- otherwise I will have to null-check all arguments, to be defensive.
-
----
-class: img100, codeonly
-![](brokennullity.png)
-
---
-
-```java
 @Nonnull
 @TypeQualifierDefault({ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
@@ -1670,9 +1636,15 @@ public @interface NullsForbidden {
 package wombat;
 ```
 
----
+--
 class: img100, codeonly
 ![](nullsworkagain.png)
+
+--
+```java
+@Override
+public boolean equals(@Nullable Object obj) { ... }
+```
 
 ---
 class: codeonly
