@@ -1930,21 +1930,26 @@ public class Tweet {
         return date;
     }
 
-*   public Collection<Like> likes() {
-*       return ImmutableList.copyOf(likes);
-*   }
-*
-*   public void like(Like like) {
-*     likes.add(like);
-*   }
-*
-*   public long totalLikes() {
-*     return likes.size();
-*   }
-*
-*   public long totalLikesBy(AccountId accountId) {
-*     return likes.stream().filter(like -> like.comesFrom(accountId)).count();
-*   }
+    public Collection<Like> likes() {
+        return ImmutableList.copyOf(likes);
+    }
+
+    public void like(Like like) {
+        likes.add(like);
+    }
+
+    public long totalLikes() {
+        return likes.size();
+    }
+
+    public void deleteLikeBy(LikeId id) {
+        var like = likes.stream().filter(like => like.hasId(id)).findFirst()
+
+        checkState(like.comesFrom(App.me()), "You can only delete your own likes");
+        checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
+        
+        likes.remove(like);
+   }
 ```
 
 ---
@@ -1974,12 +1979,17 @@ public class Tweet {
             return likes.size();
         }
 
-        public long totalBy(AccounId accoutId) {
-            return likes.stream().filter(like -> like.comesFrom(accountId)).count();
+        public Collection<Like> all() {
+          return ImmutableList.copyOf(likes);
         }
 
-        public Collection<Like> all() {
-            return ImmutableList.copyOf(likes);
+        public void deleteLikeBy(LikeId id) {
+          var like = likes.stream().filter(like => like.hasId(id)).findFirst()
+
+          checkState(like.comesFrom(App.me()), "You can only delete your own likes");
+          checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
+
+          likes.remove(like);
         }
     }
 }
@@ -2004,13 +2014,18 @@ public class Tweet {
 
     class Likes extends ForwardingList<Like> {
 
-        public long totalBy(AccountId accountId) {
-            return likes.stream().filter(like -> like.comesFrom(accountId)).count();
-        }
-
         @Override
         protected List<Like> delegate() {
             return likes;
+        }
+
+        public void deleteLikeBy(LikeId id) {
+          var like = likes.stream().filter(like => like.hasId(id)).findFirst()
+
+          checkState(like.comesFrom(App.me()), "You can only delete your own likes");
+          checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
+          
+          likes.remove(like);
         }
     }
 }
