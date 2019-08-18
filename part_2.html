@@ -637,7 +637,7 @@ class BankAccount {
 
 ```java
     public BigDecimal balance() {
-        return transactions.stream().foldRight(BigDecimal.ZERO, Transaction::apply);
+      return transactions.stream().foldRight(BigDecimal.ZERO, Transaction::apply); // StreamEx
     }
 ```
 
@@ -645,12 +645,12 @@ class BankAccount {
 
 ```java
     public Transaction deposit(BigDecimal amount) {
-        Domain.ensure(!isClosed(), "Cannot deposit funds to closed account.");
+      Domain.ensure(!isClosed(), "Cannot deposit funds to closed account.");
 
-        var depositTx = new Transaction(DEPOSIT, amount);
-        transactions.add(depositTx);
+      var depositTx = new Transaction(DEPOSIT, amount);
+      transactions.add(depositTx);
 
-        return depositTx;
+      return depositTx;
     }
 ```
 
@@ -658,11 +658,11 @@ class BankAccount {
 
 ```java
     private boolean isClosed() {
-        return status.equals(Status.CLOSED);
+      return status.equals(Status.CLOSED);
     }
 
     public void close() {
-        status = Status.CLOSED;
+      status = Status.CLOSED;
     }
 ```
 
@@ -719,7 +719,13 @@ class BankAccount {
 ```
 
 ---
-## BankAccount gives the following guarantees:
+class: codeonly
+```java
+var account = new BankAccount();
+var tx = account.withdraw(new BigDecimal(1000000));
+```
+
+### BankAccount gives the following guarantees:
 
 --
 
@@ -927,7 +933,7 @@ class WriteNewRepositryLogEntry implements Event.Listener<NewRepositoryAdded> {
 
 ---
 class: center, middle, example
-# Stability Patterns
+# Fault Tolerance Patterns
 
 ---
 class: center, middle
@@ -1071,21 +1077,44 @@ Connection connection = Failsafe.with(retry, timeout).get(() -> connect());
 ---
 
 class: codeonly
+
+### Fallbacks
+
+```java
+Fallback<Connection> fallback = Fallback.of(Slave::connect);
+```
+
+--
+
+```java
+Connection connection = Failsafe.with(fallback).get(() -> connect());
+```
+
+--
+
 ### Circuit Breaker
 
 ```java
 CircuitBreaker<Connection> breaker = new CircuitBreaker<>()
-    .withFailureThreshold(3, 10)
-    .withSuccessThreshold(5)
-    .withDelay(Duration.ofMinutes(1));
+    .withFailureThreshold(10)
+    .withDelay(Duration.ofMinutes(10));
 }
 ```
 
 --
 
 ```java
-Connection connection = Failsafe.with(retry).get(() -> connect());
+Connection connection = Failsafe.with(breaker).get(() -> connect());
 ```
+
+---
+# Patterns
+### Fallback
+### Timeout
+### Circuit breaker
+### Retries
+### Bulkheads
+### Throttling
 
 ---
 class: center, middle
