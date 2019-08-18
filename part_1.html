@@ -1760,42 +1760,6 @@ phoneBook.phoneNumbers(new Regex(...));
 ```
 
 ---
-class: codeonly
-
-.crap[
-```java
-class Entrepreneur {
-  private String fullName;
-  private Optional<Money> money;
-
-  Entrepreneur(String fullName, Optional<Money> money) {
-      this.fullName = fullName;
-      this.money = money;
-  }
-}
-```
-]
-
---
-
-.nice[
-```java
-class Entrepreneur {
-  private String fullName;
-  private Optional<Money> money = Optional.empty();
-
-  Entrepreneur(String fullName) {
-      this.fullName = fullName;
-  }
-
-  void earn(Money money)
-    this.money = Optional.of(money);
-  }
-}
-```
-]
-
----
 class: center, middle
 ## When necessary, use Null Objects.
 

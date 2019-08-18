@@ -10,7 +10,7 @@
       @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
 
       body { font-family: 'Droid Serif'; }
-      h1, h2, h3 {
+      h1, h2, h3, h4 {
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
@@ -19,6 +19,8 @@
       .example h2 { color: #00394f; font-weight: bold; line-height: 0;}
       .example h1 { color: #fff; font-weight: bold; background-color: #00394f; padding: 10px }
 
+      .codeonly h1, .codeonly h2, .codeonly h3, .codeonly h4 { color: white !important; }
+      
       .codeonly { padding: 1em; background-color: #2b303b }
       .codeonly pre { margin: 0 }
 
@@ -415,9 +417,8 @@ class: bad
 ## - ~~always blocking~~
 
 ---
-
+class: center, middle
 ## 🚀 github.com/sizovs/PipelinR
-## 🚀 github.com/sizovs/PipelinR-demo
 
 ---
 class: center, middle, example
@@ -525,104 +526,18 @@ interface Customers {
 ```
 
 ---
-class: center, middle
-# Equality for Value Objects
-
----
-class: center, middle
-# Equality for Entities
-
----
-class: codeonly
-.crap[
-```java
-class Account {
-
-    @GeneratedValue(strategy= GenerationType.AUTO)
-    private Long id;
-
-    private String iban;
-
-    public Account(String iban) {
-        this.iban = iban;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Account)) return false;
-        Account account = (Account) o;
-        return Objects.equals(getId(), account.getId());
-    }    
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getId());
-    }    
-}
-```
-]
-
----
-class: codeonly
-
-```java
-Account offshore = new Account("DZ4000400174401001050486");
-```
+# IDs, equality and hash code
+### 💡 Unless you use `merge()` or put entities in hash structures, you can rely on default `hashCode()` and `equals()` implementation.
 
 --
 
-```java
-Collection<Account> accounts = new HashSet<>();
-accounts.add(offshore);
-```
+### 💡 For embeddable value objects, include all fields in `equals()` and `hashCode()` calculation.
 
 --
 
-```java
-entityManager.persits(offshore);
-```
+### 💡 Use salted Hashids, when exposing PKs to the outside world.
 
---
-```java
-accounts.contains(offshore);
-```
-
---
-
-class: codeonly
-.nice[
-```java
-class Account {
-
-    @GeneratedValue(strategy= GenerationType.AUTO)
-    private Long id;
-
-*   private UUID uuid = UUID.randomUUID();
-
-    private String iban;
-
-    public Account(String iban) {
-        this.iban = iban;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Account)) return false;
-        Account account = (Account) o;
-*       return Objects.equals(uuid, account.uuid);
-    }    
-
-    @Override
-    public int hashCode() {
-*      return Objects.hashCode(uuid);
-    }    
-}
-```
-]
-???
-Benefits? Drawbacks?
+`> implementation("org.hashids:hashids:1.0.3")`
 
 ---
 class: right, middle
@@ -645,7 +560,8 @@ class: codeonly
 class BankAccount {
 
     @Id
-    private UUID id = UUID.randomUUID();
+    @GeneratedValue
+    private Long id;
 
     @Enumerated(EnumType.STRING)
     private Status status = Status.OPEN;
@@ -655,7 +571,7 @@ class BankAccount {
 
     @ElementCollection
     @CollectionTable(name = "BANK_ACCOUNT_TX")
-    @OrderColumn("INDEX")
+    @OrderColumn(name = "INDEX")
     private List<Transaction> transactions = new ArrayList<>();
 
     @Version
@@ -665,16 +581,41 @@ class BankAccount {
 
 ```
 
+---
+class: codeonly
+
 ```java
 @Embeddable
 class Transaction {
 
-    private DecimalNumber amount;
+    enum Type {
+        DEPOSIT {
+          @Override
+          BigDecimal apply(BigDecimal amount, BigDecimal balance) {
+            return balance.add(amount);
+          }
+        },
 
-    private LocalDateTime bookedAt = LocalDateTime.now();
+        WITHDRAW {
+          @Override
+          BigDecimal apply(BigDecimal amount, BigDecimal balance) {
+            return balance.subtract(amount);
+          }
+        };
+    
+        abstract BigDecimal apply(BigDecimal amount, BigDecimal balance);
+    }
+
+    private BigDecimal amount;
+
+    private LocalDateTime bookingTime = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
-    private TransactionType type;
+    private Type type;
+
+    BigDecimal apply(BigDecimal balance) {
+        return type.apply(amount, balance);
+    }
 
     ...
 }
@@ -695,26 +636,18 @@ class BankAccount {
 --
 
 ```java
-    public DecimalNumber balance() {
-        DecimalNumber totalDeposited = transactions.stream()
-                .filter(tx -> tx.type().equals(DEPOSIT))
-                .map(Transaction::amount)
-                .reduce(new Const(0), DecimalNumber::plus);
-
-        return transactions.stream()
-                .filter(tx -> tx.type().equals(WITHDRAWAL))
-                .map(Transaction::amount)
-                .reduce(totalDeposited, DecimalNumber::minus);
+    public BigDecimal balance() {
+        return transactions.stream().foldRight(BigDecimal.ZERO, Transaction::apply);
     }
 ```
 
 --
 
 ```java
-    public Transaction deposit(DecimalNumber amount) {
+    public Transaction deposit(BigDecimal amount) {
         Domain.ensure(!isClosed(), "Cannot deposit funds to closed account.");
 
-        Transaction depositTx = new Transaction(DEPOSIT, amount);
+        var depositTx = new Transaction(DEPOSIT, amount);
         transactions.add(depositTx);
 
         return depositTx;
@@ -741,10 +674,10 @@ class BankAccount {
 
     ...
 
-    public Transaction withdraw(DecimalNumber amount) {
+    public Transaction withdraw(BigDecimal amount) {
         Domain.ensure(!isClosed(), "Cannot withdraw funds from closed account.");
 
-        Transaction withdrawalTx = new Transaction(WITHDRAWAL, amount);
+        var withdrawalTx = new Transaction(WITHDRAWAL, amount);
         transactions.add(withdrawalTx);
 
         ensurePositiveBalance();
@@ -754,7 +687,7 @@ class BankAccount {
     }
 
     private void ensurePositiveBalance() {
-        Domain.ensure(balance().isPositive(),
+        Domain.ensure(balance().compareTo(BigDecimal.ZERO) >= 0,
           "Cannot withdraw more funds than available on your account.");
     }
 
@@ -769,19 +702,18 @@ class BankAccount {
     ...
 
     private void ensureDailyWithdrawalLimitIsNotExceeded() {
-        DecimalNumber dailyLimit = withdrawalLimit.dailyLimit();
-        DecimalNumber withdrawnToday = totalWithdrawn(now());
-        boolean dailyLimitExceeded = withdrawnToday.isGreaterThan(dailyLimit);
-        Domain.ensure(!dailyLimitExceeded,
+        var withdrawnToday = totalWithdrawn(now());
+        var dailyLimit = withdrawalLimit.dailyLimit();
+        var withinDailyLimit = withdrawnToday.compareTo(dailyLimit) <= 0;
+        Domain.ensure(withinDailyLimit,
           "Cannot withdraw funds. Daily withdrawal limit (%s) reached.", dailyLimit);
     }
 
-    private DecimalNumber totalWithdrawn(LocalDate bookedOn) {
+    private BigDecimal totalWithdrawn(LocalDate someDay) {
         return transactions.stream()
-                .filter(tx -> tx.type().equals(WITHDRAWAL))
-                .filter(tx -> tx.bookedAt().toLocalDate().isEqual(bookedOn))
-                .map(Transaction::amount)
-                .reduce(new Const(0), DecimalNumber::plus);
+                .filter(tx -> tx.type().equals(WITHDRAW))
+                .filter(tx -> tx.bookingTime().toLocalDate().isEqual(someDay))
+                .foldRight(BigDecimal.ZERO, Transaction::apply);
     }
 }
 ```
@@ -827,7 +759,7 @@ new Thread(() ->
     executeInTx(() ->
         entityManager
           .find(BankAccount.class, bankAccount.id())
-          .deposit(new Amount(1000.00));
+          .deposit(new BigDecimal(1000.00));
         coordinator.await();
     })
 ).start();
@@ -957,8 +889,8 @@ class Travis extends DomainEntity {
 ```
 
 ---
-background-image:url(eventual.jpg)
-background-size: 50%
+class: center, middle
+# Transactional Outbox Pattern
 
 ---
 class: codeonly
@@ -975,7 +907,7 @@ class Travis extends DomainEntity {
     public void manage(GitHubRepository gitHubRepository) {
         TravisRepository repository = new TravisRepository(gitHubRepository);
         repositories.add(repository);
-*       DomainEvents.durable().publish(new NewRepositoryAdded(logId, repository.id()));
+        events.add(new NewRepositoryAdded(logId, repository.id()));
     }
 ```
 
@@ -984,7 +916,7 @@ class Travis extends DomainEntity {
 ```java
 @RunInASeparateTransaction
 @RetryBeforePanic(times = 3)
-class WriteNewRepositryLogEntry implements SideEffect<NewRepositoryAdded> {
+class WriteNewRepositryLogEntry implements Event.Listener<NewRepositoryAdded> {
     @Override
     public void occur(NewRepositoryAdded $) {
         TravisLog log = logs.byId($.logId());
@@ -996,106 +928,163 @@ class WriteNewRepositryLogEntry implements SideEffect<NewRepositoryAdded> {
 ---
 class: center, middle, example
 # Stability Patterns
-## Rate Limits, Bulkheads and Circuit Breakers
 
 ---
 class: center, middle
-## Rate Limiting with Resilience4j
+## Throttling and Bulkheads
 
 ---
 class: codeonly
+
 ```java
-@Component
-@Order(4)
-public class CommandFaultTolerance implements PipelineStep {
+class RateLimiter {
+
+    private final Semaphore limiter;
+  
+    RateLimiter(int limiter) {
+      this.limiter = new Semaphore(limiter);
+    }
+ ```
+ 
+--
+
+ ```java
+    <R> R limit(Supplier<R> unlimited) {
+      if (!limiter.tryAcquire()) {
+        throw new ThrottlingException(limiter.availablePermits());
+      }
+      try {
+        return unlimited.get();
+      } finally {
+        limiter.release();
+      }
+    }
 ```
 
 --
+
 ```java
-    private final RateLimiterConfig rateLimiterConfig = RateLimiterConfig.custom()
-            .limitRefreshPeriod(Duration.ofSeconds(1))
-            .limitForPeriod(3)
-            .build();
+    @ResponseStatus(code = HttpStatus.TOO_MANY_REQUESTS)
+    private static class ThrottlingException extends RuntimeException {
+      private ThrottlingException(int maxPermits) {
+        super(format("Reached the maximum number of permitted requests (%s)", maxPermits));
+      }
+    }
+  }
+```
+
+---
+class: codeonly
+```java
+@Component
+@Order(1)
+class Throttling implements PipelineStep {
+
+  private final ConcurrentHashMap<Type, RateLimiter> rateLimiters;
+  private final Collection<RateLimit> rateLimits;
+
+  public Throttling(Collection<RateLimit> rateLimits) {
+    this.rateLimits = rateLimits;
+    this.rateLimiters = new ConcurrentHashMap<>();
+  }
 ```
 
 --
+
 ```java
-    @Override
-    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+  @SuppressWarnings("unchecked")
+  @Override
+  public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
 
-        var rateLimiter = RateLimiter.of(commandClass.getName(), rateLimiterConfig);
-        var rateLimitedNext = RateLimiter.decorateSupplier(rateLimiter, next::invoke);
+    var rateLimit = rateLimits
+        .stream()
+        .filter(limit -> limit.matches(command))
+        .findFirst();
+```
 
-        return Try.ofSupplier(rateLimitedNext).get();
-    }
+--
+
+```java
+    return rateLimit
+*       .map(limit -> limiter(command, limit))
+        .map(limiter -> limiter.limit(next::invoke))
+        .orElseGet(next::invoke);
+  }
+
+  private <R, C extends Command<R>> RateLimiter limiter(C command, RateLimit limit) {
+    var commandClass = command.getClass();
+    return rateLimiters.computeIfAbsent(commandClass, type -> new RateLimiter(limit.rateLimit()));
+  }
+
+
 }
 ```
 
 ---
 class: center, middle
-## Bulkheads with Resilience4j
+## `Failsafe`
 
 ---
+
 class: codeonly
+### Retries
+
 ```java
-@Component
-@Order(4)
-public class CommandFaultTolerance implements PipelineStep {
-
-    private final RateLimiterConfig rateLimiterConfig = RateLimiterConfig.custom()
-            .limitRefreshPeriod(Duration.ofSeconds(1))
-            .limitForPeriod(3)
-            .build();
-
-*   private final ConcurrentHashMap<Class, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
-
-    @Override
-    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
-
-*       var rateLimiter = rateLimiters.computeIfAbsent(
-*               command.getClass(),
-*               commandClass -> RateLimiter.of(commandClass.getName(), rateLimiterConfig));
-
-        var rateLimitedNext = RateLimiter.decorateSupplier(rateLimiter, next::invoke);
-
-        return Try.ofSupplier(rateLimitedNext).get();
-    }
+RetryPolicy<Connection> retry = new RetryPolicy<>()
+    .withDelay(Duration.ofSeconds(1))
+    .withMaxAttempts(3);
 }
 ```
 
----
-class: center, middle
-# Circuit Breaking
+--
 
-
----
-class: codeonly
 ```java
-@Component
-@Order(4)
-public class CommandFaultTolerance implements PipelineStep {
-    
-    private final CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
-            .waitDurationInOpenState(Duration.ofSeconds(60))
-            .failureRateThreshold(50) // 50% out of 100 last calls must fail
-            .ringBufferSizeInClosedState(100)
-            .build();
+Connection connection = Failsafe.with(retry).get(() -> connect());
+```
 
-    private final ConcurrentHashMap<Class, CircuitBreaker> circuitBreakers = new ConcurrentHashMap<>();
-    
-    @Override
-    public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
+--
 
+### Timeouts 
 
-        var circuitBreaker = circuitBreakers.computeIfAbsent(
-                command.getClass(),
-                commandClass -> CircuitBreaker.of(commandClass.getName(), circuitBreakerConfig));
+```java
+Timeout<Connection> timeout = Timeout.of(Duration.ofSeconds(10));
+```
 
-        var circuitBreakerNext = CircuitBreaker.decorateSupplier(circuitBreaker, next::invoke);
+--
 
-        return Try.ofSupplier(circuitBreakerNext).get();
-    }
+```java
+Connection connection = Failsafe.with(timeout).get(() -> connect());
+```
+
+--
+
+### Mix 
+
+```java
+// retry N times -> timeout if took too long
+Connection connection = Failsafe.with(timeout, retry).get(() -> connect());
+
+// execute and timeout if took too long -> retry N times
+Connection connection = Failsafe.with(retry, timeout).get(() -> connect());
+```
+
+---
+
+class: codeonly
+### Circuit Breaker
+
+```java
+CircuitBreaker<Connection> breaker = new CircuitBreaker<>()
+    .withFailureThreshold(3, 10)
+    .withSuccessThreshold(5)
+    .withDelay(Duration.ofMinutes(1));
 }
+```
+
+--
+
+```java
+Connection connection = Failsafe.with(retry).get(() -> connect());
 ```
 
 ---
@@ -1115,7 +1104,7 @@ class: center, middle
 .r50[
 ### Restassured
 ### AssertJ
-### Fabricator
+### Faker
 ### jOOR
 ### ByteBuddy
 ### ArchUnit
