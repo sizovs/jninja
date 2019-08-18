@@ -1248,40 +1248,6 @@ String content(File file);
 ]
 
 ---
-class: codeonly
-
-.crap[
-```java
-interface Document {
-
-  BytesWritten writeInto(OutputStream output);
-}
-```
-]
-
---
-
-.nice[
-```java
-interface Document {
-
-   OutputPipe output();
-}
-```
-]
-
---
-
-```java
-interface OutputPipe {}
-
-     void write();
-
-     BytesWritten length();
-}
-```
-
----
 class: center, middle
 # Never use getters in your OO code.
 
@@ -1620,40 +1586,51 @@ class: center, middle, example
 
 ---
 class: center, middle
-## In computing, a null pointer has a value reserved for indicating that the pointer does not refer to a valid object. **Never pass null**. **Never return null**.
+## If nulls are possible, make them explicit. Rely on compiler to catch missing null checks.
 
 ---
+
 class: codeonly
-```groovy
-compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
-```
+```kotlin
 
---
+plugins {
+  java
+  id("net.ltgt.errorprone") version "0.8.1"
+}
 
-```java
-@Nonnull
-@TypeQualifierDefault({ElementType.METHOD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface NullsForbidden {
+dependencies {
+  errorprone("com.google.errorprone:error_prone_core:2.3.3")
+  errorprone("com.uber.nullaway:nullaway:0.7.5")
 }
 ```
 
 --
 
 ```java
-@NullsForbidden
-package wombat;
+public String greet() {
+  greetings(null);
+  return null;
+}
+
+public String greetings(String name) {
+  return "Hello, " + name;
+}
 ```
 
 --
-class: img100, codeonly
-![](nullsworkagain.png)
 
---
-```java
-@Override
-public boolean equals(@Nullable Object obj) { ... }
+```whatever
+
+[NullAway] returning @Nullable expression from method with @NonNull return type
+1 warning
+
+[NullAway] passing @Nullable parameter 'null' where @NonNull is required
+1 warning
 ```
+
+---
+class: center, middle
+## In new code, use optionals.
 
 ---
 class: codeonly
@@ -1815,6 +1792,56 @@ class Entrepreneur {
     this.money = Optional.of(money);
   }
 }
+```
+]
+
+---
+class: center, middle
+## When necessary, use Null Objects.
+
+
+---
+class: codeonly
+
+.crap[
+```java
+public interface Scheduler {
+  void schedule(Command command);
+}
+
+@Component
+class SchedulerHolder {
+  private static Scheduler INSTANCE;
+
+  public SchedulerHolder(Scheduler scheduler) {
+    SchedulerHolder.INSTANCE = requireNonNull(scheduler, "Scheduler cannot be null");
+  }
+
+  public static Scheduler get() {
+    return INSTANCE;
+  }
+}
+```
+]
+
+--
+
+.nice[
+```java
+@Component
+class SchedulerHolder {
+* private static Scheduler INSTANCE = new NoScheduler();
+  ...
+}
+
+class NoScheduler implements Scheduler {
+
+  @Override
+  public void schedule(Command command) {
+    throw new NoSchedulerException(command.getClass().getSimpleName());
+  }
+}
+
 ```
 ]
 
