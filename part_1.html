@@ -2201,8 +2201,97 @@ boolean milionLikesInADay = tweet.__(new HasGottenMillionLikesOnAPostingDay());
 ```
 
 ---
+
 class: center, middle
-# Multiple entities per row.
+# Multiple entities per row
+
+---
+class: codeonly
+```java
+@Entity
+class Person {
+
+  String firstName, lastName;
+
+  Collection<Friend> friends = new ArrayList<>();
+  Collection<Bitcoin> bitcoins = new ArrayList<>();
+
+  public void buy(Bitcoin bitcoin) {
+    this.bitcoins.add(bitcoin);
+  }
+
+  public void unfriendAll() {
+    friends.forEach(this::unfriend);
+  }
+}
+```
+
+--
+
+```java
+
+
+
+package com.app.people;
+
+@Entity
+@Table(name = "PEOPLE")
+class Person {
+
+  String firstName, lastName;
+
+}
+```
+
+---
+
+class: codeonly
+
+```java
+package com.app.people;
+
+@Entity
+@Table(name = "PEOPLE")
+class Person {
+
+  String firstName, lastName;
+
+}
+```
+
+--
+
+```java
+package com.app.people.networking;
+
+@Entity
+@Table(name = "PEOPLE")
+class Networker {
+
+  Collection<Friend> friends = new ArrayList<>();
+
+  public void unfriendAll() {
+    friends.forEach(this::unfriend);
+  }    
+}
+```
+
+--
+
+```java
+package com.app.trading;
+
+@Entity
+@Table(name = "PEOPLE")
+class Trader {
+
+  Collection<Bitcoin> bitcoins = new ArrayList<>();
+
+  public void buy(Bitcoin bitcoin) {
+    this.bitcoins.add(bitcoin);
+  }
+}
+```
 
 
     </textarea>
