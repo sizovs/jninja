@@ -233,15 +233,19 @@ class MethodArgumentNames {
   }
 
   private class ParameterName {
+
+      private final String name;
+
       ParameterName(Parameter parameter) {
           boolean parameterHasAName = parameter.isNamePresent();
           checkArgument(parameterHasAName,
               "Parameter %s does not have a name. Please compile with --parameter flag", parameter);
-          this.textualName = parameter.getName();
+          this.name = parameter.getName();
       }
+
       @Override
       public String toString() {
-          return this.textualName;
+          return this.name;
       }
   }
 }
@@ -296,96 +300,32 @@ Coinbase coinbase = new Coinbase();
 class: center, middle, codeonly
 # Take-away: stick to Interface Segregation Principle. 
 ### @FunctionalInterface is your best friend
-
----
-class: codeonly
-```java
-@FunctionalInterface
-interface FileFactory {
-    File newFile(String name);
-}
-```
-
---
-
-```java
-class Framework {
-    Framework(FileFactory fileFactory) { ... }
-}
-```
-
---
-
-.crap[
-```java
-@BeforeJava(8)
-class SimpleFileFactory implements FileFactory {
-    @Override
-    public File newFile(String name) {
-        return new File(name);
-    }
-}
-
-Framework framework = new Framework(new SimpleFileFactory());
-```
-]
-
---
-
-.crap[
-```java
-Framework framework = new Framework(name -> new File(name));
-```
-]
-
---
-
-.nice[
-```java
-Framework framework = new Framework(File::new);
-```
-]
 ???
-conclusion: factories can be partially eliminated.
+this way you can eliminate factories, wrappers.
 
 ---
 class: codeonly
-### **checked exception in lambdas**
+### **dealing with checked exceptions**
 .crap[
 ```java
     int from = 8000;
     int to = 9000;
     IntStream
-              .rangeClosed(from, to)
-              .mapToObj(Port::new)
-              .filter(p -> {
-                  try {
-                      return p.free();
-                  } catch (IOException e) {
-                      throw new RuntimeException(e);
-                  }
-              })
-              .findFirst();
+      .rangeClosed(from, to)
+      .mapToObj(Port::new)
+      .filter(p -> {
+          try {
+              return p.free();
+          } catch (IOException e) {
+              throw new RuntimeException(e);
+          }
+      })
+      .findFirst();
 ```
 ]
 
 --
 
-class: codeonly
-
-### github.com/zalando/faux-pas
-
-.nice[
-```java
-    IntStream
-            .rangeClosed(from, to)
-            .mapToObj(Port::new)
-            .filter(throwingPredicate(Port::free))
-            .findFirst();
-```
-]
-
----
 class: codeonly
 
 ### noexception.machinezoo.com
@@ -393,13 +333,37 @@ class: codeonly
 .nice[
 ```java
     IntStream
-            .rangeClosed(from, to)
-            .mapToObj(Port::new)
-            .filter(Exceptions.sneak().predicate(Port::free))
-            .findFirst();
+      .rangeClosed(from, to)
+      .mapToObj(Port::new)
+*     .filter(sneak().supplier(Port::free)) // throw checked exception and trick the compiler
+      .findFirst();
+```
+]
+
+---
+class: codeonly
+
+.crap[
+```java
+public String json() {
+  try {
+    return mapper.writeValueAsString(this);
+  } catch (JsonProcessingException | IOException e) {
+    throw new RuntimeException(e);
+  }
+}
 ```            
 ]
 
+--
+
+.nice[
+```java
+public String json() {
+  return sneak().get(() -> mapper.writeValueAsString(attribute));
+}
+```
+]
 
 --
 
@@ -407,28 +371,27 @@ class: codeonly
 ```java
 
 
+Master master = new Master();
+Slave slave = new Slave();
 
-    Master master = new Master();
-    Slave slave = new Slave();
-
-    Connection connection;
-    try {
-        connection = master.connection();
-    } catch (RuntimeException e) {
-        log.warning(e);
-        connection = slave.connection();
-    }
-```
+Connection connection;
+try {
+    connection = master.connection();
+} catch (RuntimeException e) {
+    log.warning(e);
+    connection = slave.connection();
+}
+```            
 ]
 
 --
 
 .nice[
 ```java
-    Connection connection = Exceptions
-*     .log()
-      .get(master::connection)
-      .orElseGet(slave::connection);
+Connection connection = Exceptions
+*   .log()
+    .get(master::connection)
+    .orElseGet(slave::connection);
 ```
 ]
 
