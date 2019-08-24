@@ -632,89 +632,6 @@ interface Movie {
 ]
 
 ---
-class: codeonly
-
-# Look for domain-specific Value Objects
-
-.crap[
-```java
-  class BillingAgreement {
-      private int term;
-
-```
-]
-
---
-
-.nice[
-```java
-      private Term term;
-
-```
-]
-
---
-
-.nice[
-```java
-      if (term.isInfinite()) { ... }
-
-```
-]
-
---
-
-.crap[
-```java
-  class Company {
-      private String vatNumber;
-```
-]
-
---
-
-.nice[
-```java
-      private VatNumber vatNumber;
-```
-]
-
---
-
-.crap[
-```java
-  class Payment {
-      private BigDecimal amount;
-      private BigDecimal currency;
-```
-]
-
---
-
-.nice[
-```java
-      private Amount amount;
-```
-]
-
---
-
-.crap[
-```java
-  class Loan {
-      private User user;
-```
-]
-
---
-
-.nice[
-```java
-      private Borrower borrower;
-```
-]
-
----
 class: center, middle
 ## Compound names usually indicate a missing root object
 
@@ -813,7 +730,7 @@ class AwsS3Bucket {
 class: codeonly
 .crap[
 ```java
-interface SpotifyApp {
+interface MusicApp {
     void playMusic();
     void stopMusic();
 }
@@ -835,7 +752,7 @@ interface Music {
 
 .nice[
 ```java
-interface SpotifyApp {
+interface MusicApp {
     Music music();
 }
 ```
@@ -846,7 +763,7 @@ interface SpotifyApp {
 class: codeonly
 .crap[
 ```java
-interface HipChat {
+interface Chat {
     void sendMessage(String channel, String mesage);
 }
 ```
@@ -867,7 +784,7 @@ interface Channel {
 
 .nice[
 ```java
-interface HipChat {
+interface Chat {
     Channel channel(String name);
 }
 ```
@@ -968,6 +885,9 @@ class TextFile {
 
 ---
 class: codeonly
+
+### Encapsulate state, if possible
+
 .crap[
 ```java
 interface EmailSender {
@@ -1046,12 +966,12 @@ interface Registration {
 class: codeonly
 .crap[
 ```java
-class ProbabilityCalculator {
-    BigDecimal calculate() { ... }
+class BankruptcyProbabilityCalculator {
+    BigDecimal calculate(Business business) { ... }
 }
 
-class ProbabilityUtils {
-  boolean isHigh(BigDecimal decimal) { ... }
+class BankruptcyProbabilityUtils {
+  boolean isHigh(DecimalNumber decimal) { ... }
 }
 
 ```
@@ -1061,13 +981,80 @@ class ProbabilityUtils {
 
 .nice[
 ```java
-class Probability extends BigDecimal {
-    Probability() { 
-      calculationGoesHere();
-    }
+class BankruptcyProbability extends DecimalNumber {
+    Probability(Business business) { ... }
     boolean isHigh(); 
 
 }
+```
+]
+
+.crap[
+```java
+class BillingAgreement {
+    private int term;
+
+```
+]
+
+--
+
+.nice[
+```java
+    private Term term;
+
+```
+]
+
+--
+
+.crap[
+```java
+class Company {
+    private String vatNumber;
+```
+]
+
+--
+
+.nice[
+```java
+    private VatNumber vatNumber;
+```
+]
+
+--
+
+.crap[
+```java
+class Payment {
+    private BigDecimal amount;
+    private BigDecimal currency;
+```
+]
+
+--
+
+.nice[
+```java
+    private Amount amount;
+```
+]
+
+--
+
+.crap[
+```java
+class Loan {
+    private User user;
+```
+]
+
+--
+
+.nice[
+```java
+    private Borrower borrower;
 ```
 ]
 
@@ -1110,8 +1097,12 @@ interface Iterator<T> {
 
 .crap[
 ```java
-@VerbThatReturnsStuff
-InputStream load(URL url);
+
+
+
+
+
+InputStream stream = url.load();
 ```
 ]
 
@@ -1119,28 +1110,17 @@ InputStream load(URL url);
 
 .nice[
 ```java
-@NounThatReturnsStuff
-InputStream stream(URL url);
+InputStream stream = url.content();
 ```
 ]
 
 --
 
-.crap[
 ```java
-@VerbThatReturnsStuff
-String read(File file);
-```
-]
+url.load().transferTo(...)
 
---
-
-.nice[
-```java
-@NounThatReturnsStuff
-String content(File file);
+url.content().transferTo(...)
 ```
-]
 
 ---
 class: center, middle
@@ -1180,8 +1160,35 @@ consider readability if (client.fullName()) vs. if (client.getFullName())
 --
 
 ```java
+
+if (client.getFullName().equals("...")) {
+
+}
+
+if (client.fullName().equals("...")) {
+
+}
+
+
+```
+
+--
+
+```java
 interface Iterator<T> {
   T current();
+}
+```
+
+--
+
+```java
+if (iterator.getCurrent().pointsTo(anObject)) {
+
+}
+
+if (iterator.current().pointsTo(anObject)) {
+
 }
 ```
 
