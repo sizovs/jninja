@@ -590,26 +590,6 @@ interface TransactionManager {
 
 .crap[
 ```java
-interface Moderation {
-  void banSpammer(Account account) { ... } 
-  void banRobot(Account account) { ... } 
-}
-```
-]
-
-.nice[
-```java
-interface Moderation {
-  void ban(Spammer spammer) { ... } 
-  void ban(Robot robot) { ... } 
-}
-```
-]
-
---
-
-.crap[
-```java
 class Widget {
     long length();
 ```
