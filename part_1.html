@@ -1947,25 +1947,19 @@ class BlackFriday {
 
 ```java
     public boolean fallsOn(LocalDate date) {
-        return blackFriday().isEqual(date);
+        var blackFriday = thanksgiving.plusDays(1);
+        return blackFriday.isEqual(date);
     }
 ```
 
 --
 
 ```java
-    private LocalDate blackFriday() {
-        return thanksGivingDay().plusDays(1);
-    }
-```
-
---
-
-```java
-    private LocalDate thanksGivingDay() {
-        return Year.now()
-                .atMonth(Month.NOVEMBER)
-                .with(TemporalAdjusters.lastInMonth(DayOfWeek.THURSDAY));
+    private LocalDate thanksgiving() {
+        return LocalDate
+          .now()
+          .with(Month.NOVEMBER)
+          .with(TemporalAdjusters.lastInMonth(THURSDAY));
     }
 }
 ```
