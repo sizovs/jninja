@@ -445,6 +445,27 @@ void updateIfIdAssigned(Entity entity) {
 
 ---
 class: codeonly
+
+.crap[
+```java
+interface TransactionManager {
+  void cancelTransaction(Transaction transaction) { ... } 
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface TransactionManager {
+  void cancel(Transaction transaction) { ... } 
+}
+```
+]
+
+--
+
 .crap[
 ```java
 interface Employee {
@@ -514,93 +535,14 @@ interface Batch {
 ]
 
 ---
-
 class: codeonly
 
-#### Fields, parameters, variables are **nouns**. Command methods are **verbs**. Boolean methods are **adjectives**.
-
-.crap[
-```java
-class Touchscreen {
-  void touch() {
-    this.touched++;
-    this.touchedAt = LocalDateTime.now(UTC);
-  }
-}
-```
-]
-
---
-
-```java
-class Touchscreen {
-  void touch() {
-*   this.touchTimes++;
-*   this.touchTime = LocalDateTime.now(UTC);
-  }
-```
-
---
-
-```java
-  boolean touched() {
-    return touchTimes > 0;
-  }
-
-  boolean touched(LocalDateTime someTime) {
-    return this.touchTime.equals(someTime);
-  }
-```
-
---
-
-```java
-
-
-if (touchscreen.touched()) {
-  ...
-}
-
-if (touchscreen.touched(yesterday) {
-  ...
-})
-```
-
----
-class: codeonly
-.crap[
-```java
-interface TransactionManager {
-  void cancelTransaction(Transaction transaction) { ... } 
-}
-```
-]
-
---
-
-.nice[
-```java
-interface TransactionManager {
-  void cancel(Transaction transaction) { ... } 
-}
-```
-]
-
---
+### lack of types
 
 .crap[
 ```java
 class Widget {
     long length();
-```
-]
-
---
-
-.crap[
-```java
-class Widget {
-    long lengthInPixels();
 ```
 ]
 
@@ -617,6 +559,62 @@ class Widget {
 
 .crap[
 ```java
+
+interface DockerContainer {
+    String spinUp();
+}
+```
+]
+--
+
+
+.nice[
+```java
+interface DockerContainer {
+    Port spinUp();
+}
+```
+]
+
+--
+
+.crap[
+```java
+
+interface Jetty {
+    void run(int port); // where to look for a default port?
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface Jetty {
+    void run(Port port);
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface Port {
+  Port DEFAULT = () -> 8080;
+  int num();
+}
+```
+]
+
+---
+class: codeonly
+### ambiguity
+
+--
+.crap[
+```java
 interface Movie {
     void stream(Channel channel);
 ```
@@ -631,100 +629,49 @@ interface Movie {
 ```
 ]
 
+--
+.crap[
+```java
+
+
+interface FileSystem {
+    void content(File file);
+```
+]
+
+--
+
+.nice[
+```java
+interface FileSystem {
+    void contentOf(File file);
+```
+]
+
+--
+.crap[
+
+```java
+
+
+interface FileSystem {
+    void isEmpty(File file); 💥
+```
+]
+
+--
+
+.nice[
+```java
+class File {
+    boolean isEmpty();
+}
+```  
+]
+
 ---
 class: center, middle
-## Compound names usually indicate a missing root object
-
----
-class: codeonly
-```java
-class AwsS3Bucket {
-
-  private final String awsPassword;
-  private final String awsLogin;
-  private final String bucketName;
-
-  public AwsS3Bucket(String awsLogin, String awsPassword, String bucketName) {
-    this.awsLogin = awsLogin;
-    this.awsPassword = awsPassword;
-    this.bucketName = bucketName;
-  }
-
-  void create() {
-    ...
-  }
-
-}
-```
-
---
-
-```java
-class AwsCredentials {
-
-  public final String login;
-  public final String password;
-
-  public AwsCredentials(String login, String password) {
-    this.login = login;
-    this.password = password;
-  }
-}
-```
-
----
-class: codeonly
-```java
-class AwsS3Bucket {
-
-  private final AWSCredentials awsCredentials;
-  private final String bucketName;
-
-  public AwsS3Bucket(AwsCredentials awsCredentials, String bucketName) {
-    this.awsCredentials = awsCredentials;
-    this.bucketName = bucketName;
-  }
-
-  void create() {
-    ...
-  }
-
-}
-```
-
---
-
-```java
-class AwsAccount {
-
-  private final AwsCredentials credentials;
-
-  public AwsAccount(AwsCredentials credentials) {
-    this.credentials = credentials;
-  }
-
-}
-```
-
----
-class: codeonly
-```java
-class AwsS3Bucket {
-
-  private final AwsAccount account;
-  private final String name;
-
-  public AwsS3Bucket(AwsAccount account, String name) {
-    this.account = account;
-    this.name = name;
-  }
-
-  void create() {
-    ...
-  }
-
-}
-```
+## Compound names usually indicate a missing root object.
 
 ---
 class: codeonly
@@ -764,7 +711,8 @@ class: codeonly
 .crap[
 ```java
 interface Chat {
-    void sendMessage(String channel, String mesage);
+    void sendTextMessage(String textMessage);
+    void sendImage(Image image);
 }
 ```
 ]
@@ -774,8 +722,63 @@ interface Chat {
 class: codeonly
 .nice[
 ```java
-interface Channel {
-    void send(String message);
+interface Chat {
+    void send(TextMessage message);
+    void send(Image image);
+}
+```
+]
+
+--
+
+.crap[
+```java
+class Project {
+    String teamLead;
+}
+```
+]
+
+--
+
+.crap[
+```java
+class Project {
+    Team team; // team.leader()
+}
+```
+]
+
+--
+
+.crap[
+```java
+borrower.loanAgreement();
+```
+]
+
+--
+
+```java
+borrower.loan().agreement();
+```
+
+---
+class: center, middle
+# Methods are either **commands** or **queries**.
+### Use commands (verbs) to tell an object what to do.
+### With queries (nouns) you ask object to give something.
+— *[Command/Query Separation](http://martinfowler.com/bliki/CommandQuerySeparation.html)*
+
+---
+class: codeonly
+.crap[
+```java
+interface Iterator<T> {
+
+  @NounWithASideAffect
+  @ViolatesCqs
+  T next();
 }
 ```
 ]
@@ -784,109 +787,133 @@ interface Channel {
 
 .nice[
 ```java
-interface Chat {
-    Channel channel(String name);
+interface Iterator<T> {
+
+  @VerbThatReturnsNothing
+  void advance();
+
+  @NounThatReturnsStuff
+  T current();
 }
+```
+]
+
+--
+
+.crap[
+```java
+
+
+
+
+
+InputStream stream = url.load();
+```
+]
+
+--
+
+.nice[
+```java
+InputStream stream = url.content();
+```
+]
+
+--
+
+.crap[
+```java
+url.load().transferTo(...)
+```
+]
+
+--
+
+.nice[
+```java
+url.content().transferTo(...)
 ```
 ]
 
 ---
 class: center, middle
-# From old-school procedures to Objects
+# Ditch getters.
+
+---
+
+## Getters are verbs
+
+--
+
+## Get **may** have a side effect
+
+--
+
+### - get married
+
+--
+
+### - get money from the ATM
+
+--
+
+### - get from A to B...
+
+---
+class: codeonly
+```java
+class Client {
+  String fullName();
+  String personalId();
+}
+```
+???
+consider readability if (client.fullName()) vs. if (client.getFullName())
+
+--
+
+```java
+
+if (client.getFullName().equals("...")) {
+
+}
+
+if (client.fullName().equals("...")) {
+
+}
+
+
+```
+
+--
+
+```java
+interface Iterator<T> {
+  T current();
+}
+```
+
+--
+
+```java
+if (iterator.getCurrent().pointsTo(anObject)) {
+
+}
+
+if (iterator.current().pointsTo(anObject)) {
+
+}
+```
+
+---
+class: center, middle
+# OOP 101
+### objects are not data bags. 
 
 ---
 class: codeonly
 
-```java
-class File { }
-```
-
---
-
-.crap[
-```java
-class FileReader {
-
-   String read(File file) { ... }
-   
-
-```
-]
-
---
-  
-.crap[
-```java
-   boolean hasText(File file) { ... }
-```
-]
-
---
-  
-.crap[
-```java
-   Stream<String> lines(File file) { ... }
-```
-]
-
---
-  
-.crap[
-```java
-   String read(Path path) { ... }
-
-   boolean hasText(Path path) { ... }
-
-   Stream<String> lines(Path path) { ... }
-```
-]
-
---
-
-.nice[
-```java
-
-
-
-class TextFile {
-
-   TextFile(Path) { ... }
-   TextFile(File) { ... }
-```
-]
-
---
-
-.nice[
-```java
-   String text();
-```
-]
-
---
-
-.nice[
-```java
-   boolean isEmpty();
-```
-]
-
---
-
-.nice[
-```java
-   Stream<String> lines();
-```
-]
-
---
-
-### Wins? 🚀 
-
----
-class: codeonly
-
-### Encapsulate state, if possible
+### Tell, don't ask.
 
 .crap[
 ```java
@@ -963,7 +990,102 @@ interface Registration {
 ]
 
 ---
+class: center, middle
+# Printers
+### (demo)
+
+---
 class: codeonly
+
+### The expression problem
+
+--
+
+```java
+class File { }
+```
+
+--
+
+.crap[
+```java
+class FileReader {
+
+   String read(File file) { ... }
+   
+
+```
+]
+
+--
+  
+.crap[
+```java
+   boolean hasText(File file) { ... }
+```
+]
+
+--
+  
+.crap[
+```java
+   Stream<String> lines(File file) { ... }
+```
+]
+
+--
+  
+.crap[
+```java
+   String read(Path path) { ... }
+
+   boolean hasText(Path path) { ... }
+
+   Stream<String> lines(Path path) { ... }
+```
+]
+
+--
+
+.nice[
+```java
+
+class TextFile {
+
+   TextFile(Path) { ... }
+   TextFile(File) { ... }
+```
+]
+
+--
+
+.nice[
+```java
+   String text();
+```
+]
+
+--
+
+.nice[
+```java
+   boolean isEmpty();
+```
+]
+
+--
+
+.nice[
+```java
+   Stream<String> lines();
+```
+]
+
+---
+class: codeonly
+
+### Reification
+
 .crap[
 ```java
 class BankruptcyProbabilityCalculator {
@@ -982,18 +1104,16 @@ class BankruptcyProbabilityUtils {
 .nice[
 ```java
 class BankruptcyProbability extends DecimalNumber {
-    Probability(Business business) { ... }
-    boolean isHigh(); 
-
-}
+    BankruptcyProbability(Business business) { ... }
+    boolean isHigh() { ... }
 ```
 ]
 
+--
+
 .crap[
 ```java
-class BillingAgreement {
-    private int term;
-
+    boolean exceedsInsuranceLimits(BigDecimal insuranceLimits) { ... }
 ```
 ]
 
@@ -1001,8 +1121,26 @@ class BillingAgreement {
 
 .nice[
 ```java
-    private Term term;
+    boolean exceeds(InsuranceLimits insuranceLimits);
+}
+```
+]
 
+---
+class: codeonly
+
+### Reification
+
+.crap[
+```java
+class BillingAgreement {
+    private int term;
+```
+]
+--
+.nice[
+```java
+    private Term term;
 ```
 ]
 
@@ -1060,147 +1198,8 @@ class Loan {
 
 ---
 class: center, middle
-# Methods are either **commands** or **queries**.
-### Use commands (verbs) to tell an object what to do.
-### With queries (nouns) you ask object to give something.
-— *[Command/Query Separation](http://martinfowler.com/bliki/CommandQuerySeparation.html)*
-
----
-class: codeonly
-.crap[
-```java
-interface Iterator<T> {
-
-  @NounWithASideAffect
-  @ViolatesCqs
-  T next();
-}
-```
-]
-
---
-
-.nice[
-```java
-interface Iterator<T> {
-
-  @VerbThatReturnsNothing
-  void advance();
-
-  @NounThatReturnsStuff
-  T current();
-}
-```
-]
-
---
-
-.crap[
-```java
-
-
-
-
-
-InputStream stream = url.load();
-```
-]
-
---
-
-.nice[
-```java
-InputStream stream = url.content();
-```
-]
-
---
-
-```java
-url.load().transferTo(...)
-
-url.content().transferTo(...)
-```
-
----
-class: center, middle
-# Never use getters in your OO code.
-
----
-
-## Getters are verbs
-
---
-
-## Get **may** have a side effect
-
---
-
-### - get married
-
---
-
-### - get money from the ATM
-
---
-
-### - get from A to B...
-
----
-class: codeonly
-```java
-class Client {
-  String fullName();
-  String personalId();
-}
-```
-???
-consider readability if (client.fullName()) vs. if (client.getFullName())
-
---
-
-```java
-
-if (client.getFullName().equals("...")) {
-
-}
-
-if (client.fullName().equals("...")) {
-
-}
-
-
-```
-
---
-
-```java
-interface Iterator<T> {
-  T current();
-}
-```
-
---
-
-```java
-if (iterator.getCurrent().pointsTo(anObject)) {
-
-}
-
-if (iterator.current().pointsTo(anObject)) {
-
-}
-```
-
----
-class: center, middle
-## Blindly removing get\* prefix will remove noise, but won't make your code more object-oriented.
-### **Tell, don't ask** as much as you can.
-
-
----
-class: center, middle
-# Never use setters in your OO code.
+# Ditch setters.
+### ...so objects can protect their invariants.
 
 ---
 class: codeonly
@@ -1304,6 +1303,115 @@ conference.accept(Speaker speaker);
 --
 
 ### Wait, but why?!
+
+---
+class: center, middle
+# The mindset shift.
+
+---
+class: codeonly
+
+```java
+class ending with *er or *or
+```
+
+```java
+class *Helper
+```
+
+--
+
+```java
+class *Utils
+```
+
+--
+
+```java
+class *Processor
+```
+
+
+
+--
+
+```java
+class *Manager
+```
+
+--
+
+```java
+class *Service
+```
+
+
+---
+class: codeonly
+.crap[
+```java
+class FtpUtils {
+
+  void transferFile(File file, File newLocation)
+
+  boolean fileExists(String filename);
+
+  void makeDir(String parentDir, String dir);
+
+  boolean folderExists(String folder);
+
+}
+```
+]
+
+--
+
+class: codeonly
+.crap[
+```java
+@StillProcedural
+class FtpClient {
+
+  void transferFile(File file, File newLocation)
+
+  boolean fileExists(String filename);
+
+  void makeDir(String parentDir, String dir);
+
+  boolean folderExists(String folder);
+
+}
+```
+]
+
+---
+class: codeonly
+
+.nice[
+```java
+class FtpFolder {
+
+  void createIn(FtpFolder parent);
+
+  boolean exists();
+
+}
+```
+]
+
+--
+
+.nice[
+```java
+class FtpFile {
+
+  void transferTo(FtpFolder destination)
+
+  boolean exists();
+
+}
+```
+]
 
 ---
 # Data structures
@@ -1713,111 +1821,12 @@ class NoScheduler implements Scheduler {
 
 ---
 class: middle, center, example
-# Fighting feature bloat
+# Growth control.
 ### ... because we want to keep object's behaviour next to the state
 
 ---
-class: codeonly
-
-```java
-class *Helper
-```
-
---
-
-```java
-class *Utils
-```
-
---
-
-```java
-class *Processor
-```
-
-
-
---
-
-```java
-class *Manager
-```
-
---
-
-```java
-class *Service
-```
-
-
----
-class: codeonly
-.crap[
-```java
-@TwoInterwovenConceptsAreHidingInside
-@FileSuffixAndDirIndicateMissingObject
-class FtpUtils {
-
-  void transferFile(File file, File newLocation)
-
-  boolean fileExists(String filename);
-
-  void makeDir(String parentDir, String dir);
-
-  boolean folderExists(String folder);
-
-}
-```
-]
-
---
-
-class: codeonly
-.crap[
-```java
-@StillProcedural
-class FtpClient {
-
-  void transferFile(File file, File newLocation)
-
-  boolean fileExists(String filename);
-
-  void makeDir(String parentDir, String dir);
-
-  boolean folderExists(String folder);
-
-}
-```
-]
-
----
-class: codeonly
-
-.nice[
-```java
-class FtpFolder {
-
-  void createIn(FtpFolder parent);
-
-  boolean exists();
-
-}
-```
-]
-
---
-
-.nice[
-```java
-class FtpFile {
-
-  void transferTo(FtpFolder destination)
-
-  boolean exists();
-
-}
-```
-]
+class: center, middle
+# Controlled state **deriving**.
 
 ---
 class: codeonly
@@ -1932,6 +1941,10 @@ public class Tweet {
     }
 }
 ```
+
+---
+class: center, middle
+# Decomposition.
 
 ---
 class: center, middle
@@ -2076,7 +2089,7 @@ public interface Entity<T> {
 --
 
 ```java
-class HasGottenMillionLikesOnAPostingDay implements Specification<Tweet> {
+class GotMillionLikesOnAPostingDay implements Specification<Tweet> {
 
         @Override
         public boolean isSatisfiedBy(Tweet tweet) {
@@ -2093,102 +2106,17 @@ class HasGottenMillionLikesOnAPostingDay implements Specification<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.__(new HasGottenMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.__(new GotMillionLikesOnAPostingDay());
 ```
+
+---
+class: center, middle
+# Package scope.
 
 ---
 
 class: center, middle
-# Multiple entities per row
-
----
-class: codeonly
-```java
-@Entity
-class Person {
-
-  String firstName, lastName;
-
-  Collection<Friend> friends = new ArrayList<>();
-  Collection<Bitcoin> bitcoins = new ArrayList<>();
-
-  public void buy(Bitcoin bitcoin) {
-    this.bitcoins.add(bitcoin);
-  }
-
-  public void unfriendAll() {
-    friends.forEach(this::unfriend);
-  }
-}
-```
-
---
-
-```java
-
-
-
-package com.app.people;
-
-@Entity
-@Table(name = "PEOPLE")
-class Person {
-
-  String firstName, lastName;
-
-}
-```
-
----
-
-class: codeonly
-
-```java
-package com.app.people;
-
-@Entity
-@Table(name = "PEOPLE")
-class Person {
-
-  String firstName, lastName;
-
-}
-```
-
---
-
-```java
-package com.app.people.networking;
-
-@Entity
-@Table(name = "PEOPLE")
-class Networker {
-
-  Collection<Friend> friends = new ArrayList<>();
-
-  public void unfriendAll() {
-    friends.forEach(this::unfriend);
-  }    
-}
-```
-
---
-
-```java
-package com.app.trading;
-
-@Entity
-@Table(name = "PEOPLE")
-class Trader {
-
-  Collection<Bitcoin> bitcoins = new ArrayList<>();
-
-  public void buy(Bitcoin bitcoin) {
-    this.bitcoins.add(bitcoin);
-  }
-}
-```
-
+# Roles.
 
     </textarea>
     <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
