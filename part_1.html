@@ -60,6 +60,7 @@
 
 class: center, middle, example
 # Java Software Design
+### [Twino edition]
 
 ---
 class: codeonly
@@ -575,7 +576,7 @@ interface Movie {
 
 
 interface FileSystem {
-    void content(File file);
+    String content(File file);
 ```
 ]
 
@@ -584,7 +585,7 @@ interface FileSystem {
 .nice[
 ```java
 interface FileSystem {
-    void contentOf(File file);
+  String contentOf(File file);
 ```
 ]
 
@@ -595,7 +596,7 @@ interface FileSystem {
 
 
 interface FileSystem {
-    void isEmpty(File file); 💥
+    boolean isEmpty(File file); 💥
 ```
 ]
 
@@ -663,8 +664,8 @@ class: codeonly
 .nice[
 ```java
 interface Chat {
-    void send(TextMessage message);
-    void send(Image image);
+    void receive(TextMessage message);
+    void receive(Image image);
 }
 ```
 ]
