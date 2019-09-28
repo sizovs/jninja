@@ -139,7 +139,7 @@ class GrantPermissionHandler implements Command.Handler<GrantPermission, Voidy> 
     public GrantPermissionReaction(Permissions permissions, Members members) { ... }
 
     @Override
-    public Voidy handle(GrantPermissionCommand $) {
+    public Voidy handle(GrantPermission $) {
         Member member = members.singleBy($.memberId);
         Permission permission = permissions.singleBy($.permissionId);
 
