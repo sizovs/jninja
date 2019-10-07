@@ -14,6 +14,10 @@
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
+      .splash h1, .splash h2 {
+        background-color: black;
+        opacity: 0.8;
+      }
       .large code { font-size: 1.5em }
       .large .hljs-comment { color: white !important}
       .squeez h3 { margin: 0.5em }
@@ -58,7 +62,8 @@
   <body>
     <textarea id="source">
 
-class: center, middle, example
+class: center, middle, example, splash
+background-size: contain
 # Java Software Design
 
 ---
@@ -275,7 +280,7 @@ class: codeonly
     IntStream
       .rangeClosed(from, to)
       .mapToObj(Port::new)
-*     .filter(sneak().supplier(Port::free)) // throw checked exception and trick the compiler
+*     .filter(sneak().predicate(Port::free)) // throw checked exception and trick the compiler
       .findFirst();
 ```
 ]
@@ -931,7 +936,7 @@ interface Registration {
 
 ---
 class: center, middle
-# Printers
+# .json()
 ### (demo)
 
 ---
@@ -2069,8 +2074,7 @@ class: center, middle
       var slideshow = remark.create({
         highlightLines: true,
         click: true,
-        touch: true,
-        slideNumberFormat: function (current, total) { return "" }
+        touch: true
       });
       slideshow.on('afterShowSlide', function (slide) {
 
