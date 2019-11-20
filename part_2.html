@@ -178,7 +178,7 @@ class GrantPermissionEndpoint {
     @PostMapping("/users/{memberId}/permissions")
     Voidy accept(@PathVariable String memberId, @RequestParam String permissionId) {
         var grantPermission = new GrantPermission(memberId, permissionId);
-        return pipeline.send(grantPermission);
+        return grantPermission.execute(pipeline);
     }
 ```
 
