@@ -1790,7 +1790,7 @@ public class Tweet {
         return likes.size();
     }
 
-    public void deleteLikeBy(LikeId id) {
+    public void deleteBy(LikeId id) {
         var like = likes.stream().filter(like => like.hasId(id)).findFirst()
 
         checkState(like.comesFrom(App.me()), "You can only delete your own likes");
@@ -1831,7 +1831,7 @@ public class Tweet {
           return ImmutableList.copyOf(likes);
         }
 
-        public void deleteLikeBy(LikeId id) {
+        public void deleteBy(LikeId id) {
           var like = likes.stream().filter(like => like.hasId(id)).findFirst()
 
           checkState(like.comesFrom(App.me()), "You can only delete your own likes");
@@ -1867,7 +1867,7 @@ public class Tweet {
             return likes;
         }
 
-        public void deleteLikeBy(LikeId id) {
+        public void deleteBy(LikeId id) {
           var like = likes.stream().filter(like => like.hasId(id)).findFirst()
 
           checkState(like.comesFrom(App.me()), "You can only delete your own likes");
@@ -1933,15 +1933,15 @@ class Likes {
 
 ---
 class: center, middle
-# Projections
+# Queries
 
 
 ---
 class: codeonly
 ```java
 @FunctionalInterface
-interface Projection<T, R> {
-    R of(T entity);
+interface Query<T, R> {
+    R result(T entity);
 }
 ```
 
@@ -1949,8 +1949,8 @@ interface Projection<T, R> {
 
 ```java
 public interface Entity<T> {
-    default <R> R __(Projection<T, R> projection) {
-        return projection.of((T) this);
+    default <R> R __(Query<T, R> query) {
+        return query.result((T) this);
     }
 }
 ```
@@ -1966,7 +1966,7 @@ class Likes implements Entity<Likes> {
 --
 
 ```java
-class TotalDuringBlackFriday implements Projection<Tweet.Likes, Long> {
+class TotalDuringBlackFriday implements Query<Tweet.Likes, Long> {
 
     private final BlackFriday blackFriday = new BlackFriday();
 
@@ -2013,8 +2013,8 @@ interface Specification<T> {
 
 ```java
 public interface Entity<T> {
-    default <R> R __(Projection<T, R> projection) {
-        return projection.of((T) this);
+    default <R> R __(Query<T, R> query) {
+        return query.result((T) this);
     }
 
     default boolean __(Specification<T> specification) {
