@@ -1716,19 +1716,25 @@ class: codeonly
 
 .crap[
 ```java
-public interface Scheduler {
-  void schedule(Command command);
+public interface EventBus {
+  void accept(Event event);
 }
+```
+]
 
-@Component
-class SchedulerHolder {
-  private static Scheduler INSTANCE;
+--
 
-  public SchedulerHolder(Scheduler scheduler) {
-    SchedulerHolder.INSTANCE = requireNonNull(scheduler, "Scheduler cannot be null");
+.crap[
+```java
+class EventBusHolder {
+
+* private static EventBus INSTANCE;
+
+  void hold(EventBus eventBus) {
+    EventBusHolder.INSTANCE = requireNonNull(eventBus, "Event Bus cannot be null");
   }
 
-  public static Scheduler get() {
+  public static EventBus get() {
     return INSTANCE;
   }
 }
@@ -1739,17 +1745,17 @@ class SchedulerHolder {
 
 .nice[
 ```java
-@Component
-class SchedulerHolder {
-* private static Scheduler INSTANCE = new NoScheduler();
+class EventBusHolder {
+
+* private static EventBus INSTANCE = new NoEventBus();
   ...
 }
 
-class NoScheduler implements Scheduler {
+class NoEventBus implements EventBus {
 
   @Override
-  public void schedule(Command command) {
-    throw new NoSchedulerException(command.getClass().getSimpleName());
+  public void accept(Event event) {
+    throw new NoEventBusException(command.getClass().getSimpleName());
   }
 }
 
