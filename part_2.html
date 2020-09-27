@@ -160,7 +160,9 @@ class PipelinrConfiguration {
     @Bean
     Pipeline pipeline(ObjectProvider<Command.Handler> commandHandlers, 
                       ObjectProvider<PipelineStep> pipelineSteps) {
-        return new Pipelinr(commandHandlers::stream, pipelineSteps::orderedStream);
+        return new Pipelinr()
+          .with(commandHandlers::stream)
+          .with(pipelineSteps::orderedStream);
     }
 }
 ```
@@ -416,9 +418,88 @@ class: bad
 
 ## - ~~always blocking~~
 
+## - allows multiple handlers
+
+---
+class: codeonly
+
+```java
+class SendPaymentOverdueNotification implements Notification {
+}
+```
+
+--
+
+```java
+@Component
+class SendViaSms implements Notification.Handler<SendPaymentOverdueNotification> {
+    // ...
+```
+
+```java
+@Component
+class SendViaEmail implements Notification.Handler<SendPaymentOverdueNotification> {
+    // ...
+```
+
+--
+
+```java
+new Pipelinr()
+      .with(commandHandlers::stream)
+      .with(middlewares::orderedStream)
+*     .with(notificationHandlers::stream)      
+*     .with(new StopOnException());       
+     
+      // ContinueOnException
+      // ParallelNoWait  (runs in thread pool, returns immediately)
+      // ParallelWhenAll (runs in thread pool, returns when all return)
+      // etc.
+
+```
+
+--
+
+```java
+pipeline.send(new SendPaymentOverdueNotification()); // SendViaSms and SendViaEmail are called
+```
+
+
 ---
 class: center, middle
 ## 🚀 github.com/sizovs/PipelinR
+
+---
+class: codeonly
+```java
+org.app.user
+├── RegisterCommand.java               
+├── RegisterCommandHandler.java        
+├── GetUserDetailsCommand.java         
+├── GetUserDetailsCommandHandler.java  
+├── User.java                          
+├── UserAddress.java                   
+├── UserRepository.java                
+```
+
+--
+
+```java
+org.app.user
+├── RegisterCommand.java               (public)
+├── RegisterCommandHandler.java        (private)
+├── GetUserDetailsCommand.java         (public)
+├── GetUserDetailsCommandHandler.java  (private)
+├── User.java                          (private)
+├── UserAddress.java                   (private)
+├── UserRepository.java                (private)
+```
+
+--
+
+### 💡 Services (packages) talk to each other by exchanging commands.
+### 🍿 Keep IT clean: dev.tube/video/sND1AR7Q_T0
+### 🍿 TDD, Where Did It All Go Wrong: dev.tube/video/EZ05e7EMOLM
 
 ---
 class: center, middle, example
