@@ -2019,7 +2019,7 @@ class: middle, center, example
 
 ---
 class: center, middle
-# Object mother.
+# Pattern I: Object mother.
 
 ---
 class: codeonly
@@ -2137,7 +2137,7 @@ public class Tweet {
 
 ---
 class: center, middle
-# Decomposition.
+# Pattern 2: Decomposition.
 
 ---
 class: center, middle
@@ -2189,7 +2189,7 @@ class Likes {
 
 ---
 class: center, middle
-# Queries
+# Pattern III: Queries.
 
 
 ---
@@ -2253,7 +2253,7 @@ long total = likes.__(new TotalDuringBlackFriday());
 
 ---
 class: center, middle
-# Specifications
+# Pattern IV: Specifications.
 
 ---
 class: codeonly
@@ -2305,10 +2305,27 @@ boolean milionLikesInADay = tweet.__(new GotMillionLikesOnAPostingDay());
 ---
 
 class: center, middle
-# An object can play different roles in different bounded contexts.
-#### `Client`
+# Pattern V: Roles
+
+---
+class: codeonly
+### 💡 An object can have different representations (roles) in the system.
+### 💡 In Hibernate, you can map one row to many entities.
+
+--
+
+#### `org.system.client.Client` 🧲
+
 #### vs.
-#### `Guest`, `Applicant`, `Borrower`, `RecurringBorrower`, `Insolvent`
+
+--
+
+#### `org.system.web.WebsiteVisitor` (ipAddress, location)
+#### `org.system.lending.Applicant` (applications)
+#### `org.system.lending.Borrower` (loans)
+#### `org.system.lending.RecurringBorrower` (multiple loans, rules for recurring borrowers)
+#### `org.system.lending.notification.Subscriber` (email, settings)
+#### `org.system.deco.Insolvent` (insolvency date, insolvency reason)
 
 ---
 class: center, middle
