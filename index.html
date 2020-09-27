@@ -356,83 +356,23 @@ class DefaultProductService implements ProductService {
 
 ---
 class: codeonly
-### **dealing with checked exceptions**
-.crap[
-```java
-    int from = 8000;
-    int to = 9000;
-    IntStream
-      .rangeClosed(from, to)
-      .mapToObj(Port::new)
-      .filter(p -> {
-          try {
-              return p.free();
-          } catch (IOException e) {
-              throw new RuntimeException(e);
-          }
-      })
-      .findFirst();
-```
-]
 
---
-
-class: codeonly
-
-### noexception.machinezoo.com
-
-.nice[
-```java
-    IntStream
-      .rangeClosed(from, to)
-      .mapToObj(Port::new)
-*     .filter(sneak().predicate(Port::free)) // trick the compiler and throw checked exception
-      .findFirst();
-```
-]
-
-
----
-class: codeonly
-```java
-    IntStream
-      .rangeClosed(from, to)
-      .mapToObj(Port::new)
-*     .filter(wrap().predicate(Port::free)) // wrapped into WrappedException (unchecked)
-      .findFirst();
-```
-
---
-
-```java
-    IntStream
-      .rangeClosed(from, to)
-      .mapToObj(Port::new)
-*     .filter(log().predicate(Port::free)) // log with slf4j and wrap into WrappedException
-      .findFirst();
-```
-
----
-class: codeonly
+#### 💡 Reification (implicit -> explicit)
 
 .crap[
 ```java
-public String json() {
-  try {
-    return mapper.writeValueAsString(this);
-  } catch (JsonProcessingException | IOException e) {
-    throw new RuntimeException(e);
-  }
+if (productsOwnedByPo.get(po.id()).containsKey(product.id())) {
+  ...
 }
-```            
+```
 ]
 
 --
 
 .nice[
 ```java
-public String json() {
-  return wrap().get(() -> mapper.writeValueAsString(attribute));
+if (productOwner.owns(product)) {
+  ...
 }
 ```
 ]
@@ -443,45 +383,191 @@ public String json() {
 ```java
 
 
-Master master = new Master();
-Slave slave = new Slave();
 
-Connection connection;
-try {
-    connection = master.connection();
-} catch (RuntimeException e) {
-    log.warning(e);
-    connection = slave.connection();
-}
-```            
+Collection<Boolean> checkboxes = new ArrayList<>();
+```
 ]
 
 --
 
 .nice[
 ```java
-Connection connection = Exceptions
-*   .log()
-    .get(master::connection)
-    .orElseGet(slave::connection);
+Collection<Checkbox> checkboxes = ...
+```
+]
+
+--
+
+.crap[
+```java
+
+
+
+interface EShop {
+    Map<String, String> resolveAffiliates(EShopSession session);
+}
+```
+]
+
+--
+
+.nice[
+```java
+interface EShop {
+    Affiliates affiliates(EShopSession session);
+}
+```
+]
+
+--
+
+.nice[
+```java
+@AimForThis
+interface EShopSession {
+    Affiliates affiliates();
+}
 ```
 ]
 
 ---
 class: codeonly
-
-### 💡 Pattern: sneaking
+.crap[
+```java
+MultivaluedMap<String, String> formParams = new Form();
+for (String key : params.keySet()) {
+    formParams.add(key, params.get(key));
+}
+```
+]
 
 --
 
-### 💡 Pattern: optional return
+.crap[
+```java
+Form form = new Form();
+for (String key : params.keySet()) {
+    form.add(key, params.get(key));
+}
+```
+]
 
 --
-### Alternatives: 
-#### github.com/zalando/faux-pas
-#### github.com/jOOQ/jOOL
 
+.nice[
+```java
+Form form = new Form(new Parameters(params));
+```
+]
 
+--
+
+.nice[
+```java
+Form form = new Form();
+form.parameterize(new Parameters(params));
+```
+]
+
+--
+
+.nice[
+```java
+Form form = new Form();
+form.with(Parameters.from(httpRequest));
+```
+]
+
+---
+class: codeonly
+.crap[
+```java
+class ValidationFacade {
+    public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
+      // we always get 4 answers
+      return MapUtils.isNotEmpty(questionToAnswerMap) && questionToAnswerMap.size() == 4;
+    }
+}
+```
+]
+
+--
+
+.nice[
+```java
+class Answer {
+    String questionId;
+    String answerId;
+}
+```
+]
+
+--
+
+.crap[
+```java
+class ValidationFacade {
+    public boolean validateAnswers(Collection<Answer> answers) {
+      // we always get 4 answers
+      return answers.size() == 4;
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+class ValidationFacade {
+    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
+
+    public boolean validate(Collection<Answer> answers) {
+      return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
+    }
+}
+```
+]
+
+---
+class: codeonly
+.nice[
+```java
+class UnvalidatedAnswers {
+
+    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
+    private final Collection<Answer> answers;
+
+    boolean areValid() {
+        return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
+    }
+}
+```
+]
+
+--
+
+.crap[
+```java
+class ValidationFacade {
+    public boolean validate(UnvalidatedAnswers answers) {
+      return answers.areValid();
+    }
+}
+```
+]
+
+--
+
+.nice[
+```java
+@FacadeBecameObsolete
+UnvalidatedAnswers answers = new UnvalidatedAnswers(...);
+if (answers.areValid()) {
+    ....
+}
+```
+]
 
 ---
 class: center, middle, example
