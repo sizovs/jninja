@@ -716,6 +716,14 @@ Map<Employee, Role> employeeRoles;
 
 --
 
+.nice[
+```
+EmployeeRoles employeeRoles;
+```  
+]
+
+--
+
 ### 💡 Principle: Omit words deductable from the context.
 
 ---
@@ -1858,6 +1866,42 @@ phoneBook.phoneNumber(...)
 
 ---
 class: codeonly
+
+.crap[
+```java
+class Entrepreneur {
+  private String fullName;
+  private Optional<Money> money;
+
+  Entrepreneur(String fullName, Optional<Money> money) {
+      this.fullName = fullName;
+      this.money = money;
+  }
+}
+```
+]
+
+--
+
+.nice[
+```java
+class Entrepreneur {
+  private String fullName;
+  private Optional<Money> money = Optional.empty();
+
+  Entrepreneur(String fullName) {
+      this.fullName = fullName;
+  }
+
+  void earn(Money money)
+    this.money = Optional.of(money);
+  }
+}
+```
+]
+
+---
+class: codeonly
 ```java
 @RegexIsOptional
 interface PhoneBook {
@@ -1908,7 +1952,7 @@ phoneBook.phoneNumbers(new Regex(...));
 
 ---
 class: center, middle
-## When necessary, use Null Objects.
+## Null Object pattern.
 
 
 ---
@@ -1916,28 +1960,27 @@ class: codeonly
 
 .crap[
 ```java
-public interface EventBus {
-  void accept(Event event);
-}
+class Application {
+  private Banner banner;
+
+  public void boot() {
+    if (banner != null) {
+      banner.print();
+    }
+  }
 ```
 ]
 
 --
 
-.crap[
-```java
-class EventBusHolder {
-
-* private static EventBus INSTANCE;
-
-  void hold(EventBus eventBus) {
-    EventBusHolder.INSTANCE = requireNonNull(eventBus, "Event Bus cannot be null");
+.nice[
+```
+  class NoBanner implements Banner {
+    @Override
+    public void print() {
+      logger.info("Banner has not been set. You can set it via application.banner property.")
+    }
   }
-
-  public static EventBus get() {
-    return INSTANCE;
-  }
-}
 ```
 ]
 
@@ -1945,20 +1988,27 @@ class EventBusHolder {
 
 .nice[
 ```java
-class EventBusHolder {
+class Application {
+* private Banner banner = new NoBanner();
 
-* private static EventBus INSTANCE = new NoEventBus();
-  ...
-}
-
-class NoEventBus implements EventBus {
-
-  @Override
-  public void accept(Event event) {
-    throw new NoEventBusException(command.getClass().getSimpleName());
+  public void boot() {
+    if (banner != null) {
+      banner.print();
+    }
   }
-}
+```
+]
 
+--
+
+.nice[
+```java
+class Application {
+  private Banner banner = new NoBanner();
+
+  public void boot() {
+*     banner.print();
+  }
 ```
 ]
 
@@ -1969,7 +2019,7 @@ class: middle, center, example
 
 ---
 class: center, middle
-# Controlled state **passing**.
+# Object mother.
 
 ---
 class: codeonly
@@ -2253,14 +2303,12 @@ boolean milionLikesInADay = tweet.__(new GotMillionLikesOnAPostingDay());
 ```
 
 ---
-class: center, middle
-# Scoping.
-## nesting / package-privacy
-
----
 
 class: center, middle
-# Roles.
+# An object can play different roles in different bounded contexts.
+#### `Client`
+#### vs.
+#### `Guest`, `Applicant`, `Borrower`, `RecurringBorrower`, `Insolvent`
 
 ---
 class: center, middle
