@@ -446,9 +446,9 @@ interface EShopSession {
 class: codeonly
 .crap[
 ```java
-MultivaluedMap<String, String> formParams = new Form();
-for (String key : params.keySet()) {
-    formParams.add(key, params.get(key));
+MultivaluedMap<String, String> formParams = new MultivaluedMap<>();
+for (String key : httpRequest.params().keySet()) {
+    formParams.add(key, httpRequest.params().get(key));
 }
 ```
 ]
@@ -458,28 +458,20 @@ for (String key : params.keySet()) {
 .crap[
 ```java
 Form form = new Form();
-for (String key : params.keySet()) {
-    form.add(key, params.get(key));
+for (String key : httpRequest.params().keySet()) {
+  formParams.add(key, httpRequest.params().get(key));
 }
 ```
 ]
 
 --
 
-.nice[
+.crap[
 ```java
-Form form = new Form(new Parameters(params));
+Form form = new Form(new Parameters(httpRequest));
 ```
 ]
 
---
-
-.nice[
-```java
-Form form = new Form();
-form.parameterize(new Parameters(params));
-```
-]
 
 --
 
@@ -487,98 +479,6 @@ form.parameterize(new Parameters(params));
 ```java
 Form form = new Form();
 form.with(Parameters.from(httpRequest));
-```
-]
-
----
-class: codeonly
-.crap[
-```java
-class ValidationFacade {
-    
-    public boolean validateAnswers(Map<String, String> questionToAnswerMap) {
-      // we always get 4 answers
-      return MapUtils.isNotEmpty(questionToAnswerMap) && questionToAnswerMap.size() == 4;
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-class Answer {
-    String questionId;
-    String answerId;
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    public boolean validateAnswers(Collection<Answer> answers) {
-      // we always get 4 answers
-      return answers.size() == 4;
-    }
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
-
-    public boolean validate(Collection<Answer> answers) {
-      return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
-    }
-}
-```
-]
-
----
-class: codeonly
-.nice[
-```java
-class Answers {
-
-    private static final int MANDATORY_NUMBER_OF_ANSWERS = 4;
-    private final Collection<Answer> answers;
-
-    boolean areValid() {
-        return answers.size() == MANDATORY_NUMBER_OF_ANSWERS;
-    }
-}
-```
-]
-
---
-
-.crap[
-```java
-class ValidationFacade {
-    public boolean validate(Answers answers) {
-      return answers.areValid();
-    }
-}
-```
-]
-
---
-
-.nice[
-```java
-@FacadeBecameObsolete
-Answers answers = new Answers(...);
-if (answers.areValid()) {
-    ....
-}
 ```
 ]
 
