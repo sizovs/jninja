@@ -159,10 +159,10 @@ class PipelinrConfiguration {
 
     @Bean
     Pipeline pipeline(ObjectProvider<Command.Handler> commandHandlers, 
-                      ObjectProvider<PipelineStep> pipelineSteps) {
+                      ObjectProvider<Middleware> middlewares) {
         return new Pipelinr()
           .with(commandHandlers::stream)
-          .with(pipelineSteps::orderedStream);
+          .with(middlewares::orderedStream);
     }
 }
 ```
@@ -238,7 +238,7 @@ class: codeonly
 ```java
 @Component
 @Order(2)
-class CommandLogging implements PipelineStep {
+class CommandLogging implements Middleware {
 
     private final Logger log = LoggerFactory.getLogger(CommandLogging.class);
 
@@ -282,7 +282,7 @@ class CorrelationId {
 ```java
 @Component
 @Order(1)
-class Correlation implements PipelineStep {
+class Correlation implements Middleware {
 
     private final CorrelationId correlationId;
 
@@ -319,7 +319,7 @@ class: codeonly
 ```java
 @Component
 @Order(3)
-class CommandTransaction implements PipelineStep {
+class CommandTransaction implements Middleware {
 
     private final PlatformTransactionManager txManager;
 
@@ -952,7 +952,7 @@ class: codeonly
 ```java
 @Component
 @Order(1)
-class Throttling implements PipelineStep {
+class Throttling implements Middleware {
 
   private final ConcurrentHashMap<Type, RateLimiter> rateLimiters;
   private final Collection<RateLimit> rateLimits;
