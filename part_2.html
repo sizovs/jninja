@@ -14,10 +14,16 @@
         font-family: 'Yanone Kaffeesatz';
         font-weight: normal;
       }
+
+      h4 {
+        font-size: 1.3em;
+        margin: 20px 0px;
+      }      
       /* new */
       .example { background-color: #007ebc}
       .example h2 { color: #00394f; font-weight: bold; line-height: 0;}
       .example h1 { color: #fff; font-weight: bold; background-color: #00394f; padding: 10px }
+
 
       .codeonly h1, .codeonly h2, .codeonly h3, .codeonly h4 { color: white !important; }
       
@@ -655,12 +661,9 @@ class: right, middle
 
 ---
 class: center, middle
-# An aggregate is a cluster of domain objects that can be treated as a single unit. Any references from outside the aggregate should only go to the aggregate root.
+# An aggregate is a cluster of domain objects that can be treated as a single unit. Aggregate root ensures consistency of the whole aggregate.
 ### — *Fowler, Bliki*
 
----
-class: center, middle
-# Aggregate root ensures consistency of an aggregate.
 
 ---
 class: codeonly
@@ -841,19 +844,18 @@ var tx = account.withdraw(new BigDecimal(100));
 ### BankAccount gives the following guarantees:
 
 --
+### - all transactios fulfil rules imposed by the bank account (aggregate root)
 
-### - cannot create/store 1 million EUR transaction
+--
+### - all transactions are within business rule limits (❌ create 1,000,000$ tx)
 
 --
 
-### - cannot create/store tx when account is closed
-
---
-### - cannot create/store tx that violates limits
+### - when creating a Tx, cannot "forget" to ask if the bank account is open
 
 --
 
-### - no data corruption thanks to optimistic locking
+### - no data corruption in concurrent environment (thanks to optimistic locking)
 
 ---
 class: codeonly
@@ -889,14 +891,131 @@ new Thread(() ->
 ### 💡 To avoid data corruption, protect aggregate roots with an optimistic lock.
 
 ---
+class: center, middle
+## Map aggregates by identity/embedding, not by reference to avoid risk of modifying more than one aggregate per transaction.
+### ... concurrency exceptions can reach the point where the system becomes unusable.
+
+---
+class: codeonly
+```java
+@Entity
+class TravisLog extends DomainEntity {
+
+    @ElementCollection
+    @CollectionTable(name = "TRAVIS_LOG_ENTRIES")
+    private Collection<Entry> entries = new ArrayList<>();
+
+    private LocalDateTime archivedAt;
+
+    public void write(Entry entry) {
+      this.entries.add(entry);
+    }
+
+    public void archive() {
+        this.archivedAt = LocalDateTime.now();
+    }
+}
+```
+
+--
+
+```java
+@Entity
+class Travis extends DomainEntity {
+
+    @ManyToOne
+    private TravisLog log;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+        log.write(new NewRepositoryLogEntry(repository.id()))
+    }
+```
+
+---
+class: codeonly
+```java
+Travis travis = new Travis();
+TravisLog travisLog = new TravisLog();
+GitHubRepository gitHubRepository = new GitHubRepository();
+
+executeInTx(() ->
+  persist(travis, travisLog, gitHubRepository);
+);
+
+CyclicBarrier coordinator = new CyclicBarrier(2);
+
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(Travis.class, travis.id())
+          .manage(gitHubRepository);
+        coordinator.await();
+    })
+).start();
+
+new Thread(() ->
+    executeInTx(() ->
+        entityManager
+          .find(TravisLog.class, travisLog.id())
+          .archive();
+        coordinator.await();
+    })
+).start();
+```
+
+---
+class: codeonly
+
+```java
+@Entity
+class Travis extends DomainEntity {
+
+    @ManyToOne
+    private TravisLog log;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+        log.write(new NewRepositoryLogEntry(repository.id()));
+    }
+```
+
+--
+
+```java
+@Entity
+class Travis extends DomainEntity {
+
+*   @Embedded
+*   private TravisLogId logId;
+
+    @OneToMany
+    private Collection<TravisRepository> repositories = new ArrayList<>();
+
+    public void manage(GitHubRepository gitHubRepository) {
+        TravisRepository repository = new TravisRepository(gitHubRepository);
+        repositories.add(repository);
+        later.schedule(new AddNewRepositoryLogEntry(logId, repository.id()));
+    }
+```
+
+#### 💡 Principle: conflicting or heavy work should run in a separate transaction.
+#### 💡 Principle: use Transactional Outbox pattern not to lose the work.
+
+---
+
 
 class: center, middle
 ## Effective Aggregate Design by Vaughn Vernon 
 ### dddcommunity.org/library/vernon_2011
-
----
-class: center, middle
-## Eventual Consistency with Transactional Outbox
 
 
 ---
