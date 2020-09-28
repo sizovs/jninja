@@ -495,7 +495,7 @@ org.app.user
 ├── RegisterCommand.java               (public)
 ├── RegisterCommandHandler.java        (private) // can use Hibernate
 ├── GetUserDetailsCommand.java         (public)
-├── GetUserDetailsCommandHandler.java  (private) // can use jOOQ and denormalization
+├── GetUserDetailsCommandHandler.java  (private) // can use jOOQ and denormalization (cqrs!)
 ├── User.java                          (private)
 ├── UserAddress.java                   (private)
 ├── UserRepository.java                (private)
@@ -899,20 +899,20 @@ class: center, middle
 class: codeonly
 ```java
 @Entity
-class TravisLog extends DomainEntity {
+class UserAuditLog extends DomainEntity {
 
     @ElementCollection
-    @CollectionTable(name = "TRAVIS_LOG_ENTRIES")
-    private Collection<Entry> entries = new ArrayList<>();
+    @CollectionTable(name = "USER_AUDIT_ENTRIES")
+    private Collection<LogEntry> entries = new ArrayList<>();
 
-    private LocalDateTime archivedAt;
+    private LocalDateTime archivingTime;
 
-    public void write(Entry entry) {
+    public void write(LogEntry entry) {
       this.entries.add(entry);
     }
 
     public void archive() {
-        this.archivedAt = LocalDateTime.now();
+        this.archivingTime = LocalDateTime.now();
     }
 }
 ```
@@ -921,30 +921,26 @@ class TravisLog extends DomainEntity {
 
 ```java
 @Entity
-class Travis extends DomainEntity {
+class User extends DomainEntity {
 
     @ManyToOne
-    private TravisLog log;
+    private UserAuditLog auditLog;
 
-    @OneToMany
-    private Collection<TravisRepository> repositories = new ArrayList<>();
-
-    public void manage(GitHubRepository gitHubRepository) {
-        TravisRepository repository = new TravisRepository(gitHubRepository);
-        repositories.add(repository);
-        log.write(new NewRepositoryLogEntry(repository.id()))
+    public void change(Email newEmail) {
+        Email oldEmail = this.email;
+        auditLog.write(new LogEntry.EmailChanged(oldEmail, newEmail));
     }
+}
 ```
 
 ---
 class: codeonly
 ```java
-Travis travis = new Travis();
-TravisLog travisLog = new TravisLog();
-GitHubRepository gitHubRepository = new GitHubRepository();
+User user = new User();
+UserAuditLog userAuditLog = new UserAuditLog();
 
 executeInTx(() ->
-  persist(travis, travisLog, gitHubRepository);
+  persist(user, userAuditLog);
 );
 
 CyclicBarrier coordinator = new CyclicBarrier(2);
@@ -952,8 +948,8 @@ CyclicBarrier coordinator = new CyclicBarrier(2);
 new Thread(() ->
     executeInTx(() ->
         entityManager
-          .find(Travis.class, travis.id())
-          .manage(gitHubRepository);
+          .find(User.class, user.id())
+          .change(new Email("new@email.com"));
         coordinator.await();
     })
 ).start();
@@ -961,51 +957,60 @@ new Thread(() ->
 new Thread(() ->
     executeInTx(() ->
         entityManager
-          .find(TravisLog.class, travisLog.id())
+          .find(UserAuditLog.class, userAuditLog.id())
           .archive();
         coordinator.await();
     })
 ).start();
 ```
 
+--
+#### 💥 Conflict: both transactions modified the audit log. The last rolls back (if optimistic locked is on).
+
+--
+
+#### ⚠️ Danger: can try disabling optimistic locking for certain entities/fields.
+
+--
+
+#### 💡 Alternative: map aggregates by identity/embedding and use eventual consistency.
+
 ---
 class: codeonly
 
 ```java
 @Entity
-class Travis extends DomainEntity {
+class User extends DomainEntity {
 
     @ManyToOne
-    private TravisLog log;
+    private UserAuditLog auditLog;
 
-    @OneToMany
-    private Collection<TravisRepository> repositories = new ArrayList<>();
-
-    public void manage(GitHubRepository gitHubRepository) {
-        TravisRepository repository = new TravisRepository(gitHubRepository);
-        repositories.add(repository);
-        log.write(new NewRepositoryLogEntry(repository.id()));
+    public void change(Email newEmail) {
+        Email oldEmail = this.email;
+        auditLog.write(new LogEntry.EmailChanged(oldEmail, newEmail));
     }
+}
 ```
 
 --
 
 ```java
 @Entity
-class Travis extends DomainEntity {
+class User extends DomainEntity {
 
-*   @Embedded
-*   private TravisLogId logId;
+    @Embedded
+*   private UserAuditLogId auditLogId;
 
-    @OneToMany
-    private Collection<TravisRepository> repositories = new ArrayList<>();
-
-    public void manage(GitHubRepository gitHubRepository) {
-        TravisRepository repository = new TravisRepository(gitHubRepository);
-        repositories.add(repository);
-        later.schedule(new AddNewRepositoryLogEntry(logId, repository.id()));
+    public void change(Email newEmail) {
+        Email oldEmail = this.email;
+        later.schedule(new WriteNewLogEntry(
+              new EmailChanged(oldEmail, newEmail)
+        ));
     }
+}
 ```
+
+--
 
 #### 💡 Principle: conflicting or heavy work should run in a separate transaction.
 #### 💡 Principle: use Transactional Outbox pattern not to lose the work.

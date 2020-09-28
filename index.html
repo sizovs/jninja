@@ -2341,8 +2341,7 @@ class: center, middle
 
 ---
 class: codeonly
-### 💡 An object can have different representations (roles) in the system.
-### 💡 In Hibernate, you can map one row to many entities.
+#### 💡 An object can have different representations (roles) in the system.
 
 --
 
@@ -2358,6 +2357,11 @@ class: codeonly
 #### `org.system.lending.RecurringBorrower` (multiple loans, rules for recurring borrowers)
 #### `org.system.lending.notification.Subscriber` (email, settings)
 #### `org.system.deco.Insolvent` (insolvency date, insolvency reason)
+
+--
+
+#### 💡 In Hibernate, you can map one row to many entities.
+#### 💡 You can create multiple entities in the same transaction, incl. denormalized entities, optimized for reads.
 
 ---
 class: center, middle
