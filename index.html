@@ -2264,7 +2264,7 @@ class UpdateFeedOnTweetDeleted {
   Database database;
 
   @TransactionalEventListener
-  void trigger(TweetDeleted event) {
+  void triggerBy(TweetDeleted event) {
     ...
   }
 
