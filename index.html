@@ -2234,10 +2234,47 @@ Tweet tweet = ...
 boolean milionLikesInADay = tweet.__(new GotMillionLikesOnAPostingDay());
 ```
 
+
 ---
 
 class: center, middle
-# Pattern V: Roles
+# Pattern V: Events
+
+---
+class: codeonly
+```java
+  class Tweet {
+
+    void delete() {
+      this.deleted = true;
+      this.deletionTime = new LocalDateTime.now();
+      DomainEvents.send(new TweetDeleted(this));
+    }
+
+  }
+```
+
+--
+
+```java
+@Component
+class UpdateFeedOnTweetDeleted {
+
+  @Autowired
+  Database database;
+
+  @TransactionalEventListener
+  void trigger(TweetDeleted event) {
+    ...
+  }
+
+}
+```
+
+---
+
+class: center, middle
+# Pattern VI: Roles
 
 ---
 class: codeonly
