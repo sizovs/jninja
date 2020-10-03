@@ -1469,6 +1469,17 @@ loanApplication.isADrunkDecision(LendingPolicy lendingPolicy);
 #### 💡 Hint: objects should protect their invariants.
 
 ---
+## 💡 The whole point of OOP is not to have to worry about what is inside an object – Alan Kay
+
+--
+
+### 1. **Avoiding shared mutable state** by encapsulating state and isolating other objects from local state changes. The only way to affect another object’s state is to ask that object to change it by sending a message. State changes are controlled at a local, cellular level rather than exposed to shared access.
+
+--
+
+### 2. **Decoupling** objects from each other — the message sender is only loosely coupled to the message receiver, through the messaging API.
+
+---
 # Data classes
 
 --
