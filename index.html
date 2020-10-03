@@ -431,16 +431,6 @@ interface EShop {
 ```
 ]
 
---
-
-.nice[
-```java
-@AimForThis
-interface EShopSession {
-    Affiliates affiliates();
-}
-```
-]
 
 ---
 class: codeonly
@@ -607,7 +597,7 @@ interface Employee {
 
 .crap[
 ```
-String AutoClosableWindow autoClosableWindow;
+AutoClosableWindow autoClosableWindow;
 ```  
 ]
 
@@ -615,7 +605,7 @@ String AutoClosableWindow autoClosableWindow;
 
 .nice[
 ```
-String AutoClosableWindow window;
+AutoClosableWindow window;
 ```  
 ]
 
@@ -852,7 +842,7 @@ interface Port {
 
 --
 
-#### 🍿 10 Reasons why we love some APIs and hate others: dev.tube/video/NJpQVIZhIYk
+#### 🍿 10 reasons why we love some APIs and hate others: dev.tube/video/NJpQVIZhIYk
 
 ---
 class: codeonly
@@ -1172,7 +1162,7 @@ class: codeonly
 .crap[
 ```java
 interface FileSystem {
-    String read(File file);              // 🔴 read the filesystem using a file?
+    String read(File file);                  // 🔴 read the filesystem using a file?
 ```
 ]
 
@@ -1181,7 +1171,7 @@ interface FileSystem {
 .crap[
 ```java
 interface FileSystem {
-  String content(File file);             // 🔴 file system's content?
+  String content(File file);                 // 🔴 file system's content?
 ```
 ]
 
@@ -1189,8 +1179,8 @@ interface FileSystem {
 
 .nice[
 ```java
-var file = new File(location);
-var content = file.content();            // 🟢 file's content
+var textFile = new TextFile(file);
+var content = textFile.content();            // 🟢 file's content
 ```
 ]
 
@@ -1198,7 +1188,7 @@ var content = file.content();            // 🟢 file's content
 
 .nice[
 ```java
-var content = new FileContent(location); // 🟢 OO design made right
+var content = new TextFileContent(location); // 🟢 OO design made right
 ```
 ]
 
@@ -1224,7 +1214,7 @@ class File {
 ---
 class: codeonly
 
-### 💡 Good object design reduces coupling with encapsulation (tell, don't ask)
+### 💡 Good object design reduces coupling by hiding it's state from others.
 
 .crap[
 ```java
@@ -1299,7 +1289,7 @@ interface Registration {
 ---
 class: codeonly
 
-### 💡 Good object design reduces number of parameters
+### 💡 Good object design reduces efferent coupling.
 
 --
 
@@ -2137,7 +2127,7 @@ interface Query<T, R> {
 
 ```java
 public interface Entity<T> {
-    default <R> R __(Query<T, R> query) {
+    default <R> R query(Query<T, R> query) {
         return query.result((T) this);
     }
 }
@@ -2159,7 +2149,7 @@ class TotalDuringBlackFriday implements Query<Tweet.Likes, Long> {
     private final BlackFriday blackFriday = new BlackFriday();
 
     @Override
-    public Long of(Tweet.Likes likes) {
+    public Long result(Tweet.Likes likes) {
         return
           likes
             .stream()
@@ -2175,7 +2165,7 @@ class TotalDuringBlackFriday implements Query<Tweet.Likes, Long> {
 ```java
 Tweet tweet = ...
 Tweet.Likes likes = tweet.likes();
-long total = likes.__(new TotalDuringBlackFriday());
+long total = likes.query(new TotalDuringBlackFriday());
 ```
 ???
 - must side effect free!
@@ -2201,11 +2191,11 @@ interface Specification<T> {
 
 ```java
 public interface Entity<T> {
-    default <R> R __(Query<T, R> query) {
+    default <R> R query(Query<T, R> query) {
         return query.result((T) this);
     }
 
-    default boolean __(Specification<T> specification) {
+    default boolean satisfies(Specification<T> specification) {
         return specification.isSatisfiedBy((T) this);
     }
 }
@@ -2231,7 +2221,7 @@ class GotMillionLikesOnAPostingDay implements Specification<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.__(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.satisfies(new GotMillionLikesOnAPostingDay());
 ```
 
 

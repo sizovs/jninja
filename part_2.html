@@ -137,17 +137,18 @@ class GrantPermission implements Command<Voidy> {
 --
 .nice[
 ```java
+@Component
 class GrantPermissionHandler implements Command.Handler<GrantPermission, Voidy> {
 
-    private final Members members;
-    private final Permissions permissions;
+    private final MemberRepository members;
+    private final PermissionRepository permissions;
 
-    public GrantPermissionReaction(Permissions permissions, Members members) { ... }
+    public GrantPermissionReaction(MemberRepository permissions, PermissionRepository members) { ... }
 
     @Override
-    public Voidy handle(GrantPermission $) {
-        Member member = members.singleBy($.memberId);
-        Permission permission = permissions.singleBy($.permissionId);
+    public Voidy handle(GrantPermission cmd) {
+        var member = members.singleBy(cmd.memberId);
+        var permission = permissions.singleBy(cmd.permissionId);
 
         member.grant(permission);
         return new Voidy();
@@ -164,11 +165,8 @@ class: codeonly
 class PipelinrConfiguration {
 
     @Bean
-    Pipeline pipeline(ObjectProvider<Command.Handler> commandHandlers, 
-                      ObjectProvider<Middleware> middlewares) {
-        return new Pipelinr()
-          .with(commandHandlers::stream)
-          .with(middlewares::orderedStream);
+    Pipeline pipeline(ObjectProvider<Command.Handler> commandHandlers) {
+        return new Pipelinr().with(commandHandlers::stream);
     }
 }
 ```
@@ -203,6 +201,7 @@ class: bad
 class: codeonly
 
 ```java
+@Component
 class LegacyBecomeAUserHandler implements Command.Handler<BecomeAUser, Voidy> {
 
     @Override
@@ -214,6 +213,7 @@ class LegacyBecomeAUserHandler implements Command.Handler<BecomeAUser, Voidy> {
     ...
 }
 
+@Component
 class NewBecomeAUserHandler implements Command.Handler<BecomeAUser, Voidy> {
     
     @Override
@@ -309,12 +309,12 @@ class Correlation implements Middleware {
 class: codeonly, invert
 ```
 16:38:00.451 [main] INFO  CommandLogging   >>> BecomeAMember{name=Eduards} [1] 
-16:38:00.451 [main] INFO  Validation       >>> Eduards has typed a strong password [1] 
-16:38:00.451 [main] INFO  Registration     >>> Eduards has been registered [1] 
+16:38:00.453 [main] INFO  Validation       >>> Eduards has typed a strong password [1] 
+16:38:00.454 [main] INFO  Registration     >>> Eduards has been registered [1] 
 16:38:00.591 [main] INFO  CommandLogging   >>> GrantPermission{user=14523343,role=Superpowers} [2] 
 16:38:00.692 [main] INFO  Permissions      >>> Alan has granted Superpowers permissions [2] 
-16:38:00.665 [main] INFO  CommandLogging   <<< Voidy [2] 
-16:38:00.590 [main] INFO  CommandLogging   <<< Voidy [1] 
+16:38:00.694 [main] INFO  CommandLogging   <<< Voidy [2] 
+16:38:01.322 [main] INFO  CommandLogging   <<< Voidy [1] 
 ```
 ---
 class: center, middle
@@ -337,20 +337,20 @@ class CommandTransaction implements Middleware {
     public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
 
         var tx = new TransactionTemplate(txManager);
-        tx.setReadOnly(command instanceof ReadOnlyCommand);
+        tx.setReadOnly(command instanceof ReadOnly);
 
         return tx.execute(txStatus -> next.invoke());
     }
 }
 
-public interface ReadOnlyCommand<R> extends Command<R> {
+public interface ReadOnly {
     ...
 }
 
 ```
 
 ```java
-class GetMobileNumbers implements ReadOnlyCommand<MobileNumbers> {
+class GetMobileNumbers implements Command<MobileNumbers>, ReadOnly {
 
     ...
 
@@ -1016,14 +1016,6 @@ class User extends DomainEntity {
 #### 💡 Principle: use Transactional Outbox pattern not to lose the work.
 
 ---
-
-
-class: center, middle
-## Effective Aggregate Design by Vaughn Vernon 
-### dddcommunity.org/library/vernon_2011
-
-
----
 class: center, middle, example
 # Fault Tolerance Patterns
 
@@ -1248,10 +1240,6 @@ class: center, middle
 ### Yegor Bugayenko
 ### Robert Martin (Uncle Bob)
 ]
-
----
-class: center, middle
-# I will send you books.
 
 ---
 class: center, middle
