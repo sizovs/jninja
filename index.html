@@ -1473,11 +1473,16 @@ loanApplication.isADrunkDecision(LendingPolicy lendingPolicy);
 
 --
 
-### 1. **Avoiding shared mutable state** by encapsulating state and isolating other objects from local state changes. The only way to affect another object’s state is to ask that object to change it by sending a message. State changes are controlled at a local, cellular level rather than exposed to shared access.
+#### 1. **Avoiding shared mutable state** by encapsulating state and isolating other objects from local state changes. The only way to affect another object’s state is to ask that object to change it by **sending a message**. State changes are controlled at a local, cellular level rather than exposed to shared access.
 
 --
 
-### 2. **Decoupling** objects from each other — the message sender is only loosely coupled to the message receiver, through the messaging API.
+#### Objects abstract away and hide data structure implementations. The internal implementation of an object could change without breaking other parts of the software system. Objects, meanwhile, could expose a standard interface that works with whatever data structure the object happened to use internally. The same interface could work with a linked list, a tree, a stream, and so on.
+
+--
+
+#### 2. **Decoupling** of objects is achieved through hiding of internal state and messaging.
+
 
 ---
 # Data classes
