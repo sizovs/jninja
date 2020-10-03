@@ -856,7 +856,7 @@ var tx = account.withdraw(new BigDecimal(100));
 
 --
 
-### - no data corruption in concurrent environment (thanks to optimistic locking)
+### - no race conditions in concurrent environment (thanks to optimistic locking)
 
 ---
 class: codeonly
@@ -890,6 +890,29 @@ new Thread(() ->
 --
 
 ### 💡 To avoid data corruption, protect aggregate roots with an optimistic lock.
+
+---
+class: center, middle
+### Even though our industry has been working with this stuff for 20 years or more, there are not many people who can explain off-the-cuff the difference between, say, **read committed** and **repeatable read** isolation. This is a problem, because if you don't know what guarantees you can expect from your database, you cannot know whether your code has concurrency bugs and race conditions.
+#### — github.com/ept/hermitage
+
+---
+class: center
+# Why weak isolation works?
+
+--
+
+### To have a race condition, you need concurrency. For low-traffic and low-contention applications, it’s possible that anomalies don’t arise.
+
+--
+
+### When anomalies do arise, it’s possible that the read-write anomalies don’t translate into application data corruption. Just because a read/write race occurs doesn’t mean all outcomes are necessarily wrong (e.g., two writers might perform the exact same read-modify-write operations with the same outcome regardless of order).
+
+--
+
+### It’s possible data is actually **occasionally** corrupted, and nobody cares. Or, when they do, they manually issue the customer an IOU and/or send them an overdraft notice.
+
+#### — bailis.org/blog/understanding-weak-isolation-is-a-serious-problem/
 
 ---
 class: center, middle
