@@ -467,7 +467,8 @@ new Pipelinr()
 --
 
 ```java
-pipeline.send(new SendPaymentOverdueNotification()); // SendViaSms and SendViaEmail are called
+var notification = new SendPaymentOverdueNotification(); 
+notification.send(pipeline); // SendViaSms and SendViaEmail are called
 ```
 
 
