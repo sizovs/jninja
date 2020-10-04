@@ -479,38 +479,32 @@ class: center, middle
 ---
 class: codeonly
 ```java
-org.app.user
+org.name.application
 ├── RegisterCommand.java               
 ├── RegisterCommandHandler.java        
 ├── GetUserDetailsCommand.java         
-├── GetUserDetailsCommandHandler.java  
+├── GetUserDetailsCommandHandler.java
+org.name.domain
 ├── User.java                          
 ├── UserAddress.java                   
-├── UserRepository.java                
+├── UserRepository.java          
+├── JpaUserRepository.java
 ```
 
 --
 
 ```java
-org.app.user
+org.name.application
 ├── RegisterCommand.java               (public)
 ├── RegisterCommandHandler.java        (private) // can use Hibernate
 ├── GetUserDetailsCommand.java         (public)
-├── GetUserDetailsCommandHandler.java  (private) // can use jOOQ and denormalization (cqrs!)
-├── User.java                          (private)
-├── UserAddress.java                   (private)
-├── UserRepository.java                (private)
+├── GetUserDetailsCommandHandler.java  (private) // can use jOOQ and denormalization (cqrs)
+org.name.domain
+├── User.java                          (public)
+├── UserAddress.java                   (public)
+├── UserRepository.java                (public)
+├── JpaUserRepository.java             (private)
 ```
-
---
-
-### 💡 Services (packages) talk to each other by exchanging commands.
-
---
-
-
-### 🍿 Keep IT clean: dev.tube/video/sND1AR7Q_T0
-### 🍿 TDD, Where Did It All Go Wrong: dev.tube/video/EZ05e7EMOLM
 
 ---
 class: center, middle, example
