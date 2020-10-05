@@ -125,11 +125,7 @@ class: bad
 class: codeonly
 .nice[
 ```java
-class GrantPermission implements Command<Voidy> {
-
-    public final String memberId, permissionId;
-
-    public GrantPermission(String memberId, String permissionId) { ... }
+record GrantPermission(String memberId, permissionId) implements Command<Voidy> {
 }
 ```
 ]
