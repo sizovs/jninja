@@ -517,24 +517,58 @@ background-image:url(atdd.png)
 --
 
 ```groovy
-when:
-john.appliesForFunding(amount: 1000.00, term: '1 year')
+def "new loan application confirmation"() {
+  when:
+    john.applyForFunding(amount: 1000.00, term: '1 year')
 
-and:
-kate.confirmsApplicationFrom(john)
+  and:
+    kate.confirmApplicationFor(john)
 
-then:
-john.shouldBecomeADebitor(amount: 1000.00, term: '1 year')
-john.shouldReceiveAnEmail(subject: '...', body: '...')
+  then:
+    john.shouldBecomeADebitor(amount: 1000.00, term: '1 year')
+
+  and:
+    john.shouldReceiveAConfirmationEmail()
 ```
 
---
-
-#### - Isolated (integrations – WireMock, database/queue – TestContainers, local time, fs, smtp)
 
 --
 
-#### - Reproducable (runs on local workstation before push, tests every change, all suite 3-5 mins)
+```groovy
+def "loan payment overdue notification"() {
+  when:
+    john.applyForFunding(amount: 1000.00, term: '1 year')
+
+  and:
+    time.travelToFuture("32 days")
+    night.sendOutReminders()
+
+  then:
+    john.shouldReceiveAnOverdueNotificationEmail()
+```
+
+---
+
+
+# Good acceptance tests are: 
+
+--
+
+### isolated
+#### - integrations (WireMock)
+#### - postgres/redis/rabbitmq/smtp (TestContainers)
+#### - filesystem (Docker)
+#### - local time (test or thread-local scope)
+
+--
+
+### reproducible 
+#### - run on local workstation before pushing a change
+
+--
+
+### fast 
+#### - suite takes 3-5 mins to finish
 
 ---
 # Unit tests
