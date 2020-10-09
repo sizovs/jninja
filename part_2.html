@@ -517,7 +517,7 @@ background-image:url(atdd.png)
 --
 
 ```groovy
-def "new loan application confirmation"() {
+def "new funding application confirmation"() {
   when:
     john.applyForFunding(amount: 1000.00, term: '1 year')
 
@@ -535,7 +535,7 @@ def "new loan application confirmation"() {
 --
 
 ```groovy
-def "loan payment overdue notification"() {
+def "regular payment overdue notification"() {
   when:
     john.applyForFunding(amount: 1000.00, term: '1 year')
 
