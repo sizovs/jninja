@@ -558,18 +558,18 @@ def "regular payment overdue notification"() {
 #### - integrations (WireMock)
 #### - postgres/redis/rabbitmq/smtp (TestContainers)
 #### - filesystem (Docker)
+#### - unique, non-clashing data (Faker)
 #### - local time (test or thread-local scope)
 
 --
 
 ### reproducible 
-#### - run on local workstation before pushing a change
-#### - same suite runs on CI
+#### - run on local workstation before pushing a change (the same suite runs on CI)
 
 --
 
 ### fast 
-#### - suite takes 3-5 mins to finish
+#### - suite takes up to 5 minutes to finish
 
 ---
 # Unit tests
