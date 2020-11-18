@@ -34,25 +34,25 @@
       .crap pre { border-right: 5px solid #D81F2A; }
       .nice pre { border-right: 5px solid #69F0AE; }
       /* new */
-      .example { background-color: #2b303b}
+      .example { background-color: black}
       .example h2, .example h3 { color: #fff; font-weight: bold; line-height: 0;}
       .example h1 { color: #fff; font-weight: bold; padding: 10px }
 
       .codeonly h1, .codeonly h2, .codeonly h3, .codeonly h4 { color: white }
-      .codeonly { padding: 1em; background-color: #2b303b }
+      .codeonly { padding: 1em; background-color: black }
       .codeonly pre { margin: 0 }
 
       .remark-code-line-highlighted { background-color: #2d9967; color: white}
       .remark-code-line-highlighted * { color: white !important; }
 
       .remark-slide-scaler { -webkit-box-shadow: 0 !important; box-shadow: none !important; }
-      .remark-slide-container {background-color: #2b303b}
+      .remark-slide-container {background-color: black}
       /* new end */
       .corner {border: 5px solid #85C1E9; position: absolute; top: 0px; right: 0px; width: 50%; background-color: #F0F0F0}
       .corner pre {margin: 0; padding: 0}
       .corner.long {height: 300px;}
 
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; background-color: black !important }
       .invert { background-color: black; color: white; }
       .bad { background-color: #AA1914; color: white;}
       .oki { background-color: #3D9972; color: white;}
@@ -115,15 +115,15 @@ private Stream<PhoneNumber> phoneNumbers(User user) {
 
 --
 
-### 💡 Principle: keep code at the same level of abstraction (SLAP)
+### 💡 Principle: reveal intent, hide implementation
 
 --
 
-### 💡 Principle: reveal intent, hide implementation
+### 💡 Principle: keep code at the same level of abstraction (SLAP)
 
 ---
 class: codeonly
-### New requirement: Country code with exit code. Plus digits validation needed.
+### New requirement: Print country code with exit code. Digits validation needed.
 
 --
 
@@ -133,20 +133,24 @@ Stream<User> users = repository.allUsers();
           .flatMap(this::phoneNumbers)
           .map(PhoneNumber::countryCode)
           .map(countryCode -> {
-              var hasOnlyDigits = CharMatcher
-                      .inRange('0', '9')
-                      .matchesAllOf(countryCode);
-              checkArgument(hasOnlyDigits, "Country code must only contain digits, but was %s", withoutExitCode);
-              var withExitCode = "+" + countryCode
-              return withExitCode;
+              var pattern = "^(?:\\+)?(?:\\d)+$";
+              var matches = countryCode.matches(pattern);
+              checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
+            
+              if (countryCode.startsWith("+")) {
+                return countryCode;
+              } else {
+                return "+" + countryCode;
+              }
           })
           .forEach(System.out::println);
 ```
 
 --
 
-### ⚠️ Mixed levels of abstraction
 ### ⚠️ Mixed intent with implementation
+
+### ⚠️ Mixed levels of abstraction
 
 ---
 class: codeonly
@@ -164,18 +168,21 @@ Stream<User> users = repository.allUsers();
 
 ```java
 private String countryCodeWithExitCode(String countryCode) {
-  var hasOnlyDigits = CharMatcher
-          .inRange('0', '9')
-          .matchesAllOf(countryCode);
-  checkArgument(hasOnlyDigits, "Country code must only contain digits, but was %s", countryCode);
-  var withExitCode = "+" + countryCode
-  return withExitCode;
+  var pattern = "^(?:\\+)?(?:\\d)+$";
+  var matches = countryCode.matches(pattern);
+  checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
+
+  if (countryCode.startsWith("+")) {
+    return countryCode;
+  } else {
+    return "+" + countryCode;
+  }
 }
 ```
 
 --
 
-### ⚠️ Smart private methods pollution.
+### ⚠️ Private method pollution.
 
 
 ---
@@ -183,12 +190,15 @@ class: codeonly
 
 ```java
 private String countryCodeWithExitCode(String countryCode) {
-  var hasOnlyDigits = CharMatcher
-          .inRange('0', '9')
-          .matchesAllOf(countryCode);
-  checkArgument(hasOnlyDigits, "Country code must only contain digits, but was %s", countryCode);
-  var withExitCode = "+" + countryCode
-  return withExitCode;
+  var pattern = "^(?:\\+)?(?:\\d)+$";
+  var matches = countryCode.matches(pattern);
+  checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
+
+  if (countryCode.startsWith("+")) {
+    return countryCode;
+  } else {
+    return "+" + countryCode;
+  }
 }
 ```
 
@@ -201,23 +211,21 @@ private String countryCodeWithExitCode(String countryCode) {
 ```java
 class CountryCode {
 
-  private final String code;
+  private final static VerbalExpression PATTERN = regex().startOfLine().maybe("+").digit().oneOrMore().endOfLine().build();
 
-  CountryCode(String code) {
-      this.code = withoutExitCode(code);
-      var hasOnlyDigits = CharMatcher
-              .inRange('0', '9')
-              .matchesAllOf(code);
-      checkArgument(hasOnlyDigits, "Country code must only contain digits, but was %s", code);
-  }
+  private final String withoutExitCode;
 
-  private String withoutExitCode(String code) {
-      return code.replace("+", "");
+  CountryCode(String withOptionalExitCode) {
+      var matches = PATTERN.testExact(withOptionalExitCode);
+      checkArgument(matches, "Country code %s doesn't match %s pattern", withOptionalExitCode, PATTERN);
+
+      this.withoutExitCode = withOptionalExitCode.replace("+", "");
   }
 
   public String withExitCode() {
-      return "+" + this.code;
+      return "+" + this.withoutExitCode;
   }
+  
 }
 ```
 
@@ -262,10 +270,9 @@ Stream<User> users = repository.allUsers();
 class: codeonly
 ### 💡 Principle: maximum proximity, minimum visibility.
 ### 1. internal class
-### 2. internal static class
-### 3. package-private class
-### 4. public class
-### 5. separate package
+### 2. package-private class
+### 3. public class
+### 4. public class in a different package
 ???
 to express belonging.
 
@@ -309,12 +316,12 @@ var coinbase = new Coinbase();
 *var exchange = new BitcoinExchange(coinbase::exchangeRate);
 ```
 
-### ♥️ No need to implement `BitcoinExchange.Rate`
+### 🚀 No need to implement `BitcoinExchange.Rate`
 
 ---
 
 class: center, middle, codeonly
-## 💡 Rule: functional interfaces simplifies system extension.
+## 💡 Rule: functional interfaces simplify system extension.
 ### (Interface Segregation Principle)
 ???
 this way you can eliminate factories, wrappers.
@@ -848,9 +855,122 @@ interface Port {
 class: codeonly
 ### 💡 Heuristic: compound names usually indicate a missing object.
 
+---
+class: codeonly
+```java
+class AwsS3Bucket {
+
+  private final String awsPassword;
+  private final String awsLogin;
+  private final String bucketName;
+
+  public AwsS3Bucket(String awsLogin, String awsPassword, String bucketName) {
+    this.awsLogin = awsLogin;
+    this.awsPassword = awsPassword;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
+--
+
+```java
+class AwsCredentials {
+
+  public final String login;
+  public final String password;
+
+  public AwsCredentials(String login, String password) {
+    this.login = login;
+    this.password = password;
+  }
+}
+```
+
+---
+class: codeonly
+```java
+class AwsS3Bucket {
+
+  private final AWSCredentials awsCredentials;
+  private final String bucketName;
+
+  public AwsS3Bucket(AwsCredentials awsCredentials, String bucketName) {
+    this.awsCredentials = awsCredentials;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
+--
+
+```java
+class AwsAccount {
+
+  private final AwsCredentials credentials;
+
+  public AwsAccount(AwsCredentials credentials) {
+    this.credentials = credentials;
+  }
+
+}
+```
+
+---
+class: codeonly
+```java
+class AwsS3Bucket {
+
+  private final AwsAccount account;
+  private final String bucketName;
+
+  public AwsS3Bucket(AwsAccount account, String bucketName) {
+    this.account = account;
+    this.bucketName = bucketName;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
+--
+
+```java
+class AwsS3Bucket {
+
+  private final AwsAccount account;
+  private final String name;
+
+  public AwsS3Bucket(AwsAccount account, String name) {
+    this.account = account;
+    this.name = name;
+  }
+
+  void create() {
+    ...
+  }
+
+}
+```
+
+---
+class: codeonly
 .crap[
 ```java
-interface MusicApp {
+interface SpotifyApp {
     void playMusic();
     void stopMusic();
 }
@@ -872,48 +992,52 @@ interface Music {
 
 .nice[
 ```java
-interface MusicApp {
-    Music music(); // music.play() / music.stop()
+interface SpotifyApp {
+    Music music();
 }
 ```
 ]
 
+--
 
+class: codeonly
 .crap[
-```
-interface Chat {
-  void sendTextMessage(String message);
-  void sendMarkdownMessage(String message);
+```java
+interface HipChat {
+    void sendMessage(String channel, String mesage);
 }
-```  
+```
 ]
 
+--
 
+#### Option A
+.nice[
+```java
+interface HipChat {
+    void send(Message message); // Message contains text and channel
+}
+```
+]
+
+--
+
+#### Option B
+.nice[
+```java
+interface Channel {
+    void send(Message message);
+}
+```
+]
 
 --
 
 .nice[
-```
-interface Chat {
-  void send(TextMessage message);
-  void send(MarkdownMessage message);
+```java
+interface HipChat {
+    Channel channel(String name);
 }
-```  
-]
-
---
-
-.crap[
-```java
-borrower.loanAgreement();
-```
-]
-
---
-
-.nice[
-```java
-borrower.loan().agreement();
 ```
 ]
 
@@ -1375,7 +1499,7 @@ class TextFile {
 
 ---
 class: center, middle
-# .json()
+# Printers
 ### (demo)
 
 
@@ -2295,29 +2419,51 @@ class: codeonly
 
 --
 
-#### org.system.client.Client 🧲
+```java
+class Client {
+  String firstName;
+  String lastName;
+  String personalId;
+  Email email;
+  Collection<Subscription> subscriptions;
+  SubscribtionSettings subscriptionSettings;
+  Collection<Loans> loans;
+  Collection<LoanApplication> loanApplications;
+}
+```
+
+---
+class: codeonly
+### 💡 An object can have different representations (roles) in the system.
+
+```java
+class Client {
+  String firstName;
+  String lastName;
+  String personalId;
+  Email email;
+}
+
+class Subscriber {
+  Collection<Subscription> subscriptions;
+  SubscribtionSettings subscriptionSettings;
+}
+
+class Borrower {
+  Collection<Loans> loans;
+  Collection<LoanApplication> loanApplications;
+}
+```
 
 --
 
-#### vs.
-
---
-
-#### org.system.web.WebsiteVisitor (ipAddress, location)
-#### org.system.lending.Applicant (applications)
-#### org.system.lending.Borrower (loans)
-#### org.system.lending.RecurringBorrower (multiple loans, rules for recurring borrowers)
-#### org.system.lending.notification.Subscriber (email, settings)
-#### org.system.deco.Insolvent (insolvency date, insolvency reason)
-
---
 
 #### &nbsp;
-#### 💡 In Hibernate, you can map one row to many entities.
+### 💡 In Hibernate, you can map one row to many entities. 🤫
 
 --
 
-#### 💡 You can create multiple entities in the same transaction, incl. denormalized entities, optimized for reads.
+### 💡 Or you can duplicate and synchronize data.
 
 ---
 class: center, middle
@@ -2336,7 +2482,8 @@ class: center, middle
         highlightLines: true,
         highlightLanguage: 'java',
         click: true,
-        touch: true
+        touch: true,
+        ratio: '16:9'
       });
       slideshow.on('afterShowSlide', function (slide) {
 
