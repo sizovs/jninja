@@ -27,14 +27,14 @@
 
       .codeonly h1, .codeonly h2, .codeonly h3, .codeonly h4 { color: white !important; }
       
-      .codeonly { padding: 1em; background-color: #2b303b }
+      .codeonly { padding: 1em; background-color: #000 }
       .codeonly pre { margin: 0 }
 
       .remark-code-line-highlighted { background-color: #2d9967; color: white}
       .remark-code-line-highlighted * { color: white !important; }
 
       .remark-slide-scaler { -webkit-box-shadow: 0 !important; box-shadow: none !important; }
-      .remark-slide-container {background-color: #2b303b}
+      .remark-slide-container {background-color: #000}
       /* new end */
       .fade {color: #E0E0E0}
       .spanny { padding: 10px; color: white; background-color: #0b1c2e }
@@ -49,7 +49,8 @@
       .corner pre {margin: 0; padding: 0}
       .corner.long {height: 300px;}
 
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code { font-family: 'Ubuntu Mono'; background-color: #000 !important }
+      .remark-inline-code { font-family: 'Ubuntu Mono'; background-color: #000 !important; color: white }
       .invert { background-color: black; color: white; }
       .bad { background-color: #AA1914; color: white;}
       .oki { background-color: #3D9972; color: white;}
@@ -83,6 +84,10 @@ class: center, middle, example
 --
 
 ## - never ever to be confused with a domain service
+
+```class
+PaymentGateway paymentGateway;
+```
 
 ---
 class: codeonly
@@ -567,7 +572,7 @@ def "regular payment overdue notification"() {
 #### - postgres/redis/rabbitmq/smtp (TestContainers)
 #### - filesystem (Docker)
 #### - unique, non-clashing data (Faker)
-#### - local time (test or thread-local scope)
+#### - local time (test or thread-local scope, MutableClock)
 
 --
 
@@ -930,22 +935,28 @@ var tx = account.withdraw(new BigDecimal(100));
 ```
 
 --
+### 1. All transactions fulfil rules imposed by the bank account (aggregate root):
+#### ✅ transactions are possible only if the account is open (can't forget to check)
+#### ✅ transactions are within monthly and daily limits (can't create 1,000,000$ tx)
+#### ✅ no transaction can result in overdraft
+#### ✅ no data loss in concurrent environment (thanks to optimistic locking)
 
-### BankAccount gives the following guarantees:
+```java
+  tx 1                 tx 2       
+  read                 read 
+    bank account = 0     bank account = 0
+    tx = +500            +400  
+  commit               
+                       commit
+```
 
 --
-### - all transactios fulfil rules imposed by the bank account (aggregate root)
 
---
-### - all transactions are within business rule limits (❌ create 1,000,000$ tx)
+`❌ poka yoke: transactionRepository.save(new Tx(100000000))`
 
---
+`🧠 don't have to remember to perform extra checks (no temporal coupling)`
 
-### - when creating a Tx, cannot "forget" to ask if the bank account is open
-
---
-
-### - no race conditions in concurrent environment (thanks to optimistic locking)
+`🔒 Secure by design`
 
 ---
 class: codeonly
@@ -1117,6 +1128,7 @@ class User extends DomainEntity {
     public void change(Email newEmail) {
         Email oldEmail = this.email;
         later.schedule(new WriteNewLogEntry(
+              auditLogId,
               new EmailChanged(oldEmail, newEmail)
         ));
     }
