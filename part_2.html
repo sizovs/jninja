@@ -613,11 +613,14 @@ class: center, middle, example
 ---
 class: codeonly
 
-### 1. For data class validation, use Hibernate Validator. 
+### 1. For declarative data class validation, use Bean Validation 2.0
 
 --
 
-### 2. If you need more control, use github.com/neoremind/fluent-validator
+### 2. For programmatic validation:
+#### - Fluent Validator (github.com/neoremind/fluent-validator)
+#### - Yavi (github.com/making/yavi)
+#### - Your own simple validator class (github.com/sizovs/unsuck-java)
 
 --
 
@@ -740,14 +743,17 @@ interface Customers {
 
 --
 
-### 💡 Use salted Hashids, when exposing PKs to the outside world.
+### 💡 Use encryption, when exposing PKs to the outside world.
 
 `> implementation("org.hashids:hashids:1.0.3")`
+
+`> implementation("org.jasypt:jasypt:1.9.3')`
+
 
 
 --
 
-### 💡 Or UUIDs.
+### 💡 UUIDs or ULIDs (Universally unique Lexicographically sortable IDs)
 
 ---
 class: right, middle
