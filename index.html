@@ -2076,72 +2076,39 @@ public class Tweet {
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate date() {
-        return date;
+```
+--
+
+```java
+    LikesAnalytics likesAnalytics() {
+      return new LikesAnalytics(total, dailyMinimum, dailyMaximum, dailyAverage);
     }
-
-    public Collection<Like> likes() {
-        return ImmutableList.copyOf(likes);
-    }
-
-    public void like(Like like) {
-        likes.add(like);
-    }
-
-    public long totalLikes() {
-        return likes.size();
-    }
-
-    public void deleteBy(LikeId id) {
-        var like = likes.stream().filter(like => like.hasId(id)).findFirst()
-
-        checkState(like.comesFrom(App.me()), "You can only delete your own likes");
-        checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
-        
-        likes.remove(like);
-   }
 ```
 
----
-class: codeonly
+--
+
 ```java
-public class Tweet {
+    void likesFoo() { ... }    
 
-    private LocalDate date = LocalDate.now();
+    void likesBar() { ... }
 
-    private Collection<Like> likes = new LinkedList<>();
+}
+```
 
-    public LocalDate date() {
-        return date;
-    }
+--
 
-    public Likes likes() {
-        return new Likes();
-    }
+```
+public class Likes {
 
-    class Likes {
+  private final Collection<Like> likes;
 
-        public void put(Like like) {
-            likes.add(like);
-        }
+  Likes(Collection<Like> likes) { this.likes = likes; }
 
-        public long total() {
-            return likes.size();
-        }
+  LikesAnalytics analytics() { ... }
 
-        public Collection<Like> all() {
-          return ImmutableList.copyOf(likes);
-        }
+  void foo() { ... }
 
-        public void deleteBy(LikeId id) {
-          var like = likes.stream().filter(like => like.hasId(id)).findFirst()
-
-          checkState(like.comesFrom(App.me()), "You can only delete your own likes");
-          checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
-
-          likes.remove(like);
-        }
-    }
+  void bar() { ... }
 }
 ```
 
@@ -2154,32 +2121,66 @@ public class Tweet {
 
     private Collection<Like> likes = new LinkedList<>();
 
-    public LocalDate date() {
-        return date;
+```
+
+```java
+    LikesAnalytics likesAnalytics() {
+      return new LikesAnalytics(total, dailyMinimum, dailyMaximum, dailyAverage);
     }
+```
 
-    public Likes likes() {
-        return new Likes();
-    }
+```java
+    void likesFoo() { ... }    
 
-    class Likes extends ForwardingList<Like> {
+    void likesBar() { ... }
 
-        @Override
-        protected List<Like> delegate() {
-            return likes;
-        }
-
-        public void deleteBy(LikeId id) {
-          var like = likes.stream().filter(like => like.hasId(id)).findFirst()
-
-          checkState(like.comesFrom(App.me()), "You can only delete your own likes");
-          checkState(!like.isOlderThan(days(3)), "You can only delete likes no older than 3 days");
-          
-          likes.remove(like);
-        }
-    }
 }
 ```
+
+```
+public class Likes extends ForwardingList<Like> {
+
+  private final Collection<Like> likes;
+
+  Likes(Collection<Like> likes) { this.likes = likes; }
+
+  LikesAnalytics analytics() { ... }
+
+  void foo() { ... }
+  
+  void bar() { ... }
+
+  @Override
+  protected List<Like> delegate() {
+      return ImmutableList.of(likes);
+  }  
+}
+```
+
+---
+class: codeonly
+
+```java
+public class Tweet {
+
+    private LocalDate date = LocalDate.now();
+
+    private Collection<Like> likes = new LinkedList<>();
+
+*   public Likes likes() {
+*       return new Likes(likes);
+*   }
+
+}
+```
+
+--
+```java
+  tweet.likes().analytics();
+  
+  tweet.likes().forEach(System::out.println);
+```
+
 
 ---
 class: center, middle
