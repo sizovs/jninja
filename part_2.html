@@ -589,22 +589,21 @@ def "regular payment overdue notification"() {
 
 --
 
-#### - Tests parts of the system in isolation (mocks, stubs, thread singletons, no spring)
+#### - Tests parts of the system in isolation (mocks, stubs, thread-local singletons, no spring)
 #### - When TDD is used, naturally become part of the codebase. If no TDD – seems like a waste
 
 --
 
 ### Some tests require special treatment: 
-#### - Repository tests (talk to H2, should be marked @H2Test)
-#### - File system tests (talk to Jimfs, should be marked @JimfsTest)
-#### - Tests that require Spring (should be marked @SpringTest)
+#### - Repository tests: H2 or Testcontainers
+#### - File system tests: Jimfs
+#### - Spring tests (a small subgroup)
 
 
 ---
 # More:
-### **Growing Object-Oriented Software, Guided By Tests**
-### **Mid-Sized Bulding Blocks**: dev.tube/video/sND1AR7Q_T0
-### **TDD, Where Did It All Go Wrong**: dev.tube/video/EZ05e7EMOLM
+### **📚 Growing Object-Oriented Software, Guided By Tests**
+### **🍿 TDD, Where Did It All Go Wrong**: dev.tube/video/EZ05e7EMOLM
 
 ---
 class: center, middle, example
@@ -1152,89 +1151,72 @@ class: center, middle, example
 
 ---
 class: center, middle
-## Throttling and Bulkheads
+## Rate Limiting and Bulkheads
+#### `> bucket4j`
 
 ---
 class: codeonly
 
 ```java
-class RateLimiter {
-
-    private final Semaphore limiter;
-  
-    RateLimiter(int limiter) {
-      this.limiter = new Semaphore(limiter);
-    }
- ```
- 
---
-
- ```java
-    <R> R limit(Supplier<R> unlimited) {
-      if (!limiter.tryAcquire()) {
-        throw new ThrottlingException(limiter.availablePermits());
-      }
-      try {
-        return unlimited.get();
-      } finally {
-        limiter.release();
-      }
-    }
+public interface RateLimited {
+  Bandwidth bandwidth();
+}
 ```
 
 --
 
 ```java
-    @ResponseStatus(code = HttpStatus.TOO_MANY_REQUESTS)
-    private static class ThrottlingException extends RuntimeException {
-      private ThrottlingException(int maxPermits) {
-        super(format("Reached the maximum number of permitted requests (%s)", maxPermits));
-      }
-    }
+class ExpensiveCommand implements Command<Voidy>, RateLimited {
+
+  @Override
+  public Bandwidth bandwidth() {
+      var maxCallsPerSecond = 50;
+      
+      // Tokens in the bucket increase at a refill rate of 10 calls per second.
+      // So, if request rate is 10 calls per second, it will never be throttled.        
+      var refillRate = Refill.greedy(10, ofSeconds(1));
+      return Bandwidth.classic(maxCallsPerSecond, refillRate);
   }
+
+}
 ```
+
 
 ---
 class: codeonly
 ```java
 @Component
-@Order(1)
-class Throttling implements Middleware {
+@Order(2)
+class RateLimiting implements Command.Middleware {
 
-  private final ConcurrentHashMap<Type, RateLimiter> rateLimiters;
-  private final Collection<RateLimit> rateLimits;
+  private final ConcurrentHashMap<Type, Bucket> buckets = new ConcurrentHashMap<>();
 
-  public Throttling(Collection<RateLimit> rateLimits) {
-    this.rateLimits = rateLimits;
-    this.rateLimiters = new ConcurrentHashMap<>();
-  }
-```
-
---
-
-```java
-  @SuppressWarnings("unchecked")
   @Override
   public <R, C extends Command<R>> R invoke(C command, Next<R> next) {
 
-    var rateLimit = rateLimits
-        .stream()
-        .filter(limit -> limit.matches(command))
-        .findFirst();
+    if (!(command instanceof RateLimited)) {
+      return next.invoke();
+    }
 ```
-
 --
-
 ```java
-    return rateLimit
-*       .map(limit -> limiter(command, limit))
-        .map(limiter -> limiter.limit(next::invoke))
-        .orElseGet(next::invoke);
+    var rateLimited = (RateLimited) command;
+    var bandwidth = rateLimited.bandwidth();
+```
+--
+```java
+    var bucket = bucket(command, bandwidth);
+    if (bucket.tryConsume(1)) {
+      return next.invoke();
+    } else {
+      throw new RateLimitException();
+    }
   }
 
-  private <R, C extends Command<R>> RateLimiter limiter(C command, RateLimit limit) {
-    var commandClass = command.getClass();
-    return rateLimiters.computeIfAbsent(commandClass, type -> new RateLimiter(limit.rateLimit()));
+  private <R, C extends Command<R>> Bucket bucket(C command, Bandwidth bandwidth) {
+    var commandType = command.getClass();
+    return buckets
+      .computeIfAbsent(commandType, type ->  Bucket4j.builder().addLimit(bandwidth).build());
   }
 
 
@@ -1324,53 +1306,21 @@ Connection connection = Failsafe.with(breaker).get(() -> connect());
 
 ---
 # Patterns
-### Fallback
-### Timeout
-### Circuit breaker
-### Retries
-### Bulkheads
-### Throttling
+### Bulkheads (Bucket4j)
+### Rate Limits (Bucket4j)
+### Retries (Failsafe)
+### Timeout (Failsafe)
+### Fallback (Failsafe)
+### Circuit breaker (Failsafe)
 
 ---
 class: center, middle
 # You made it! 
 
 ---
-# Awesome frameworks
-.l50[
-### Caffeine
-### Selenide
-### Testcontainers
-### WireMock
-### Jimfs
-### Awaitility
-### ea-async
-]
-.r50[
-### Restassured
-### AssertJ
-### Faker
-### jOOR
-### ByteBuddy
-### ArchUnit
-### Spock
-]
-
----
-
-# Awesome Java people
-.l50[
-### Jakub Nabrdalik
-### Jakub Pilimon
-### J.B. Rainsberger
-### Victor Rentea
-]
-.r50[
-### Venkat Subramaniam
-### Lukas Eder
-### Yegor Bugayenko
-### Robert Martin (Uncle Bob)
-]
+class: center, middle
+# Awesome frameworks and libraries
+#### `> https://sizovs.net/2020/11/24/java-libraries-i-like`
 
 ---
 class: center, middle
