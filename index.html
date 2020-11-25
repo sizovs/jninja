@@ -81,7 +81,7 @@ background-size: contain
 
 --
 
-### Homework with free code review (will also send must read books)
+### Homework with free code review
 
 ---
 class: codeonly
@@ -97,29 +97,36 @@ users
 
 --
 
-### ⚠️ Cognitive load warning
+### ⚠️ Refactoring needed.
 
 --
 
 ```java
 var users = repository.allUsers();
 users
-* .flatMap(this::phoneNumbers)
+* .flatMap(User::phoneNumbers)
   .map(PhoneNumber::countryCode)
   .forEach(System.out::println);
 
-private Stream<PhoneNumber> phoneNumbers(User user) {
-    return user.contacts().phoneNumbers().stream();
+
+class User {
+  public Stream<PhoneNumber> phoneNumbers() {
+      return this.contacts().phoneNumbers().stream();
+  }
 }  
 ```
 
 --
 
-### 💡 Principle: reveal intent, hide implementation
+#### 💡 Principle: reveal intent, hide implementation
 
 --
 
-### 💡 Principle: keep code at the same level of abstraction (SLAP)
+#### 💡 Principle: keep code at the same level of abstraction (SLAP)
+
+--
+
+#### 💡  Rule of Demeter: don't talk to you strangers
 
 ---
 class: codeonly
@@ -182,7 +189,7 @@ private String countryCodeWithExitCode(String countryCode) {
 
 --
 
-### ⚠️ Private method pollution.
+### ⚠️ Anti-pattern: private method pollution.
 
 
 ---
@@ -640,6 +647,11 @@ EmployeeRoles employeeRoles;
 ```  
 ]
 
+---
+class: codeonly
+background-image:url(clientnamespace.jpg)
+background-size: contain
+
 --
 
 #### 💡 Principle: Omit words deductable from the context.
@@ -855,116 +867,51 @@ interface Port {
 class: codeonly
 ### 💡 Heuristic: compound names usually indicate a missing object.
 
----
-class: codeonly
+.crap[
 ```java
-class AwsS3Bucket {
-
-  private final String awsPassword;
-  private final String awsLogin;
-  private final String bucketName;
-
-  public AwsS3Bucket(String awsLogin, String awsPassword, String bucketName) {
-    this.awsLogin = awsLogin;
-    this.awsPassword = awsPassword;
-    this.bucketName = bucketName;
-  }
-
-  void create() {
-    ...
-  }
-
-}
+loan.agreementDueDate();
+loan.agreementStatus();
+loan.closeAgreement();
 ```
+]
 
 --
 
+.nice[
 ```java
-class AwsCredentials {
-
-  public final String login;
-  public final String password;
-
-  public AwsCredentials(String login, String password) {
-    this.login = login;
-    this.password = password;
-  }
-}
+var agreement = loan.agreement();
+agreement.dueDate();
+agreement.status();
+agreement.close();
 ```
-
----
-class: codeonly
-```java
-class AwsS3Bucket {
-
-  private final AWSCredentials awsCredentials;
-  private final String bucketName;
-
-  public AwsS3Bucket(AwsCredentials awsCredentials, String bucketName) {
-    this.awsCredentials = awsCredentials;
-    this.bucketName = bucketName;
-  }
-
-  void create() {
-    ...
-  }
-
-}
-```
+]
 
 --
 
+.crap[
 ```java
-class AwsAccount {
 
-  private final AwsCredentials credentials;
 
-  public AwsAccount(AwsCredentials credentials) {
-    this.credentials = credentials;
-  }
-
-}
+conference.isCfpOpen();
+conference.cfpEndDate();
+conference.cfpStartDate();
+conference.cfpUrl();
+conference.closeCfp();
 ```
-
----
-class: codeonly
-```java
-class AwsS3Bucket {
-
-  private final AwsAccount account;
-  private final String bucketName;
-
-  public AwsS3Bucket(AwsAccount account, String bucketName) {
-    this.account = account;
-    this.bucketName = bucketName;
-  }
-
-  void create() {
-    ...
-  }
-
-}
-```
+]
 
 --
 
+.nice[
 ```java
-class AwsS3Bucket {
-
-  private final AwsAccount account;
-  private final String name;
-
-  public AwsS3Bucket(AwsAccount account, String name) {
-    this.account = account;
-    this.name = name;
-  }
-
-  void create() {
-    ...
-  }
-
-}
+var cfp = conference.cfp();
+cfp.isOpen();
+cfp.startDate();
+cfp.endDate();
+cfp.url();
+cfp.close();
 ```
+]
 
 ---
 class: codeonly
@@ -2054,11 +2001,6 @@ selenium.elementBy(".header").ifPresent(Element::click).orElseThrow();
 ```
 
 ---
-
-class: center, middle
-# 👨‍💻 👩‍💻 bit.ly/java_practice
-
----
 class: middle, center, example
 # Growth control.
 ### ... because we want to keep object's behaviour next to the state
@@ -2442,6 +2384,12 @@ class Borrower {
 --
 
 ### 💡 Or you can duplicate and synchronize data.
+
+---
+
+class: center, middle
+# 👨‍💻 👩‍💻 bit.ly/java_practice
+
 
 ---
 class: center, middle

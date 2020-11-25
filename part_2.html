@@ -589,21 +589,29 @@ def "regular payment overdue notification"() {
 
 --
 
-#### - Tests parts of the system in isolation (mocks, stubs, thread-local singletons, no spring)
-#### - When TDD is used, naturally become part of the codebase. If no TDD – seems like a waste
+#### - Test parts of the system in isolation (mocks, stubs, thread-local singletons, no spring)
+#### - Natural byproduct of TDD. With "code-debug-done-tests" – *seems* like a wasted time
+#### - Documentation with examples for developers
 
 --
 
-### Some tests require special treatment: 
-#### - Repository tests: H2 or Testcontainers
-#### - File system tests: Jimfs
-#### - Spring tests (a small subgroup)
+### Don't overmock:
+#### - For repositories, use H2 or Testcontainers
+#### - For filesystem, use Jimfs
+#### - For contract testing, use WireMock
+#### - For MVC testing, use Spring
 
+---
+
+# Example
+
+`> https://github.com/sizovs/unsuck-java/blob/master/src/test/groovy/awsm/domain/banking/BankAccountSpec.groovy`
 
 ---
 # More:
 ### **📚 Growing Object-Oriented Software, Guided By Tests**
-### **🍿 TDD, Where Did It All Go Wrong**: dev.tube/video/EZ05e7EMOLM
+#### **🍿 TDD, Where Did It All Go Wrong**: dev.tube/video/EZ05e7EMOLM
+#### **🍿 Acceptance Testing for Continuous Delivery**: dev.tube/video/SBhgteA2szg
 
 ---
 class: center, middle, example
@@ -618,8 +626,8 @@ class: codeonly
 
 ### 2. For programmatic validation:
 #### - Fluent Validator (github.com/neoremind/fluent-validator)
-#### - Yavi (github.com/making/yavi)
-#### - Your own simple validator class (github.com/sizovs/unsuck-java)
+#### - Yavi (github.com/making/yavi) 
+#### - Your own simple validator class (github.com/sizovs/unsuck-java) 
 
 --
 
