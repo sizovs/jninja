@@ -1306,8 +1306,8 @@ class: codeonly
 
 .crap[
 ```java
-interface EmailSender {
-  void send(Email email); // email sender must know everything about the email's internals :(
+class PaymentJsonConverter {
+  Json convert(Payment payment) { ... } // "converter" must know everything about the payment's internals :(
 ```
 ]
 
@@ -1315,15 +1315,18 @@ interface EmailSender {
 
 .nice[
 ```java
-interface Email {
-  void deliver();
-```]
+class Payment {
+  Json json() { ... }
+```
+]
 
+--
+
+#### 💡 Rule: Flexibility breeds complexity. Postpone flexibility until *really* needed.
 --
 
 .crap[
 ```java
-
 interface ConditionChecker {
   boolean checkCondition(Condition condition)
 ```
