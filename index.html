@@ -1280,6 +1280,25 @@ class File {
 ```  
 ]
 
+--
+.crap[
+
+```java
+
+interface CommandService {
+    void execute(Command command);      // 🔴 execute command service
+```
+]
+
+--
+
+.nice[
+```java
+class Command {
+    void execute();                     // 🟢 execute command
+```  
+]
+
 ---
 class: codeonly
 
