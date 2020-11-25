@@ -350,6 +350,12 @@ interface ProductService {
 
 --
 
+#### 🔴 Low cohesion.
+
+--
+
+#### 🔴 Fat implementation.
+
 .crap[
 ```java
 class DefaultProductService implements ProductService {
@@ -357,14 +363,6 @@ class DefaultProductService implements ProductService {
 }
 ```
 ]
-
-#### 🔴 Low cohesion.
-
---
-
-#### 🔴 Fat implementation.
-
---
 
 #### 🔴 High afferent (inward) and efferent (outward) coupling.
 
@@ -647,14 +645,14 @@ EmployeeRoles employeeRoles;
 ```  
 ]
 
+--
+
+#### 💡 Principle: Omit words deductable from the context.
+
 ---
 class: codeonly
 background-image:url(clientnamespace.jpg)
 background-size: contain
-
---
-
-#### 💡 Principle: Omit words deductable from the context.
 
 
 ---
