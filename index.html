@@ -137,7 +137,7 @@ class: codeonly
 ```java
 Stream<User> users = repository.allUsers();
   users
-          .flatMap(this::phoneNumbers)
+          .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)
           .map(countryCode -> {
               var pattern = "^(?:\\+)?(?:\\d)+$";
@@ -167,7 +167,7 @@ class: codeonly
 ```java
 Stream<User> users = repository.allUsers();
   users
-          .flatMap(this::phoneNumbers)
+          .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)
 *         .map(this::countryCodeWithExitCode)
           .forEach(System.out::println);
@@ -242,7 +242,7 @@ class: codeonly
 ```java
 Stream<User> users = repository.allUsers();
   users
-          .flatMap(this::phoneNumbers)
+          .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)
 *         .map(this::countryCodeWithExitCode)
           .forEach(System.out::println);
@@ -253,7 +253,7 @@ Stream<User> users = repository.allUsers();
 ```java
 Stream<User> users = repository.allUsers();
   users
-          .flatMap(this::phoneNumbers)
+          .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)          
 *         .map(CountryCode::new)
 *         .map(CountryCode::withExitCode)
@@ -265,7 +265,7 @@ Stream<User> users = repository.allUsers();
 ```java
 Stream<User> users = repository.allUsers();
   users
-          .flatMap(this::phoneNumbers)
+          .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)          
 *         .map(CountryCode::withExitCode)
           .forEach(System.out::println);
