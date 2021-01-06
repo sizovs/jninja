@@ -783,7 +783,7 @@ interface CustomerRepository {
   void deleteBy(Criteria criteria);
   Collection<Customer> findAllBy(Criteria criteria);  
   Customer findOneBy(Criteria criteria);
-  boolean exists(Criteria criteria);
+  boolean existsBy(Criteria criteria);
 }
 ```
 --
@@ -825,7 +825,7 @@ class: codeonly
 
 #### 🟢 Easy to explain and enforce with ArchUnit: 
 #### - Queries use jOOQ for speed and flexibility.
-#### - Commands use Hibernate entities and enjoy ORM, first-level cache, and optimistic locking.
+#### - Commands use Hibernate entities and enjoy ORM, Unit of Work, first-level cache, and optimistic locking.
 
 If only certain fields are needed, use projections.
 
@@ -1061,186 +1061,16 @@ var tx = account.withdraw(new BigDecimal(100));
 `🔒 Secure by design`
 
 ---
-class: codeonly
 
-```java
-BankAccount bankAccount = new BankAccount();
-
-executeInTx(() -> entityManager.persist(bankAccount));
-
-CyclicBarrier coordinator = new CyclicBarrier(2);
-
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(BankAccount.class, bankAccount.id())
-          .close());
-        coordinator.await();
-    })
-).start();
-
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(BankAccount.class, bankAccount.id())
-          .deposit(new BigDecimal(1000.00));
-        coordinator.await();
-    })
-).start();
-```
-
---
-
-### 💡 To avoid data corruption, protect aggregate roots with an optimistic lock.
+# More:
+### - bit.ly/dont_mess_up_data
+### - bailis.org/blog/understanding-weak-isolation-is-a-serious-problem
+### - github.com/ept/hermitage
 
 ---
-class: center, middle
-### Even though our industry has been working with this stuff for 20 years or more, there are not many people who can explain off-the-cuff the difference between, say, **read committed** and **repeatable read** isolation. This is a problem, because if you don't know what guarantees you can expect from your database, you cannot know whether your code has concurrency bugs and race conditions.
-#### — github.com/ept/hermitage
 
----
-class: center
-# Why weak isolation works?
-
---
-
-### To have a race condition, you need concurrency. For low-traffic and low-contention applications, it’s possible that anomalies don’t arise.
-
---
-
-### When anomalies do arise, it’s possible that the read-write anomalies don’t translate into application data corruption. Just because a read/write race occurs doesn’t mean all outcomes are necessarily wrong (e.g., two writers might perform the exact same read-modify-write operations with the same outcome regardless of order).
-
---
-
-### It’s possible data is actually **occasionally** corrupted, and nobody cares. Or, when they do, they manually issue the customer an IOU and/or send them an overdraft notice.
-
-#### — bailis.org/blog/understanding-weak-isolation-is-a-serious-problem/
-
----
-class: center, middle
-## Map aggregates by identity/embedding, not by reference to avoid risk of modifying more than one aggregate per transaction.
-### ... concurrency exceptions can reach the point where the system becomes unusable.
-
----
-class: codeonly
-```java
-@Entity
-class UserAuditLog extends DomainEntity {
-
-    @ElementCollection
-    @CollectionTable(name = "USER_AUDIT_ENTRIES")
-    private Collection<LogEntry> entries = new ArrayList<>();
-
-    private LocalDateTime archivingTime;
-
-    public void write(LogEntry entry) {
-      this.entries.add(entry);
-    }
-
-    public void archive() {
-        this.archivingTime = LocalDateTime.now();
-    }
-}
-```
-
---
-
-```java
-@Entity
-class User extends DomainEntity {
-
-    @ManyToOne
-    private UserAuditLog auditLog;
-
-    public void change(Email newEmail) {
-        Email oldEmail = this.email;
-        auditLog.write(new LogEntry.EmailChanged(oldEmail, newEmail));
-    }
-}
-```
-
----
-class: codeonly
-```java
-User user = new User();
-UserAuditLog userAuditLog = new UserAuditLog();
-
-executeInTx(() ->
-  persist(user, userAuditLog);
-);
-
-CyclicBarrier coordinator = new CyclicBarrier(2);
-
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(User.class, user.id())
-          .change(new Email("new@email.com"));
-        coordinator.await();
-    })
-).start();
-
-new Thread(() ->
-    executeInTx(() ->
-        entityManager
-          .find(UserAuditLog.class, userAuditLog.id())
-          .archive();
-        coordinator.await();
-    })
-).start();
-```
-
---
-#### 💥 Conflict: both transactions modified the audit log. The last rolls back (if optimistic locked is on).
-
---
-
-#### ⚠️ Danger: can try disabling optimistic locking for certain entities/fields.
-
---
-
-#### 💡 Alternative: map aggregates by identity/embedding and use eventual consistency.
-
----
-class: codeonly
-
-```java
-@Entity
-class User extends DomainEntity {
-
-    @ManyToOne
-    private UserAuditLog auditLog;
-
-    public void change(Email newEmail) {
-        Email oldEmail = this.email;
-        auditLog.write(new LogEntry.EmailChanged(oldEmail, newEmail));
-    }
-}
-```
-
---
-
-```java
-@Entity
-class User extends DomainEntity {
-
-    @Embedded
-*   private UserAuditLogId auditLogId;
-
-    public void change(Email newEmail) {
-        Email oldEmail = this.email;
-        later.schedule(new WriteNewLogEntry(
-              auditLogId,
-              new EmailChanged(oldEmail, newEmail)
-        ));
-    }
-}
-```
-
---
-
-#### 💡 Principle: conflicting or heavy work should run in a separate transaction.
-#### 💡 Principle: use Transactional Outbox pattern not to lose the work.
+class: center, middle, example
+# Transactional Outbox
 
 ---
 class: center, middle, example
