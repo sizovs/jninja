@@ -489,31 +489,80 @@ class: center, middle
 class: codeonly
 ```java
 org.name.application
-├── RegisterCommand.java               
-├── RegisterCommandHandler.java        
-├── GetUserDetailsCommand.java         
-├── GetUserDetailsCommandHandler.java
-org.name.domain
-├── User.java                          
-├── UserAddress.java                   
-├── UserRepository.java          
-├── JpaUserRepository.java
+├── RegisterCommand.java               (handler and web api inside)            
+├── GetUserDetailsCommand.java         (handler and web api inside)            
+org.name.domain.user
+├── User.java                                                                
+├── UserAddress.java                                                  
+├── UserRepository.java                            
+├── JpaUserRepository.java                         
+org.name.domain.loans
+├── Loan.java                                                                
+├── LoanApplication.java                                              
+├── LoanAgreement.java                             
+├── LoanRepository.java                            
+├── JpaLoanRepository.java                         
+org.name.domain.payments
+├── Payment.java                                   
+├── Payments.java                                  
+├── SebPayment.java                                                   
+├── SwedbankPayment.java                           
+├── LhvPayment.java                                
 ```
 
 --
 
+### Visibility?
+
+---
+class: codeonly
 ```java
 org.name.application
-├── RegisterCommand.java               (public)
-├── RegisterCommandHandler.java        (private) // can use Hibernate
-├── GetUserDetailsCommand.java         (public)
-├── GetUserDetailsCommandHandler.java  (private) // can use jOOQ and denormalization (cqrs)
-org.name.domain
-├── User.java                          (public)
-├── UserAddress.java                   (public)
-├── UserRepository.java                (public)
-├── JpaUserRepository.java             (private)
+├── RegisterCommand.java                           (private)
+├── GetUserDetailsCommand.java                     (private)
+org.name.domain.user
+├── User.java                                                                
+├── UserAddress.java                                                  
+├── UserRepository.java                            
+├── JpaUserRepository.java                         (private)
+org.name.domain.loans
+├── Loan.java                                                                
+├── LoanApplication.java                                              
+├── LoanAgreement.java                             
+├── LoanRepository.java                            
+├── JpaLoanRepository.java                         (private)
+org.name.domain.payments
+├── Payment.java                                   
+├── Payments.java                                  
+├── SebPayment.java                                (private)                   
+├── SwedbankPayment.java                           (private)
+├── LhvPayment.java                                (private)
 ```
+
+--
+
+### A subdomain is often a good candidate for a module / micro-service.
+
+--
+
+### But:
+
+---
+background-size: contain
+background-image:url(hibernate.png)
+
+---
+background-size: contain
+background-image:url(jdk.png)
+
+---
+class: center, middle
+### **A JDK code base is deeply interconnected** at both the API and the implementation levels, having been built over many years primarily in the style of a monolithic software system. We’ve spent considerable effort eliminating or at least simplifying as many API and implementation dependences as possible, so that both the Platform and its implementations can be presented as a coherent set of interdependent modules, but some particularly thorny cases remain. 
+>### — Mark Reinholds, Chief Architect of the Java Platform
+
+---
+background-size: contain
+background-image:url(spring.png)
 
 ---
 background-size: contain
