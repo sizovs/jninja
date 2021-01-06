@@ -126,7 +126,7 @@ class User {
 
 --
 
-#### 💡  Rule of Demeter: don't talk to you strangers
+#### 💡  Law of Demeter: don't talk to you strangers
 
 ---
 class: codeonly
@@ -189,7 +189,7 @@ private String countryCodeWithExitCode(String countryCode) {
 
 --
 
-### ⚠️ Anti-pattern: private method pollution.
+### ⚠️ Smell: private method explosion
 
 
 ---
@@ -491,54 +491,163 @@ class: center, middle, example
 
 ---
 class: codeonly
+
+#### 👩‍💼 **Product Owner**: hey, what happens upon registration?
+
+--
+class: codeonly
 ```java
-@WhatDoYouExpectToHappen
-void code() {
-  Entity entity ...
-  dao.update(entity);
+void register(RegistrationForm registrationForm) {
+  var member = newMember(registrationForm);
+  grantRegistrationBonus(member);
+  subscribeToNewsletter(member);
+  sendWelcomeEmail(member);
 }
 ```
 
 --
+
+#### Code "never" lies:
 
 .crap[
 ```java
-void update(Entity entity) {
-  if (!entity.isIdAssigned()) {
-    return;
+private Member newMember(RegistrationForm form) {
+  var member = new Member(form.username(), form.password(), ...);
+  if (!blacklist.allows(member)) {
+    throw new MemberBlacklistedException();
   }
+  return member;
 }
 ```
 ]
 
---
+---
+class: codeonly
+
+#### 👩‍💼 **Product Owner**: hey, what happens upon registration?
+
+```java
+void register(RegistrationForm registrationForm) {
+  var member = newMember(registrationForm);
+  grantRegistrationBonus(member);
+  subscribeToNewsletter(member);
+  sendWelcomeEmail(member);
+}
+```
+
+#### Code "never" lies:
+
+.crap[
+```java
+private void grantRegistrationBonus(Member member) {
+  if (!member.isGold()) {
+    return;
+  }
+```
+]
+
+---
+class: codeonly
+
+#### 👩‍💼 **Product Owner**: hey, what happens upon registration?
+
+```java
+void register(RegistrationForm registrationForm) {
+  var member = newMember(registrationForm);
+  grantRegistrationBonus(member);
+  subscribeToNewsletter(member);
+  sendWelcomeEmail(member);
+}
+```
+
+#### Code "never" lies:
+
+.crap[
+```java
+private void subscribeToNewsletter(Member member) {
+  var agreedToReceiveNews = member.hasAgreedToReceiveNews();
+  if (agreedToReceiveNews) {
+    newsletter.subscribe(member);
+  }
+```
+]
+
+---
+class: codeonly
+
+#### 👩‍💼 **Product Owner**: hey, what happens upon registration?
+
+```java
+void register(RegistrationForm registrationForm) {
+  var member = newMember(registrationForm);
+  grantRegistrationBonus(member);
+  subscribeToNewsletter(member);
+  sendWelcomeEmail(member);
+}
+```
+
+#### Code "never" lies:
+.crap[
+```java
+private void sendWelcomeEmail(Member member) {
+  emailService.sendWelcome(member.email());
+}
+```
+]
+
+```java
+class EmailService {
+  void sendWelcome(String email) {
+    jms.enque(MIDNIGHT, new WelcomeEmail(email));
+  }
+```
+
+---
+class: codeonly
+
+#### 💡 Principle: make important side-effects visible (renaming)
 
 .nice[
 ```java
-void update(Entity entity) {
-  checkArgument(entity.isIdAssigned(), "Cannot update entity. Id is missing");
-  ...
+void register(RegistrationForm registrationForm) {
+  var member = newMemberIfNotBlacklisted(registrationForm);
+  grantRegistrationBonusIfEligible(member);
+  subscribeIfAgreedToReceiveNews(member);
+  scheduleWelcomeEmail(member);
 }
 ```
 ]
 
 --
 
+#### 💡 Principle: make important side-effects visible (method extraction)
+
+.nice[
 ```java
-void updateIfIdAssigned(Entity entity) {
-  if (!entity.isIdAssigned()) {
-    return;
+void register(RegistrationForm registrationForm) {
+  var member = newMember(registrationForm);
+  throwIfBlacklisted(member);
+
+  if (isEligibleForBonus(member)) {
+    grantRegistrationBonus(member);
   }
-  ...
+
+  if (agreedToReceiveNews(member)) {
+    subscribeToNewsletter(member);
+  }
+  
+  scheduleWelcomeEmail(member);
 }
 ```
+]
 
 --
-### 💡 Principle: do or die
+
+#### 💡 Take-away: optimize code for "discovery cost" so it always gives **quick** and **correct** answers to the reader.
 
 --
 
-### 💡 Principle: make important side-effects visible on the surface
+#### 💡 Take-away: if readers don't trust code, they go N levels down to find right answers.
 
 ---
 class: codeonly
@@ -1007,7 +1116,6 @@ interface Iterator<T> {
 .nice[
 ```java
 interface Iterator<T> {
-
   // command to tell an object what to do (verb)
   void advance();
 
@@ -1020,7 +1128,6 @@ interface Iterator<T> {
 
 .crap[
 ```java
-
 
 
 InputStream stream = webPage.crawl();
@@ -1075,7 +1182,7 @@ user.fullName();    // if (user.fullName().equals(...))
 ```java
 
 
-transaction.getCurrent().pointsTo(...)
+getOngoingTransaction().pointsTo(...)
 ```
 ]
 
@@ -1083,512 +1190,114 @@ transaction.getCurrent().pointsTo(...)
 
 .nice[
 ```java
-transaction.current().pointsTo(...)
+ongoingTransaction().pointsTo(...)
 ```
 ]
 
----
-class: codeonly, middle, center
+--
 
-## 💡 CQS is easy in 50% of cases. In 40% cases it reveals poor object design. In 10% cases should be violated.
+#### ⚠️ Queries that return boolean are not nouns. Keep using using **is**, **has** etc.
+
+---
+class: codeonly
+
+## 💡 In 10% cases CQS is worth violating:
+
+#### ⚠️ Command (verb) returns a result
+```
+interface Command<R> {
+  R execute();
+```
+
+--
+
+#### 💩 Temporal coupling
+```
+interface Command<R> {
+  void execute();
+  R result();
+```
+
+--
+
+
+#### 💩 Naming inconsistent with a well-known GoF pattern
+```
+interface Command<R> {
+  R result();
+```
+
+--
+
+#### ✅ Just violate CQS
+
+```
+interface Command<R> {
+  R execute();
+```
 
 ---
 class: codeonly, center, middle
-# Object Design
+# Objects vs. data classes vs. procedures
 
 ---
 class: codeonly
 
-### Procedural
+#### **Data class** — exposes raw state, has no behaviour.
+#### **Procedure** — takes a data class, and adds some random "logic" to it.
 
 --
 
-.crap[
 ```java
-class FtpUtils {
+class BankAccount {
+  private Collection<Transaction> transactions;
+  private Status status;
+  private BigDecimal limits;
 
-  void transferFile(File file, File newLocation)
+  Collection<Transaction> getTransactions() { ... }
+  void setTransactions(Collection<Transaction> transactions) { ... }
 
-  boolean fileExists(String filename);
+  Status getStatus() { ... }
+  void setStatus(Status status) { ... }
+  ...
+}
 
-  void makeDir(String parentDir, String dir);
-
-  boolean folderExists(String folder);
+class BankAccountService { ... }
+class BankAccountJsonConverter { ... }
+class BankAccountUtils { ... }
 ```
-]
 
 --
 
-### Object-Oriented
-
-.nice[
-```java
-class FtpFolder {
-
-  void createIn(FtpFolder parent);
-
-  boolean exists();
-```
-]
+#### 🔴 State invariants are **not** enforced and are **not** visible in code and tests.
 
 --
 
-.nice[
-```java
+#### 🔴 Uncontrolled state leakage and high afferent coupling to "internals". Maximum proximity, minimum visibility helps a bit.
 
-class FtpFile {
+--
 
-  void transferTo(FtpFolder destination)
+#### 🔴 Too easy to add behaviour w/o thinking where it actually belongs / re-modeling.
 
-  boolean exists();
-```
-]
+--
+
+#### 🔴 "Meaningless" classes from the domain perspective (utils, converter, service).
 
 ---
 class: codeonly
-
-### 💡 Good object design eliminate meaningless **agent nouns**.
-
-```java
-class *Helper
-```
+### - DTOs and Java Beans are data classes.
 
 --
 
-```java
-class *Utils
-```
+### - Because data classes don't have behavior, they have no tests.
 
 --
 
-```java
-class *Processor
-```
-
-
+### - Because data classes don't provide encapsulation, getters/setters can be omitted.
 
 --
 
-```java
-class *Manager
-```
-
---
-
-```java
-class *Service
-```
-
---
-
-```java
-class ending with *er or *or
-```
-
---
-
-.crap[
-```java
-countryResolver.resolve(user);        // 🔴 country resolver's resolve?
-```
-]
-
---
-
-.crap[
-```java
-countryResolver.country(user);        // 🔴 country resolver's country?
-```
-]
-
---
-
-.nice[
-```java
-user.country();                       // 🟢 user's country
-```
-]
-
---
-
-.nice[
-```java
-new Country(user);                    // 🟢 user's country
-```
-]
-
---
-
-.nice[
-```java
-Country.of(user);                     // 🟢 user's country
-```
-]
-
-
----
-class: codeonly
-.crap[
-```java
-interface FileSystem {
-    String read(File file);                  // 🔴 read the filesystem using a file?
-```
-]
-
---
-
-.crap[
-```java
-interface FileSystem {
-  String content(File file);                 // 🔴 file system's content?
-```
-]
-
---
-
-.nice[
-```java
-var textFile = new TextFile(file);
-var content = textFile.content();            // 🟢 file's content
-```
-]
-
---
-
-.nice[
-```java
-var content = new TextFileContent(location); // 🟢 OO design made right
-```
-]
-
---
-.crap[
-
-```java
-
-interface FileSystem {
-    boolean isEmpty(File file);          // 🔴 is filesystem empty?
-```
-]
-
---
-
-.nice[
-```java
-class File {
-    boolean isEmpty();                   // 🟢 is file empty?
-```  
-]
-
---
-.crap[
-
-```java
-
-interface CommandService {
-    void execute(Command command);      // 🔴 execute command service
-```
-]
-
---
-
-.nice[
-```java
-class Command {
-    void execute();                     // 🟢 execute command
-```  
-]
-
----
-class: codeonly
-
-### 💡 Good object design reduces coupling by hiding it's state from others.
-
-.crap[
-```java
-class PaymentJsonConverter {
-  Json convert(Payment payment) { ... } // "converter" must know everything about the payment's internals :(
-```
-]
-
---
-
-.nice[
-```java
-class Payment {
-  Json json() { ... }
-```
-]
-
---
-
-#### 💡 Rule: Flexibility breeds complexity. Postpone flexibility until *really* needed.
---
-
-.crap[
-```java
-interface ConditionChecker {
-  boolean checkCondition(Condition condition)
-```
-]
-
---
-
-.nice[```java
-interface Condition {
-  boolean isFulfilled();
-```
-]
-
---
-
-.crap[
-```java
-
-interface CredentialValidator {
-  boolean validate(String username, String password);
-```
-]
-
---
-
-.nice[```java
-interface Credentials {
-  boolean areValid();
-```
-]
-
---
-
-.crap[
-```java
-
-interface RegistrationService {
-  void register(String username, String password);
-```
-]
-
---
-
-.nice[
-```java
-interface Registration {
-  void complete();
-```
-]
-
----
-class: codeonly
-
-### 💡 Good object design reduces efferent coupling.
-
---
-
-```java
-class File { }
-```
-
---
-
-.crap[
-```java
-class FileReader {
-
-   String read(File file) { ... }
-   
-
-```
-]
-
---
-  
-.crap[
-```java
-   boolean hasText(File file) { ... }
-```
-]
-
---
-  
-.crap[
-```java
-   Stream<String> lines(File file) { ... }
-```
-]
-
---
-  
-.crap[
-```java
-   String read(Path path) { ... }
-
-   boolean hasText(Path path) { ... }
-
-   Stream<String> lines(Path path) { ... }
-```
-]
-
---
-
-.nice[
-```java
-
-class TextFile {
-
-   TextFile(Path) { ... }
-   TextFile(File) { ... }
-```
-]
-
---
-
-.nice[
-```java
-   String text();
-```
-]
-
---
-
-.nice[
-```java
-   boolean isEmpty();
-```
-]
-
---
-
-.nice[
-```java
-   Stream<String> lines();
-```
-]
-
----
-class: center, middle
-# Printers
-### (demo)
-
-
----
-class: codeonly
-
-### 💡 Good object design denies setters. Objects are not data bags.
-
-.crap[
-```java
-Borrower borrower = new Borrower();
-borrower.setFirstName(firstName);
-borrower.setLastName(lastName);
-```
-]
-
---
-
-.nice[
-```java
-borrower.change(ProfileInfo profileInfo);
-```
-]
-
---
-
-.crap[
-```java
-agreement.setSigned(boolean signed);
-agreement.setOwner(Borrower borrower);
-```
-]
-
---
-
-.nice[
-```java
-agreement.sign(Borrower borrower);
-```
-]
-
---
-
-.nice[
-```java
-agreement.callOff();
-```
-]
-
---
-
-.nice[
-```java
-agreement.suspendFraudulent();
-```
-]
-
---
-
-.crap[
-```java
-user.setIpAddress(String ipAddress);
-```
-]
-
---
-
-.nice[
-```java
-user.register(RegistrationInfo registrationInfo);
-```
-]
-
---
-
-.nice[
-```java
-user.visitWebsite(GeoLocation location);
-```
-]
-
---
-
-.nice[
-```java
-loanApplication.isADrunkDecision(LendingPolicy lendingPolicy);
-```
-]
-
-#### 💡 Hint: objects can have dependencies (hello, Domain-Driven Design)
-#### 💡 Hint: objects should protect their invariants.
-
----
-## 💡 The whole point of OOP is not to have to worry about what is inside an object – Alan Kay
-
---
-
-#### 1. **Avoiding shared mutable state** by encapsulating state and isolating other objects from local state changes. The only way to affect another object’s state is to ask that object to change it by **sending a message**. State changes are controlled at a local, cellular level rather than exposed to shared access.
-
---
-
-#### Objects abstract away and hide data structure implementations. The internal implementation of an object could change without breaking other parts of the software system. Objects, meanwhile, could expose a standard interface that works with whatever data structure the object happened to use internally. The same interface could work with a linked list, a tree, a stream, and so on.
-
---
-
-#### 2. **Decoupling** of objects is achieved through hiding of internal state and messaging.
-
-
----
-# Data classes
-
---
-
-## - DTOs, Java beans...
-
---
-
-## - do not have behaviour, hence have no tests.
-
---
-
-## - **can** have getters and setters (but should they?)
+### - A class is either a data class or an object. Never both.
 
 ---
 class: codeonly
@@ -1754,18 +1463,361 @@ user.middleName = "Cecil"
 
 --
 
+### 💡 Alternatives:
+#### - github.com/google/auto
+#### - github.com/rzwitserloot/lombok
+#### - github.com/immutables/immutables ❤️
+#### - records (very limited)
+
+
+---
+class: codeonly
+
+#### **Object** — hides and protects state, exposes behaviour.
+
+--
+
 ```java
+class BankAccount {
+  private Collection<Transaction> transactions;
+  private Status status;
+  private BigDecimal limits;
 
+  void close() { ... }
+  void withdraw(BigDecimal amount) { ... }
+  void deposit(BigDecimal amount) { ... }
 
-record User(String firstName, String lastName, Optional<String> middlename) { }
+  BigDecimal amount() { ... }
+  Json json() { ... }
+}
 ```
 
 --
 
-### 💡 Alternatives:
-#### - github.com/google/auto
-#### - github.com/rzwitserloot/lombok
-#### - github.com/immutables/immutables
+#### 🟢 State invariants are **enforced** and **visible** in code and tests.
+
+--
+
+#### 🟢 State is hidden, doesn't leak uncontrollably, and clients are coupled only to limited set of behaviours.
+
+--
+
+#### 🟢 Adding behaviour forces you to think where it belongs, usually triggering re-modeling.
+
+--
+
+#### 🟢 Only meaningful domain classes have remained.
+
+--
+
+#### 🔴 Tend to grow big. 
+
+--
+
+#### 🔴 OOA&D/DDD in data-driven and CRUD apps is an overkill.
+
+---
+class: codeonly
+
+#### **Object** — no setters.
+
+.crap[
+```java
+Borrower borrower = new Borrower();
+borrower.setFirstName(firstName);
+borrower.setLastName(lastName);
+```
+]
+
+--
+
+.nice[
+```java
+borrower.change(ProfileInfo profileInfo);
+```
+]
+
+--
+
+.crap[
+```java
+agreement.setSigned(boolean signed);
+agreement.setOwner(Borrower borrower);
+```
+]
+
+--
+
+.nice[
+```java
+agreement.sign(Borrower borrower);
+```
+]
+
+--
+
+.nice[
+```java
+agreement.callOff();
+```
+]
+
+--
+
+.nice[
+```java
+agreement.suspendFraudulent();
+```
+]
+
+--
+
+.crap[
+```java
+user.setIpAddress(String ipAddress);
+```
+]
+
+--
+
+.nice[
+```java
+user.register(RegistrationInfo registrationInfo);
+```
+]
+
+--
+
+.nice[
+```java
+user.visitWebsite(GeoLocation location);
+```
+]
+
+--
+
+.nice[
+```java
+loanApplication.isADrunkDecision(LendingPolicy lendingPolicy);
+```
+]
+
+--
+
+.nice[
+```java
+bankAccount.close(UnsatisfiedObligations unsatisfiedObligations);
+```
+]
+
+#### 💡 An objects can depend on other objects to protect its invariants (hello, Domain-Driven Design)
+
+---
+class: codeonly
+
+#### **Object** — let's encapsulate the state...
+
+.crap[
+```java
+interface ConditionChecker {
+  boolean check(Condition condition)
+```
+]
+
+--
+
+.nice[
+```java
+interface Condition {
+  boolean isFulfilled();
+```
+]
+
+--
+
+.crap[
+```java
+
+interface CredentialValidator {
+  boolean validate(String username, String password);
+```
+]
+
+--
+
+.nice[```java
+interface Credentials {
+  boolean areValid();
+```
+]
+
+.crap[
+
+```java
+
+interface FileSystem {
+    boolean isEmpty(File file);        
+```
+]
+
+--
+
+.nice[
+```java
+class File {
+    boolean isEmpty();                   
+```  
+]
+
+--
+
+.crap[
+```java
+
+interface RegistrationService {
+  void register(String username, String password);
+```
+]
+
+--
+
+.nice[
+```java
+interface Registration {
+  void complete();
+```
+]
+
+---
+class: codeonly
+
+#### **Object** — let's encapsulate the state...
+
+.crap[
+```java
+class PaymentJsonConverter {
+  Json convert(Payment payment) { ... } // "converter" must know everything about the payment's internals :(
+```
+]
+
+--
+
+.nice[
+```java
+class Payment {
+  Json json() { ... }
+```
+]
+
+--
+
+#### 🤔 Concern: I might need different converters "in future"
+
+--
+
+#### 💡 Flexibility breeds complexity — Kirk Knoernschild, Java Application Architecture
+#### 💡 Decide as late as possible — Lean Principle #4
+#### 💡 Simplicity, the art of maximizing the amount of work not done, is essential — Agile Manifesto
+
+--
+
+.nice[
+```java
+class Payment {
+  Json jsonForSwedbank() { ... }
+  Json jsonForLuminor() { ... }
+  Json jsonForSeb() { ... }
+```
+]
+
+--
+
+.nice[
+```java
+class Payment {
+  Json json(Format format) { ... }
+```
+]
+
+--
+
+.nice[
+```
+class SebPayment extends Payment {
+  Json json() { ... }
+```
+]
+
+
+
+---
+class: codeonly
+#### **Object** — you can't **always** keep behaviour next to the state. 
+
+// oops: 
+.crap[
+```java
+class File { ... }                           // 🟡 third-party class 
+```
+]
+
+--
+
+.crap[
+```java
+class FileReader {                           // 🔴 Meaningless domain class
+    String read(File file);                  // 🔴 CQS violation
+```
+]
+
+--
+
+.crap[
+```java
+class FileReader {
+  String content(File file);                 // 🔴 file reader's content?
+```
+]
+
+--
+
+.nice[
+```java
+class TextFile {                             // 🟢 Meaningfull domain class
+  TextFile(File file) { ... }
+  String content() { ... }                   // 🟢 CQS compliant
+}
+```
+]
+
+--
+
+.nice[
+```java
+var textFile = new TextFile(file);
+var content = textFile.content();            // 🟢 file's content
+```
+]
+
+--
+
+.nice[
+```java
+class Content {                              // 🟢 Alternative
+  Content(TextFile file) { ... }
+  String toString() { ... }
+}
+```
+]
+
+--
+
+.nice[
+```java
+var textFile = new TextFile(file);
+System.out.println("Text file's content is: " + new Content(textFile)); // or Content.of(textFile)
+```
+]
 
 ---
 class: center, middle, example
@@ -2394,16 +2446,6 @@ class Borrower {
   Collection<LoanApplication> loanApplications;
 }
 ```
-
---
-
-
-#### &nbsp;
-### 💡 In Hibernate, you can map one row to many entities. 🤫
-
---
-
-### 💡 Or you can duplicate and synchronize data.
 
 ---
 
