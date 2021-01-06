@@ -768,26 +768,66 @@ interface CustomerDAO {
 --
 
 ```java
-interface Customers {
+interface CustomerRepository {
   void add(Customer customer);
   void delete(Customer customer);
-  Collection<Customer> all();
+  Collection<Customer> findAll();
 }
 ```
 
 --
 
 ```java
-interface Customers {
+interface CustomerRepository {
   void add(Customer customer);
-  Customer singleBy(Criteria criteria);
-  Collection<Customer> allBy(Criteria criteria);
   void deleteBy(Criteria criteria);
+  Collection<Customer> findAllBy(Criteria criteria);  
+  Customer findOneBy(Criteria criteria);
+  boolean exists(Criteria criteria);
 }
 ```
 --
 
 ### 💡 Repositories heavily rely on Unit of Work pattern.
+
+---
+class: codeonly
+### 💡 Bypass domain model for read-only commands (CQRS):
+
+--
+
+#### Use JPQL projections, JdbcTemplate, or jOOQ:
+
+```java
+  class GetUserInfoCommandHandler implements Command.Handler<UserInfo> {
+    @Override
+    UserInfo handle(UserInfo command) {
+      return dsl.select(USER.FIRST_NAME, USER.LAST_NAME, USER.EMAIL)
+                .where(USER.ID.eq(command.userId()))
+                .fetchInto(UserInfo.class);
+    }
+  } 
+```
+
+--
+
+#### 🟢 Faster and more flexible than Hibernate.
+
+--
+
+#### 🟢 No need to create a domain model that "pleases" API and screens.
+
+--
+
+#### 🟢 No need to expose state of domain objects.
+
+--
+
+#### 🟢 Easy to explain and enforce with ArchUnit: 
+#### - Queries use jOOQ for speed and flexibility.
+#### - Commands use Hibernate entities and enjoy ORM, first-level cache, and optimistic locking.
+
+If only certain fields are needed, use projections.
 
 ---
 # IDs, equality and hash code
