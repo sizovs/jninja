@@ -406,9 +406,7 @@ if (productOwner.owns(product)) {
 .crap[
 ```java
 
-
-
-Collection<Boolean> checkboxes = new ArrayList<>();
+Map<Integer, BigDecimal> extensionFees = loan.extensionFees(borrower); // 🔴 SLAP violation
 ```
 ]
 
@@ -416,20 +414,7 @@ Collection<Boolean> checkboxes = new ArrayList<>();
 
 .nice[
 ```java
-Collection<Checkbox> checkboxes = ...
-```
-]
-
---
-
-.crap[
-```java
-
-
-
-interface EShop {
-    Map<String, String> resolveAffiliates(EShopSession session);
-}
+Collection<ExtensionFee> extensionFees = loan.extensionFees(borrower);
 ```
 ]
 
@@ -437,12 +422,32 @@ interface EShop {
 
 .nice[
 ```java
-interface EShop {
-    Affiliates affiliates(EShopSession session);
-}
+var cheapestExtensionFee = extensionFees.get(0);
+var term = cheapestExtensionFee.term();
+var fee = cheapestExtensionFee.fee();
 ```
 ]
 
+
+--
+
+.nice[
+```java
+
+
+ExtensionFees extensionFees = loan.extensionFees(borrower);
+```
+]
+
+--
+
+.nice[
+```java
+var cheapestExtensionFee = extensionFees.cheapest();
+var term = cheapestExtensionFee.term();
+var fee = cheapestExtensionFee.fee();
+```
+]
 
 ---
 class: codeonly
@@ -1057,7 +1062,7 @@ interface SpotifyApp {
 class: codeonly
 .crap[
 ```java
-interface HipChat {
+interface Slack {
     void sendMessage(String channel, String mesage);
 }
 ```
@@ -1068,7 +1073,7 @@ interface HipChat {
 #### Option A
 .nice[
 ```java
-interface HipChat {
+interface Slack {
     void send(Message message); // Message contains text and channel
 }
 ```
@@ -1079,7 +1084,7 @@ interface HipChat {
 #### Option B
 .nice[
 ```java
-interface Channel {
+interface Slack {
     void send(Message message);
 }
 ```
@@ -1089,7 +1094,7 @@ interface Channel {
 
 .nice[
 ```java
-interface HipChat {
+interface Slack {
     Channel channel(String name);
 }
 ```
