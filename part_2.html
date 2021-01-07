@@ -784,6 +784,7 @@ interface CustomerRepository {
   Collection<Customer> findAllBy(Criteria criteria);  
   Customer findOneBy(Criteria criteria);
   boolean existsBy(Criteria criteria);
+  long countBy(Criteria criteria);
 }
 ```
 --
