@@ -466,7 +466,7 @@ for (String key : httpRequest.params().keySet()) {
 ```java
 Form form = new Form();
 for (String key : httpRequest.params().keySet()) {
-  formParams.add(key, httpRequest.params().get(key));
+  form.add(key, httpRequest.params().get(key));
 }
 ```
 ]
@@ -1082,10 +1082,11 @@ interface Slack {
 --
 
 #### Option B
+
 .nice[
 ```java
 interface Slack {
-    void send(Message message);
+    Channel channel(String name);
 }
 ```
 ]
@@ -1094,8 +1095,8 @@ interface Slack {
 
 .nice[
 ```java
-interface Slack {
-    Channel channel(String name);
+interface Channel {
+    void send(Message message);
 }
 ```
 ]
