@@ -489,8 +489,10 @@ class: center, middle
 class: codeonly
 ```java
 org.name.application
-├── RegisterCommand.java               (handler and web api inside)            
-├── GetUserDetailsCommand.java         (handler and web api inside)            
+├── RegisterCommand.java               (handler and inside)            
+├── GetUserDetailsCommand.java         (handler and inside)
+├── webapi
+├──── WebController.java
 org.name.domain.user
 ├── User.java                                                                
 ├── UserAddress.java                                                  
@@ -520,6 +522,8 @@ class: codeonly
 org.name.application
 ├── RegisterCommand.java                           (private)
 ├── GetUserDetailsCommand.java                     (private)
+├── webapi
+├──── WebController.java                           (private)
 org.name.domain.user
 ├── User.java                                                                
 ├── UserAddress.java                                                  
