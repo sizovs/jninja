@@ -130,7 +130,7 @@ class: bad
 class: codeonly
 .nice[
 ```java
-class GrantPermission(String memberId, permissionId) implements Command<Voidy> {
+class GrantPermission implements Command<Voidy> {
 
   public final String memberId;
   public final String permissionId;
@@ -152,7 +152,7 @@ class GrantPermissionHandler implements Command.Handler<GrantPermission, Voidy> 
     private final MemberRepository members;
     private final PermissionRepository permissions;
 
-    public GrantPermissionReaction(MemberRepository permissions, PermissionRepository members) { ... }
+    public GrantPermissionHandler(MemberRepository permissions, PermissionRepository members) { ... }
 
     @Override
     public Voidy handle(GrantPermission cmd) {
