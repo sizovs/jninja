@@ -69,7 +69,7 @@
 class: center, middle, example
 background-size: contain
 # Effective Coding Principles and Patterns 
-### (Java 15 edition)
+### (Java 16 edition)
 
 ---
 # Agenda:
@@ -275,11 +275,13 @@ Stream<User> users = repository.allUsers();
 
 ---
 class: codeonly
-### 💡 Principle: maximum proximity, minimum visibility.
-### 1. internal class
-### 2. package-private class
-### 3. public class
-### 4. public class in a different package
+### 💡 Principle: minimum visibility, maximum proximity.
+### 1. **local** interface/enum/class
+### 2. **internal**
+### 3. **package-private**
+### 4. **public**
+### 5. **public**, different package
+### 6. **public**, different module
 ???
 to express belonging.
 
@@ -413,13 +415,13 @@ Map<Integer, BigDecimal> extensionFees = loan.extensionFees(borrower); // 🔴 S
 
 .nice[
 ```java
-Collection<ExtensionFee> extensionFees = loan.extensionFees(borrower);
+Collection<ExtensionFee> extensionFees = loan.extensionFees(borrower); // 🟡 OK
 ```
 ]
 
 --
 
-.nice[
+.crap[
 ```java
 var cheapestExtensionFee = extensionFees.get(0);
 var term = cheapestExtensionFee.term();
@@ -434,7 +436,7 @@ var fee = cheapestExtensionFee.fee();
 ```java
 
 
-ExtensionFees extensionFees = loan.extensionFees(borrower);
+ExtensionFees extensionFees = loan.extensionFees(borrower);            // 🟢 Love
 ```
 ]
 
