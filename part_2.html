@@ -488,11 +488,11 @@ class: center, middle
 ---
 class: codeonly
 ```java
+org.name.webapi
+├── WebController.java                         
 org.name.application
 ├── RegisterCommand.java               (handler and inside)            
 ├── GetUserDetailsCommand.java         (handler and inside)
-├── webapi
-├──── WebController.java
 org.name.domain.user
 ├── User.java                                                                
 ├── UserAddress.java                                                  
@@ -519,11 +519,11 @@ org.name.domain.payments
 ---
 class: codeonly
 ```java
+org.name.webapi
+├── WebController.java                             (private)
 org.name.application
-├── RegisterCommand.java                           (private)
-├── GetUserDetailsCommand.java                     (private)
-├── webapi
-├──── WebController.java                           (private)
+├── RegisterCommand.java                           
+├── GetUserDetailsCommand.java                     
 org.name.domain.user
 ├── User.java                                                                
 ├── UserAddress.java                                                  
@@ -545,11 +545,15 @@ org.name.domain.payments
 
 --
 
-### A subdomain is often a good candidate for a module / micro-service.
+#### A subdomain is often a good candidate for a module / micro-service.
 
 --
 
-### But:
+#### So it's good to know if **loans** depends on **payments** or **payments** on **loans**.
+
+--
+
+#### ... otherwise: 
 
 ---
 background-size: contain
