@@ -1449,7 +1449,7 @@ class BankAccountUtils { ... }
 
 --
 
-#### 🔴 Results in many meaningless classes from the domain perspective (utils, converter, service).
+#### 🔴 Results in many meaningless "agent" classes from the domain perspective (utils, helpers, managers, converters, services).
 
 ---
 class: codeonly
@@ -1495,7 +1495,7 @@ class BankAccount {
 
 --
 
-#### 🔴 OOA&D/DDD in data-driven and CRUD apps is an overkill.
+#### 🔴 OOA&D/DDD in data-driven and CRUD apps is an overkill. Also OOA&D/DDD is difficult.
 
 ---
 class: codeonly
@@ -1781,7 +1781,7 @@ class FileReader {
 ```java
 class TextFile {                             // 🟢 Meaningfull domain class
   TextFile(File file) { ... }
-  String content() { ... }                   // 🟢 CQS compliant
+  String content() { ... }                   
 }
 ```
 ]
