@@ -140,8 +140,8 @@ Stream<User> users = repository.allUsers();
           .flatMap(User::phoneNumbers)
           .map(PhoneNumber::countryCode)
           .map(countryCode -> {
-              var pattern = "^(?:\\+)?(?:\\d)+$";
-              var matches = countryCode.matches(pattern);
+              var regex = "^(?:\\+)?(?:\\d)+$";
+              var matches = countryCode.matches(regex);
               checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
             
               if (countryCode.startsWith("+")) {
@@ -175,8 +175,8 @@ Stream<User> users = repository.allUsers();
 
 ```java
 private String countryCodeWithExitCode(String countryCode) {
-  var pattern = "^(?:\\+)?(?:\\d)+$";
-  var matches = countryCode.matches(pattern);
+  var regex = "^(?:\\+)?(?:\\d)+$";
+  var matches = countryCode.matches(regex);
   checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
 
   if (countryCode.startsWith("+")) {
@@ -197,8 +197,8 @@ class: codeonly
 
 ```java
 private String countryCodeWithExitCode(String countryCode) {
-  var pattern = "^(?:\\+)?(?:\\d)+$";
-  var matches = countryCode.matches(pattern);
+  var regex = "^(?:\\+)?(?:\\d)+$";
+  var matches = countryCode.matches(regex);
   checkArgument(matches, "Country code %s doesn't match %s pattern", countryCode, regex);
 
   if (countryCode.startsWith("+")) {
@@ -1064,7 +1064,7 @@ class: codeonly
 .crap[
 ```java
 interface Slack {
-    void sendMessage(String channel, String mesage);
+    void sendMessage(String channel, String text);
 }
 ```
 ]
@@ -1075,7 +1075,7 @@ interface Slack {
 .nice[
 ```java
 interface Slack {
-    void send(Message message); // Message contains text and channel
+    void send(Message message); // Message contains channel and text
 }
 ```
 ]
@@ -1097,46 +1097,21 @@ interface Slack {
 .nice[
 ```java
 interface Channel {
-    void send(Message message);
+    void send(String message);
 }
 ```
 ]
 
 ---
 class: center, middle
-# Methods are either **commands** or **queries**.
-### Use commands (verbs) to tell an object what to do.
-### Use queries (nouns) to ask object give you something.
-— *[Command/Query Separation](http://martinfowler.com/bliki/CommandQuerySeparation.html)*
+## When a method returns something, make it a noun.
+### 📚 Elegant Objects, Vol I
 
 ---
 class: codeonly
-.crap[
-```java
-interface Iterator<T> {
-  T next();
-```
-]
-
---
-
-.nice[
-```java
-interface Iterator<T> {
-  // command to tell an object what to do (verb)
-  void advance();
-
-  // query to ask for state (noun)
-  T current();
-```
-]
-
---
 
 .crap[
 ```java
-
-
 InputStream stream = webPage.crawl();
 ```
 ]
@@ -1145,7 +1120,7 @@ InputStream stream = webPage.crawl();
 
 .nice[
 ```java
-InputStream stream = webPage.content(); // under the hood, an object might do something big!
+InputStream stream = webPage.content(); // under the hood, an object might do something serious.
 ```
 ]
 
@@ -1167,10 +1142,12 @@ webPage.content().transferTo(...)
 
 --
 
+#### ...and remove a noizy "get" prefix:
+
+--
+
 .crap[
 ```java
-
-
 user.getFullName(); // if (user.getFullName().equals(...))
 ```
 ]
@@ -1203,100 +1180,60 @@ ongoingTransaction().pointsTo(...)
 
 --
 
-#### ⚠️ Queries that return boolean are not nouns. Keep using using **is**, **has** etc.
-
----
 class: codeonly
+.crap[
+```java
 
-## 💡 In 10% cases CQS is worth violating:
 
-#### ⚠️ Command (verb) returns a result
+remove(domElement.getChildren());
 ```
-interface Command<R> {
-  R execute();
-```
+]
 
 --
 
-#### 💩 Temporal coupling
+.nice[
+```java
+remove(domElement.children());
 ```
-interface Command<R> {
-  void execute();
-  R result();
-```
+]
 
 --
 
+class: codeonly
+.crap[
+```java
 
-#### 💩 Naming inconsistent with a well-known GoF pattern
+
+while (getTempFile().exists()) {
+  ...
 ```
-interface Command<R> {
-  R result();
-```
+]
 
 --
 
-#### ✅ Just violate CQS
-
+.nice[
+```java
+while (tempFile().exists()) {
+  ...
 ```
-interface Command<R> {
-  R execute();
-```
+]
 
 ---
 class: codeonly, center, middle
-# Objects vs. data classes vs. procedures
+# Objects vs. data classes
 
 ---
 class: codeonly
 
-#### **Data class** — exposes raw state, has no behaviour.
-#### **Procedure** — takes a data class, and adds some random "logic" to it.
+### **Data classes**  expose raw state and have no behaviour. Behavior lives **somewhere** else.
 
 --
 
-```java
-class BankAccount {
-  private Collection<Transaction> transactions;
-  private Status status;
-  private BigDecimal limits;
-
-  Collection<Transaction> getTransactions() { ... }
-  void setTransactions(Collection<Transaction> transactions) { ... }
-
-  Status getStatus() { ... }
-  void setStatus(Status status) { ... }
-  ...
-}
-
-class BankAccountService { ... }
-class BankAccountJsonConverter { ... }
-class BankAccountUtils { ... }
-```
+### - DTOs, Java Beans, and records are data classes.
 
 --
 
-#### 🔴 State invariants are **not** enforced and are **not** visible in code and tests.
-
---
-
-#### 🔴 Uncontrolled state leakage and high afferent coupling to "internals". Maximum proximity, minimum visibility helps a bit.
-
---
-
-#### 🔴 Too easy to add behaviour w/o thinking where it actually belongs / re-modeling.
-
---
-
-#### 🔴 "Meaningless" classes from the domain perspective (utils, converter, service).
-
----
-class: codeonly
-### - DTOs and Java Beans are data classes.
-
---
-
-### - Because data classes don't have behavior, they have no tests.
+### - Because data classes don't have behavior, they should have no tests.
 
 --
 
@@ -1474,9 +1411,50 @@ user.middleName = "Cecil"
 
 
 ---
+class: codeonly, center, middle
+## ⚠️ When behavior naturally belongs to an entity, data classes (that want the behavior to live somewhere else) fall shortly...
+
+---
 class: codeonly
 
-#### **Object** — hides and protects state, exposes behaviour.
+```java
+class BankAccount {
+  private Collection<Transaction> transactions;
+  private Status status;
+  private BigDecimal limits;
+
+  Collection<Transaction> getTransactions() { ... }
+  void setTransactions(Collection<Transaction> transactions) { ... }
+
+  Status getStatus() { ... }
+  void setStatus(Status status) { ... }
+  ...
+}
+
+class BankAccountService { ... }
+class BankAccountJsonConverter { ... }
+class BankAccountUtils { ... }
+```
+
+--
+
+#### 🔴 Invariants aren't enforced and can't be understood by looking at the class / tests (they are scattered **somewhere** else, possibly duplicated)
+#### -> can I set bank account's status to CLOSED if it has a negative balance?
+#### -> what checks do I need to perform before closing account? where they are defined?
+#### -> how do I protect the state from unsolicited modification/leakage/coupling with other classes?
+
+--
+
+#### 🔴 Too easy to add behaviour w/o thinking where it actually belongs / re-modeling (because the state is freely available to everyone)
+
+--
+
+#### 🔴 Results in many meaningless classes from the domain perspective (utils, converter, service).
+
+---
+class: codeonly
+
+#### **Objects** hide and protect their state, expose behaviour.
 
 --
 
@@ -1522,7 +1500,7 @@ class BankAccount {
 ---
 class: codeonly
 
-#### **Object** — no setters.
+#### **Objects** should have no setters.
 
 .crap[
 ```java
@@ -1618,7 +1596,7 @@ bankAccount.close(UnsatisfiedObligations unsatisfiedObligations);
 ---
 class: codeonly
 
-#### **Object** — let's encapsulate the state...
+#### **Object thinking** challenge:
 
 .crap[
 ```java
@@ -1691,10 +1669,19 @@ interface Registration {
 ```
 ]
 
+--
+
+.nice[
+```java
+interface RegistrationForm {
+  void submit();
+```
+]
+
 ---
 class: codeonly
 
-#### **Object** — let's encapsulate the state...
+#### **Object thinking** challenge:
 
 .crap[
 ```java
@@ -1718,15 +1705,15 @@ class Payment {
 
 --
 
-#### 💡 Flexibility breeds complexity / use&reuse paradox — Kirk Knoernschild, Java Application Architecture
-
---
-
-#### 💡 Decide as late as possible — Lean Principle #4
+#### 💡 Decide as late as possible — Lean Software Development (or YAGNI from XP)
 
 --
 
 #### 💡 Simplicity, the art of maximizing the amount of work not done, is essential — Agile Manifesto
+
+--
+
+#### 💡 Flexibility breeds complexity / use&reuse paradox — Kirk Knoernschild, Java Application Architecture
 
 --
 
@@ -1761,7 +1748,7 @@ class SebPayment extends Payment {
 
 ---
 class: codeonly
-#### **Object** — you can't **always** keep behaviour next to the state. 
+#### You can't **always** keep behaviour next to the state:
 
 // oops: 
 .crap[
@@ -1775,7 +1762,7 @@ class File { ... }                           // 🟡 third-party class
 .crap[
 ```java
 class FileReader {                           // 🔴 Meaningless domain class
-    String read(File file);                  // 🔴 CQS violation
+    String read(File file);                  // 🔴 are reading the file reader?
 ```
 ]
 
@@ -1784,7 +1771,7 @@ class FileReader {                           // 🔴 Meaningless domain class
 .crap[
 ```java
 class FileReader {
-  String content(File file);                 // 🔴 file reader's content?
+  String content(File file);                 // 🔴 are we getting file reader's content?
 ```
 ]
 
@@ -1879,7 +1866,7 @@ public String greetings(String name) {
 ---
 class: center, middle
 ## In new code, use optionals instead of nulls.
-### Mythbuster: Optional fields are fine.
+### Mythbuster: Unless you use Serialization, Optional fields are fine.
 
 ---
 class: codeonly
@@ -2101,21 +2088,17 @@ public class Tweet {
     private Collection<Like> likes = new LinkedList<>();
 
 ```
---
-
-```java
-    LikesAnalytics likesAnalytics() {
-      return new LikesAnalytics(total, dailyMinimum, dailyMaximum, dailyAverage);
-    }
-```
 
 --
 
 ```java
-    void likesFoo() { ... }    
+    Histogram likesHistogram() { ... }
 
-    void likesBar() { ... }
+    void putLike(User user) { ... }    
 
+    boolean hasBeenLikedBy(User user) { ... }
+
+    long totalLikes() { ... }
 }
 ```
 
@@ -2124,60 +2107,17 @@ public class Tweet {
 ```
 public class Likes {
 
-  private final Collection<Like> likes;
+    private final Collection<Like> likes;
 
-  Likes(Collection<Like> likes) { this.likes = likes; }
+    Likes(Collection<Like> likes) { this.likes = likes; }
 
-  LikesAnalytics analytics() { ... }
+    Histogram histogram() { ... }      
 
-  void foo() { ... }
+    void put(User user) { ... }
 
-  void bar() { ... }
-}
-```
+    void existsBy(User user) { ... }
 
----
-class: codeonly
-```java
-public class Tweet {
-
-    private LocalDate date = LocalDate.now();
-
-    private Collection<Like> likes = new LinkedList<>();
-
-```
-
-```java
-    LikesAnalytics likesAnalytics() {
-      return new LikesAnalytics(total, dailyMinimum, dailyMaximum, dailyAverage);
-    }
-```
-
-```java
-    void likesFoo() { ... }    
-
-    void likesBar() { ... }
-
-}
-```
-
-```
-public class Likes extends ForwardingList<Like> {
-
-  private final Collection<Like> likes;
-
-  Likes(Collection<Like> likes) { this.likes = likes; }
-
-  LikesAnalytics analytics() { ... }
-
-  void foo() { ... }
-  
-  void bar() { ... }
-
-  @Override
-  protected List<Like> delegate() {
-      return ImmutableList.of(likes);
-  }  
+    long total() { ... }
 }
 ```
 
@@ -2200,19 +2140,51 @@ public class Tweet {
 
 --
 ```java
-  tweet.likes().analytics();
+  tweet.likes().histogram();
+
+  tweet.likes().put(currentUser);
+
+  tweet.likes().existsBy(currentUser);
   
-  tweet.likes().forEach(System::out.println);
+  tweet.likes().total();
 ```
 
 
 ---
 class: center, middle
-# Pattern 2: Decomposition.
+# Pattern 2: Decomposition
 
 ---
 class: center, middle
 ## Total likes during Black Friday?
+
+---
+class: codeonly
+
+.crap[
+```java
+class Likes {
+    ...
+    public long total() { ... }
+
+    public long totalDuringBlackFriday() {
+        var thanksgiving = LocalDate
+            .now()
+            .with(Month.NOVEMBER)
+            .with(TemporalAdjusters.lastInMonth(THURSDAY));
+
+        var blackFriday = thanksgiving.plusDays(1);
+
+        return likes
+            .stream()
+            .map(Like::date)
+            .filter(blackFriday::isEqual)
+            .count();
+    }
+    ...
+}
+```
+]
 
 ---
 class: codeonly
@@ -2246,6 +2218,8 @@ class BlackFriday {
 ```java
 class Likes {
     ...
+    public long total() { ... }
+
     public long totalDuring(BlackFriday blackFriday) {
         return likes
             .stream()
@@ -2268,7 +2242,7 @@ class: codeonly
 ```java
 @FunctionalInterface
 interface Query<T, R> {
-    R result(T entity);
+    R execute(T entity);
 }
 ```
 
@@ -2277,7 +2251,7 @@ interface Query<T, R> {
 ```java
 public interface Entity<T> {
     default <R> R query(Query<T, R> query) {
-        return query.result((T) this);
+        return query.execute((T) this);
     }
 }
 ```
@@ -2298,16 +2272,18 @@ class TotalDuringBlackFriday implements Query<Tweet.Likes, Long> {
     private final BlackFriday blackFriday = new BlackFriday();
 
     @Override
-    public Long result(Tweet.Likes likes) {
+    public Long execute(Tweet.Likes likes) {
         return
           likes
-            .stream()
+            .stream()                                // new method (package-private)
             .map(Like::date)
             .filter(blackFriday::fallsOn)
             .count();
     }
 }
 ```
+???
+- package private because minimum visibility, maximum proximity.
 
 --
 
@@ -2341,7 +2317,7 @@ interface Specification<T> {
 ```java
 public interface Entity<T> {
     default <R> R query(Query<T, R> query) {
-        return query.result((T) this);
+        return query.execute((T) this);
     }
 
     default boolean satisfies(Specification<T> specification) {
@@ -2353,14 +2329,14 @@ public interface Entity<T> {
 --
 
 ```java
-class GotMillionLikesOnAPostingDay implements Specification<Tweet> {
+class HasReceivedMillionLikesOnAPostingDay implements Specification<Tweet> {
 
         @Override
         public boolean isSatisfiedBy(Tweet tweet) {
             long likesOnAPostingDay = tweet
                     .likes()
                     .stream()
-                    .filter(like -> like.isGivenOn(tweet.date()))
+                    .filter(like -> like.isReceivedOn(tweet.date()))
                     .count();
             return likesOnAPostingDay >= 1000000;
         }
@@ -2370,7 +2346,7 @@ class GotMillionLikesOnAPostingDay implements Specification<Tweet> {
 --
 ```java
 Tweet tweet = ...
-boolean milionLikesInADay = tweet.satisfies(new GotMillionLikesOnAPostingDay());
+boolean milionLikesInADay = tweet.satisfies(new HasReceivedMillionLikesOnAPostingDay());
 ```
 
 
@@ -2381,17 +2357,34 @@ class: center, middle
 
 ---
 class: codeonly
+
+.crap[
 ```java
   class Tweet {
+    void delete(TwitterFeed feed, Analytics analytics) {
+      this.deleted = true;
+      this.deletionTime = new LocalDateTime.now();
+      feed.delete(this);
+      analytics.track(Operation.TWEET_DELETED);
+    }
+  }
+```
+]
 
+---
+class: codeonly
+
+.nice[
+```java
+  class Tweet {
     void delete() {
       this.deleted = true;
       this.deletionTime = new LocalDateTime.now();
       DomainEvents.send(new TweetDeleted(this));
     }
-
   }
 ```
+]
 
 --
 
@@ -2400,13 +2393,24 @@ class: codeonly
 class UpdateFeedOnTweetDeleted {
 
   @Autowired
-  Database database;
+  TwitterFeed feed;
+
+  @EventListener
+  void updateFeedOn(TweetDeleted event) {
+    var tweet = event.deletedTweet();
+    feed.delete(tweet);
+  }
+}
+```
+
+```java
+@Component
+class Analytics {
 
   @TransactionalEventListener
-  void triggerBy(TweetDeleted event) {
-    ...
+  void track(TweetDeleted event) {
+    trackOperation(TWEET_DELETED);
   }
-
 }
 ```
 
@@ -2456,6 +2460,8 @@ class Borrower {
   Collection<LoanApplication> loanApplications;
 }
 ```
+
+### ⚠️ Dangerous pro-tip: JPA/Hibernate can map multiple entities to a single table.
 
 ---
 
