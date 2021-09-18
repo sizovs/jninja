@@ -37,6 +37,7 @@
       .remark-slide-container {background-color: #000}
       /* new end */
       .fade {color: #E0E0E0}
+      .codeonly .fade { color: #222222}
       .spanny { padding: 10px; color: white; background-color: #0b1c2e }
       .nopadding { padding: 0 }
       .libs { background-color: #202020}
@@ -316,6 +317,26 @@ class Correlation implements Middleware {
 
 ---
 class: codeonly, invert
+```xml
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+          <pattern>%d{HH:mm:ss.SSS} [%thread] %-5p %-30.30logger{0} [%cyan(%X{ccid:-?})] %m%n</pattern>
+      </encoder>
+  </appender>
+  <root level="info">
+      <appender-ref ref="STDOUT"/>
+  </root>
+  <logger name="org.springframework.transaction" level="DEBUG"/>
+  <logger name="org.springframework.orm.jpa" level="DEBUG"/>
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+  <logger name="org.hibernate.type" level="TRACE"/>
+  <logger name="org.jooq" level="DEBUG"/>
+</configuration>
+```
+
+---
+class: codeonly, invert
 ```
 16:38:00.451 [main] INFO  CommandLogging   >>> BecomeAMember{name=Eduards} [1] 
 16:38:00.453 [main] INFO  Validation       >>> Eduards has typed a strong password [1] 
@@ -383,6 +404,10 @@ class: bad
 
 ---
 class: codeonly
+
+### Commands are stateful and serializable, so...
+
+--
 
 ```java
 class ActiveMq {
@@ -545,32 +570,8 @@ org.name.domain.payments
 
 --
 
-#### A subdomain is often a good candidate for a module / micro-service.
-
---
-
-#### So it's good to know if **loans** depends on **payments** or **payments** on **loans**.
-
---
-
-#### ... otherwise: 
-
----
-background-size: contain
-background-image:url(hibernate.png)
-
----
-background-size: contain
-background-image:url(jdk.png)
-
----
-class: center, middle
-### **A JDK code base is deeply interconnected** at both the API and the implementation levels, having been built over many years primarily in the style of a monolithic software system. We’ve spent considerable effort eliminating or at least simplifying as many API and implementation dependences as possible, so that both the Platform and its implementations can be presented as a coherent set of interdependent modules, but some particularly thorny cases remain. 
->### — Mark Reinholds, Chief Architect of the Java Platform
-
----
-background-size: contain
-background-image:url(spring.png)
+#### You can restrict dependencies with ArchUnit
+#### `> github.com/sizovs/unsuck-java > ArchitectureSpec.groovy`
 
 ---
 background-size: contain
@@ -633,7 +634,7 @@ def "regular payment overdue notification"() {
 
 --
 
-### reproducible 
+### reproducible (no junk in the trunk)
 #### - run on local workstation before pushing a change (the same suite runs on CI)
 
 --
@@ -647,7 +648,7 @@ def "regular payment overdue notification"() {
 --
 
 #### - Test parts of the system in isolation (mocks, stubs, thread-local singletons, no spring)
-#### - Natural byproduct of TDD. With "code-debug-done-tests" – *seems* like a wasted time
+#### - Natural byproduct of TDD
 #### - Documentation with examples for developers
 
 --
@@ -656,13 +657,13 @@ def "regular payment overdue notification"() {
 #### - For repositories, use H2 or Testcontainers
 #### - For filesystem, use Jimfs
 #### - For contract testing, use WireMock
-#### - For MVC testing, use Spring
+#### - For MVC testing, use MockMvc (and make controllers dumb)
 
 ---
 
 # Example
 
-`> https://github.com/sizovs/unsuck-java/blob/master/src/test/groovy/awsm/domain/banking/BankAccountSpec.groovy`
+`> github.com/sizovs/unsuck-java > BankAccountSpec.groovy`
 
 ---
 # More:
@@ -677,22 +678,32 @@ class: center, middle, example
 ---
 class: codeonly
 
-### 1. For declarative data class validation, use Bean Validation 2.0
+### 1. For declarative data class validation, use Bean Validation 2.0 
+
+```java
+record ApplyForBankAccountCommand(
+  @NonEmpty String firstName,
+  @NonEmpty String lastName,
+  @NonEmpty String personalId,
+  @NonEmpty @UniqueEmail String email) implements Command<Voidy> { ... }
+```
 
 --
 
-### 2. For programmatic validation:
-#### - Fluent Validator (github.com/neoremind/fluent-validator)
-#### - Yavi (github.com/making/yavi) 
-#### - Your own simple validator class (github.com/sizovs/unsuck-java) 
+### 2. Where performance and flexibility matters, write your own validation library:
+#### > github.com/sizovs/unsuck-java > ApplyForBankAccountCommand.java
 
 --
 
-### 3. Objects must be secure by design 
+### 3. Objects must be secure by design:
+
+#### > github.com/sizovs/unsuck-java > BankAccount.java + Iban.java
 
 --
 
-### 🍿 demo time!
+### 4. You can combine validation and secure by design principles:
+
+#### > github.com/sizovs/unsuck-java > ApplyForBankAccountCommand.java
 
 
 ---
@@ -720,84 +731,109 @@ class: codeonly
 ```java
 interface CustomerDAO {
 
-  UUID insert(Customer customer);
+  UUID insert(Customer customer);                     
 
-  UUID insert(CustomerDTO customer);
+  UUID insert(CustomerDTO customer);                  
 
-  Customer insert(String personalId, String fullName);
+  Customer newCustomer(String email, String name);
 
-  boolean saveOrUpdate(Customer customer);
+  void updateName(Customer customer, String newName)
 
-  boolean updateFullname(Customer customer, String newFullName);
+  void delete(Customer customer);                   
 
-  boolean delete(Customer customer);
+  Customer findByEmail(String email);               
 
-  boolean deleteByPersonalId(String personalId);
+  List<Customer> findAllInATransaction();           
 
-  Customer findByPersonalId(String personalId);
+  List<Customer> findAll(Criteria criteria);        
 
-  Collection<Customer> findAll();
+  T select(Criteria criteria, Projection projection)
 
-  Collection<PhoneNumber> findMobileNumbers(String personalId);
-
-  void merge(Customer detached);
-
-  ...
-}
+  List<Purchase> findPurchases(String personalId);  
+ 
+  void merge(Customer detached);                    
 ```
 ]
 
 ---
 class: center, middle
-# **Repository** mediates between the domain and data mapping layers using a **collection-like interface** for accessing domain objects.
+# A **repository** provides a **slim**, **collection-like** interface for accessing **domain objects**. A repository is part of the **domain model** and speaks the **ubiquitous language**.
 ### — *Fowler, PoEAA*
+---
+class: codeonly
+```java
+interface CustomerDAO {
+```
+--
+```java
+  UUID insert(Customer customer);                     // ❌ domain model should not speak SQL
+```
+--
+```java
+  UUID insert(CustomerDTO customer);                  // ❌ domain model, not API
+```
+--
+```java
+  Customer newCustomer(String email, String name);    // ❌ access, not creation
+```
+--
+```java
+  void updateName(Customer customer, String newName); // ❌ should be customer.name = newName
+                                                      //    ... and then JPA persists it 
+                                                      //    ... thanks to UnitOfWork pattern.
+```
+--
+```java
+  void delete(Customer customer);                     // ✅ OK
+```
+--
+```java
+  Customer findByEmail(String email);                 // ✅ OK
+```
+--
+```java
+  List<Customer> findAllInATransaction();             // ❌ should not manage transactions
+```
+--
+```java
+  List<Customer> findAll(Criteria criteria);          // ❌ should not couple clients to Hbn
+```
+--
+```java
+  T select(Criteria criteria, Projection projection); // ❌ should not leak SQL/Hibernate
+```
+--
+```java
+  List<Purchase> findPurchases(String personalId);    // ❌ should be a separate repo
+```
+--
+```java
+  void merge(Customer detached);                      // ❌ should not leak (ugly) JPA parts
+```
 
 ---
 class: codeonly
-.crap[
-```java
-interface CustomerDAO {
-  UUID insert(Customer customer);
-  UUID insert(CustomerDTO customer);
-  Customer insert(String personalId, String fullName);
-  boolean saveOrUpdate(Customer customer);
-  boolean updateFullname(Customer customer, String newFullName);
-  boolean delete(Customer customer);
-  boolean deleteByPersonalId(String personalId);
-  Customer findByPersonalId(String personalId);
-  Collection<Customer> findAll();
-  Collection<PhoneNumber> findMobileNumbers(String personalId);
-  void merge(Customer detached);
-  ...
-}
-```
-]
-
---
 
 ```java
 interface CustomerRepository {
+
+  Customer findBy(Email email);
+
+  Collection<Customer> findAll();
+
   void add(Customer customer);
+
   void delete(Customer customer);
-  Collection<Customer> findAll();
+
+  boolean existsBy(Email email);
+
+  boolean existsBy(PersonalId personalId);
+
+  long countGoldCustomersRegisteredOn(LocalDate date);
 }
 ```
 
---
-
-```java
-interface CustomerRepository {
-  void add(Customer customer);
-  void deleteBy(Criteria criteria);
-  Collection<Customer> findAllBy(Criteria criteria);  
-  Customer findOneBy(Criteria criteria);
-  boolean existsBy(Criteria criteria);
-  long countBy(Criteria criteria);
-}
-```
---
-
-### 💡 Repositories heavily rely on Unit of Work pattern.
+### .fade[A repository provides a] slim.fade[,] collection-like interface .fade[for accessing] domain objects. .fade[A repository is part of the domain model and] speaks the ubiquitous language.
 
 ---
 class: codeonly
@@ -840,7 +876,7 @@ If only certain fields are needed, use projections.
 
 ---
 # IDs, equality and hash code
-### 💡 Unless you use `merge()` or put entities in hash structures, you can rely on default `hashCode()` and `equals()` implementation.
+### 💡 Unless you let entities escape the tx boundary or share them between sessions, you don't have to implement ID-based equality. You can rely on default `hashCode()` and `equals()` implementation.
 
 --
 
@@ -887,9 +923,8 @@ class BankAccount {
     @Embedded
     private WithdrawalLimit withdrawalLimit = WithdrawalLimit.DEFAULT;
 
-    @ElementCollection
-    @CollectionTable(name = "BANK_ACCOUNT_TX")
-    @OrderColumn(name = "INDEX")
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "BANK_ACCOUNT_IBAN")
     private List<Transaction> transactions = new ArrayList<>();
 
     @Version
@@ -1046,40 +1081,25 @@ var tx = account.withdraw(new BigDecimal(100));
 ```
 
 --
-### 1. All transactions fulfil rules imposed by the bank account (aggregate root):
-#### ✅ transactions are possible only if the account is open (can't forget to check)
-#### ✅ transactions are within monthly and daily limits (can't create 1,000,000$ tx)
-#### ✅ no transaction can result in overdraft
-#### ✅ no data loss in concurrent environment (thanks to optimistic locking)
+### 1. All transactions satisfy rules imposed by the bank account (aggregate root):
+#### ✅ Transactions can only be created for an open account (can't forget to ask bank account)
+#### ✅ Transactions respect account balance (can't create -1,000,000$ tx)
+#### ✅ Transactions respect account rules (can't result in overdraft)
+#### ✅ No data loss/corruption in concurrent environment (thanks to optimistic locking)
 
-```java
-  tx 1                 tx 2       
-  read                 read 
-    bank account = 0     bank account = 0
-    tx = +500            +400  
-  commit               
-                       commit
-```
+`> see BankAccountPersistenceAndLockingSpec`
 
---
+`❤️ Poka yoke`
 
-`❌ poka yoke: transactionRepository.save(new Tx(100000000))`
+`❤️ Less cognitive load (no temporal coupling)`
 
-`🧠 don't have to remember to perform extra checks (no temporal coupling)`
-
-`🔒 Secure by design`
-
----
-
-# More:
-### - bit.ly/dont_mess_up_data
-### - bailis.org/blog/understanding-weak-isolation-is-a-serious-problem
-### - github.com/ept/hermitage
+`❤️ Secure by design`
 
 ---
 
 class: center, middle, example
 # Transactional Outbox
+#### `> github.com/sizovs/unsuck-java > Scheduler.java`
 
 ---
 class: center, middle, example
