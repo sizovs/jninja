@@ -925,6 +925,7 @@ class BankAccount {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "BANK_ACCOUNT_IBAN")
+    @OrderBy("ID ASC")
     private List<Transaction> transactions = new ArrayList<>();
 
     @Version
