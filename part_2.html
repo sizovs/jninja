@@ -695,7 +695,7 @@ record ApplyForBankAccountCommand(
 
 --
 
-### 3. Objects must be secure by design:
+### 3. Good objects are secure by design:
 
 #### > github.com/sizovs/unsuck-java > BankAccount.java + Iban.java
 
@@ -796,7 +796,7 @@ interface CustomerDAO {
 ```
 --
 ```java
-  List<Customer> findAll(Criteria criteria);          // ❌ should not couple clients to Hbn
+  List<Customer> findAll(JpaCriteria criteria);       // ❌ should not couple clients to Jpa
 ```
 --
 ```java
@@ -817,21 +817,37 @@ class: codeonly
 ```java
 interface CustomerRepository {
 
-  Customer findBy(Email email);
-
-  Collection<Customer> findAll();
-
   void add(Customer customer);
 
-  void delete(Customer customer);
+  Customer findOne(Criteria criteria);
 
-  boolean existsBy(Email email);
+  Collection<Customer> findAll(Criteria criteria);
 
-  boolean existsBy(PersonalId personalId);
+  void delete(Criteria criteria);
 
-  long countGoldCustomersRegisteredOn(LocalDate date);
+  boolean exists(Criteria criteria);
+
+  long count(Criteria criteria);
+
+  
+```
+
+--
+```java
+
+  class By implements Criteria { ... }
+
+  class RegisteredYesterday implements Criteria { ... }
+
 }
 ```
+
+```java
+var customer = customers.findOne(new By(email));
+var customer = customers.findAll(new RegisteredYesterday());
+```
+
+--
 
 ### .fade[A repository provides a] slim.fade[,] collection-like interface .fade[for accessing] domain objects. .fade[A repository is part of the domain model and] speaks the ubiquitous language.
 
