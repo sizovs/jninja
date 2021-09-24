@@ -745,9 +745,9 @@ interface CustomerDAO {
 
   List<Customer> findAllInATransaction();           
 
-  List<Customer> findAll(Criteria criteria);        
+  List<Customer> findAll(JpaCriteria criteria);        
 
-  T select(Criteria criteria, Projection projection)
+  T select(JpaCriteria criteria, Projection projection)
 
   List<Purchase> findPurchases(String personalId);  
  
@@ -800,7 +800,7 @@ interface CustomerDAO {
 ```
 --
 ```java
-  T select(Criteria criteria, Projection projection); // ❌ should not leak SQL/Hibernate
+  T select(JpaCriteria crit, Projection projection);  // ❌ should not leak SQL/Hibernate
 ```
 --
 ```java
@@ -844,7 +844,7 @@ interface CustomerRepository {
 
 ```java
 var customer = customers.findOne(new By(email));
-var customer = customers.findAll(new RegisteredYesterday());
+var customers = customers.findAll(new RegisteredYesterday());
 ```
 
 --
